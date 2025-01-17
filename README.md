@@ -1,7 +1,7 @@
 # **SWIPE**
 At the University of Oklahoma, recruiting students for research projects is challenging and time-consuming for students and principal investigators (PIs) alike. Frequently, OU faculty or PIs receive tens of emails from students seeking research and academic internship opportunities and students scout the various websites within their colleges or outside in other institutions. This becomes a tedious task and often valuable opportunities are missed or remain unfilled.
 
-SWIPE (name under development) is a swipe-based, cross-platform, mobile app that matches students with faculty members/PIs based on their preferences and areas of interest. Students submit their general interests, and faculty submit the general needs for their research projects and labs. A customized user screening experience allows both parties to swipe or mark shortlists exchange application materials, and submit CVs and resumes. This app will change the paradigm of the recruitment process for the OU research institutions, accelerating the process by ensuring that less obvious matches are found.
+SWIPE (name under development) is a swipe-based, cross-platform, mobile app that matches students with faculty members/PIs based on their preferences and areas of interest. Students submit their general interests, and faculty submit the general needs for their research projects and labs. A customized user screening experience allows both parties to swipe or mark shortlists, exchange application materials, and submit CVs and resumes. This app will change the paradigm of the recruitment process for the OU research institutions, accelerating the process by ensuring that less obvious matches are found.
 
 ---
 
@@ -10,27 +10,24 @@ SWIPE (name under development) is a swipe-based, cross-platform, mobile app that
 2. [Features](#features)
 3. [Getting Started](#getting-started)
 4. [Installation](#installation)
-5. [Usage](#usage)
-6. [Contributing](#contributing)
-7. [License](#license)
-8. [Contact](#contact)
-9. [Acknowledgments](#acknowledgments)
+5. [Contributing](#contributing)
+6. [Contact](#contact)
+7. [Acknowledgments](#acknowledgments)
 
 ---
 
 ## **About the Project**
-- **Purpose**: What does the project do, and why was it created?
 - **Tech Stack**: Technologies or frameworks used.
-- **Goal**: What problem does it solve or value does it add?
 - Include a screenshot or demo GIF if applicable.
 
 ---
 
 ## **Features**
-- Key features or functionalities of the project:
-  - Feature 1
-  - Feature 2
-  - Feature 3
+- **Customizable User Filtering**: Students can filter and sort opportunities tailored to their needs and preferences.
+- **Swipe or Mark Shortlists**: Students can quickly shortlist opportunities with a swipe or marking mechanism for easy tracking. Faculty and PIs can mark student profiles that have expressed interest in their research projects. 
+- **Exchange and Submit Application Materials**: Seamlessly exchange application materials, including CVs and resumes, directly through the platform.
+- **Comprehensive Student Profiles**: Students can submit resumes and build detailed profiles showcasing their academic and professional achievements.
+- **Faculty-Specific Features**: Faculty members can create profiles highlighting their research, provide detailed information about job postings (e.g., required experience, technical knowledge, offered pay rate), and manage applications effectively.
 
 ---
 
@@ -46,71 +43,53 @@ SWIPE (name under development) is a swipe-based, cross-platform, mobile app that
 ### Installation
 1. Clone the repository:
    ```bash
-   git clone https://github.com/username/repo.git
+   git clone https://github.com/yukijx/swipe.git
    ```
 2. Navigate to the project directory:
    ```bash
-   cd project-folder
+   cd src
    ```
-3. Install dependencies:
-   ```bash
-   npm install
-   ```
-
----
-
-## **Usage**
-- Instructions for running or using the project:
-  ```bash
-  npm start
-  ```
-- How to access the application:
-  ```text
-  Navigate to http://localhost:3000 in your browser.
-  ```
-- Include example commands, API endpoints, or screenshots if applicable.
-
+   
 ---
 
 ## **Contributing**
 - Steps for contributing to the project:
-  1. Fork the repository.
+  1. Clone the repository.
   2. Create a new branch:
      ```bash
      git checkout -b feature/your-feature-name
      ```
-  3. Commit your changes:
+  3. Add your changes:
+     ```bash
+     git add <changed files>
+     ```
+  4. Commit your changes:
      ```bash
      git commit -m 'Add a new feature'
      ```
-  4. Push to the branch:
+  5. Push to the branch:
      ```bash
      git push origin feature/your-feature-name
      ```
-  5. Open a pull request.
-
-- Include a link to the code of conduct if applicable.
-
----
-
-## **License**
-- Licensing information (e.g., MIT, GPL, etc.):
-  ```text
-  Distributed under the MIT License. See LICENSE file for more details.
-  ```
+  6. Open a pull request.
 
 ---
 
 ## **Contact**
-- Name or team name.
-- Contact information (e.g., email, LinkedIn, etc.):
+- GROUP H 
+- Members:
   ```text
-  Project Link: https://github.com/username/repo
+  Product Owner: Yuki Zheng - [https://github.com/yukijx](https://github.com/yukijx)
+  Quality Assurance: Elijah DeBruyne - [insert github link]
+  Sprint Master 1: Dakota Natasha Staubach - [insert github link]
+  Sprint Master 2: Ryan Williams - [insert github link]
+  Sprint Master 3: Alex Tang - [insert github link]
+  
+  Project Link: [https://github.com/yukijx/repo](https://github.com/yukijx/swipe.git)
   ```
 
 ---
 
 ## **Acknowledgments**
-- Mention resources, libraries, or individuals that contributed:
-  - [Resource Name](https://example.com)
-  - [Inspiration Source](https://example.com)
+- We thank Dr. Mansoor Abdulhak for his guidance and instruction through the Capstone Design Project course at the University of Oklahoma, our mentor, Dr. Marmar Moussa, and the Moussa Lab (affiliated with the University of Oklahoma) for guidance on the development of this product.
+
