@@ -78,6 +78,7 @@ SWIPE (name under development) is a swipe-based, cross-platform, mobile app that
 ## **Contact**
 - GROUP H 
 - Members:
+
 Product Owner: Yuki Zheng - Yuki.Zheng-1@ou.edu
  
 Quality Assurance: Elijah DeBruyne - elijah.w.debruyne@ou.edu
