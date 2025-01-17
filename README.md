@@ -78,7 +78,6 @@ SWIPE (name under development) is a swipe-based, cross-platform, mobile app that
 ## **Contact**
 - GROUP H 
 - Members:
-  ```text
   Product Owner: Yuki Zheng - [https://github.com/yukijx](https://github.com/yukijx)
   Quality Assurance: Elijah DeBruyne - [insert github link]
   Sprint Master 1: Dakota Natasha Staubach - [insert github link]
@@ -86,7 +85,6 @@ SWIPE (name under development) is a swipe-based, cross-platform, mobile app that
   Sprint Master 3: Alex Tang - [insert github link]
   
   Project Link: [https://github.com/yukijx/repo](https://github.com/yukijx/swipe.git)
-  ```
 
 ---
 
