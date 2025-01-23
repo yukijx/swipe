@@ -4,7 +4,7 @@ import { View, Text, TextInput, Button, Image, StyleSheet, Platform, TouchableOp
 export default function LoginScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Login</Text>
+      <Text style={styles.title}>User Login</Text>
 
       <TextInput
         style={styles.input}
