@@ -1,5 +1,5 @@
 {
-  "name": "swipe_expo",
+  "name": "swipe",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
