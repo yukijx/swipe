@@ -105,6 +105,8 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 
 ## Get started
 
+0. make sure you are cd'd into swipe_exop
+
 1. Install dependencies
 
    ```bash
@@ -112,10 +114,12 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    ```
 
 2. Start the app
+   I think I made this work with just '''npm run start''' if you have a AVM open
 
    ```bash
     npx expo start
    ```
+   
 
 In the output, you'll find options to open the app in a
 
@@ -126,9 +130,8 @@ In the output, you'll find options to open the app in a
 
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
-## Get a fresh project
-
-When you're ready, run:
+## Get a fresh project 
+   since this is just the fresh template that expo makes, we can use this if we mess something up while messing around(I havn't tested this yet):
 
 ```bash
 npm run reset-project
