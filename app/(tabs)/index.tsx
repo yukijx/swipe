@@ -26,6 +26,7 @@ export default function LoginScreen() {
         <Text style={styles.createAccountText}>Create a new account</Text>
       </TouchableOpacity>
 
+
       {/* <TouchableOpacity onPress={() => router.push('/create_account')}>
         <Text style={styles.createAccountText}>Create a new account</Text>
       </TouchableOpacity> */}
