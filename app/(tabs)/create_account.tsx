@@ -1,13 +1,10 @@
 import React from 'react';
 import { View, Text, TextInput, Button, Image, StyleSheet, Platform, TouchableOpacity} from 'react-native';
-// import { useRouter } from 'expo-router'; // Use useRouter for navigation
 
-
-export default function LoginScreen() {
-  // const router = useRouter(); // Initialize router
+export default function CreateAccountScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>User Login</Text>
+      <Text style={styles.title}>Please insert a username and password.</Text>
 
       <TextInput
         style={styles.input}
@@ -22,15 +19,14 @@ export default function LoginScreen() {
         secureTextEntry
       />
 
-      <TouchableOpacity>
-        <Text style={styles.createAccountText}>Create a new account</Text>
-      </TouchableOpacity>
+      <TextInput
+        style={styles.input}
+        placeholder="Re-Enter Password"
+        placeholderTextColor="#888"
+        secureTextEntry
+      />
 
-      {/* <TouchableOpacity onPress={() => router.push('/create_account')}>
-        <Text style={styles.createAccountText}>Create a new account</Text>
-      </TouchableOpacity> */}
-
-      <Button title="Enter" onPress={() => console.log('Login pressed')} />
+      <Button title="Enter" onPress={() => console.log('Account created')} />
     </View>
   );
 }
