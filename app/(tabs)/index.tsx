@@ -31,7 +31,7 @@ export default function LoginScreen() {
         <Text style={styles.createAccountText}>Create a new account</Text>
       </TouchableOpacity> */}
 
-      <Button title="Enter" onPress={() => console.log('Login pressed')} />
+      <Button title="Enter" onPress={() => console.log("Login pressed")} />
     </View>
   );
 }
