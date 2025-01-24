@@ -10,7 +10,7 @@ SWIPE (name under development) is a swipe-based, cross-platform, mobile app that
 2. [Features](#features)
 3. [Getting Started](#getting-started)
 4. [Installation](#installation)
-5. [Goals and Progress Plan] (#goals-and-progress-plan)
+5. [Goals and Progress Plan](#goals-and-progress-plan)
 6. [Contributing](#contributing)
 7. [Contact](#contact)
 8. [Acknowledgments](#acknowledgments)
@@ -53,6 +53,51 @@ SWIPE (name under development) is a swipe-based, cross-platform, mobile app that
    ```bash
    cd src
    ```
+
+### EXPO Set up 
+This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+
+## Get started
+
+0. make sure you are cd'd into swipe_exop
+
+1. Install dependencies
+   ```bash
+   npm install
+   ```
+2. Install ['Android Studio'](https://developer.android.com/studio)
+3. Make sure you have the correct SDK [INSERT PHOTO] on Android Studio
+4. Start the emulator [INSERT PHOTO]
+5. Start the app
+   ```bash
+    npm run start 
+   ```
+
+In the output, you'll find options to open the app in a
+
+- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
+- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
+- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
+- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+
+Front-end development happens in the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+
+## Get a fresh project 
+   since this is just the fresh template that expo makes, we can use this if we mess something up while messing around(I havn't tested this yet):
+
+```bash
+npm run reset-project
+```
+
+This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+
+## Learn more
+
+To learn more about developing your project with Expo, look at the following resources:
+
+- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
+- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+
 
 --- 
 ## Goals and Progress Plan
@@ -127,61 +172,3 @@ Project Link: [https://github.com/yukijx/repo](https://github.com/yukijx/swipe.g
 
 ## **Acknowledgments**
 - We thank Dr. Mansoor Abdulhak for his guidance and instruction through the Capstone Design Project course at the University of Oklahoma, our mentor, Dr. Marmar Moussa, and the Moussa Lab (affiliated with the University of Oklahoma) for guidance on the development of this product.
-
-
-----------------a lot of new stuff to sort out below this -----------------
----------------------------------------------------------------------------
----------------------------------------------------------------------------
-# Welcome to your Expo app 👋
-
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
-
-## Get started
-
-0. make sure you are cd'd into swipe_exop
-
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-   I think I made this work with just '''npm run start''' if you have a AVM open
-
-   ```bash
-    npx expo start
-   ```
-   
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project 
-   since this is just the fresh template that expo makes, we can use this if we mess something up while messing around(I havn't tested this yet):
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
