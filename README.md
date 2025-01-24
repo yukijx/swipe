@@ -17,8 +17,11 @@ SWIPE (name under development) is a swipe-based, cross-platform, mobile app that
 ---
 
 ## **About the Project**
-- **Tech Stack**: Technologies or frameworks used.
-- Include a screenshot or demo GIF if applicable.
+- **Tech Stack**: 
+- **REACT NATIVE** will be used for cross-platform app development using Typescript and React. This front end will work in conjunction with the Expo framework.
+- **EXPO** is compatible with iOS, Android, and the web browser. The framework has a lot of APIs that will help facilitate development. It also allows you to test the app on your phone instantly by scanning a QR code instead of building the app every time. You can test the app on a browser, giving us a variety of platforms to view the changes on our codebase. 
+- **JSON-SERVER** is a temporary database solution before we transition to SQLite. 
+- **SQLite** provides portable local storage for a mobile app; this means that the data can be accessed even if the app is offline.  
 
 ---
 
@@ -54,29 +57,32 @@ SWIPE (name under development) is a swipe-based, cross-platform, mobile app that
 
 ## **Contributing**
 - Steps for contributing to the project:
-  1. Clone the repository.
-  2. Create a new branch:
+  1. Clone the repository:
+     ```bash
+      git clone https://github.com/yukijx/swipe.git
+     ```
+  3. Create a new branch:
      ```bash
      git checkout -b feature/your-feature-name
      ```
-  3. Add your changes:
+  4. Add your changes:
      ```bash
      git add <changed files>
      ```
-  4. Commit your changes:
+  5. Commit your changes:
      ```bash
      git commit -m 'Add a new feature'
      ```
-  5. Push to the branch:
+  6. Push to the branch:
      ```bash
      git push origin feature/your-feature-name
      ```
-  6. Open a pull request.
+  7. Open a pull request.
 
 ---
 
 ## **Contact**
-- GROUP H Members:
+GROUP H Members:
 
 Product Owner: Yuki Zheng - Yuki.Zheng-1@ou.edu
  
