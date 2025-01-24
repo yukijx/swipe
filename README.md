@@ -104,7 +104,7 @@ To learn more about developing your project with Expo, look at the following res
 
 | **Milestone**                  | **Description**                                                                                   | **Deadline**      | **Status**          |
 |---------------------------------|---------------------------------------------------------------------------------------------------|-------------------|---------------------|
-| **Project Setup**               | Initialize the repository, set up a development environment, and .       | January 20, 2025  | ✅ Completed         |
+| **Project Setup**               | Initialize the repository, set up a development environment, and determining useful technologies and platforms useful for project.       | January 20, 2025  | ✅ Completed         |
 | **Sprint 1 Design & Develop** | Implement user login, registration, password recovery functionality, and the UI design associated with these functionalities.                         | TBD  | 🔄 In Progress       |
 | **Sprint 2 Design & Develop**  | Develop database schema, set up Azure SQL Database, and integrate with the app backend to handle more complex requirements for user customizations.           | TBD | ⏳ Pending           |
 | **Sprint 3 Design & Develop** | Create interactive swipe functionality.                        | TBD     | ⏳ Pending           |
