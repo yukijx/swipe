@@ -37,13 +37,6 @@ SWIPE (name under development) is a swipe-based, cross-platform, mobile app that
 
 ## **Getting Started**
 
-### Prerequisites
-- List of tools, dependencies, or accounts required:
-  ```bash
-  # Example: Install Node.js
-  brew install node
-  ```
-
 ### Installation
 1. Clone the repository:
    ```bash
