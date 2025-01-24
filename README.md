@@ -10,9 +10,10 @@ SWIPE (name under development) is a swipe-based, cross-platform, mobile app that
 2. [Features](#features)
 3. [Getting Started](#getting-started)
 4. [Installation](#installation)
-5. [Contributing](#contributing)
-6. [Contact](#contact)
-7. [Acknowledgments](#acknowledgments)
+5. [Goals and Progress Plan] (#goals-and-progress-plan)
+6. [Contributing](#contributing)
+7. [Contact](#contact)
+8. [Acknowledgments](#acknowledgments)
 
 ---
 
@@ -28,7 +29,7 @@ SWIPE (name under development) is a swipe-based, cross-platform, mobile app that
 ## **Features**
 - **Customizable User Filtering**: Students can filter and sort opportunities tailored to their needs and preferences.
 - **Swipe or Mark Shortlists**: Students can quickly shortlist opportunities with a swipe or marking mechanism for easy tracking. Faculty and PIs can mark student profiles that have expressed interest in their research projects. 
-- **Exchange and Submit Application Materials**: Seamlessly exchange application materials, including CVs and resumes, directly through the platform.
+- **Exchange and Submit Application Materials**: Seamlessly exchange application materials directly through the platform, including CVs and resumes.
 - **Comprehensive Student Profiles**: Students can submit resumes and build detailed profiles showcasing their academic and professional achievements.
 - **Faculty-Specific Features**: Faculty members can create profiles highlighting their research, provide detailed information about job postings (e.g., required experience, technical knowledge, offered pay rate), and manage applications effectively.
 
@@ -52,7 +53,33 @@ SWIPE (name under development) is a swipe-based, cross-platform, mobile app that
    ```bash
    cd src
    ```
-   
+
+--- 
+## Goals and Progress Plan
+
+### Project Goals
+1. **Build a functional and user-friendly mobile application**
+2. **Implement core features**
+3. **Ensure performance and scalability**
+4. **Collaborate effectively as a team**
+5. **Deliver a polished final product**
+
+---
+
+### Progress Plan
+
+| **Milestone**                  | **Description**                                                                                   | **Deadline**      | **Status**          |
+|---------------------------------|---------------------------------------------------------------------------------------------------|-------------------|---------------------|
+| **Project Setup**               | Initialize repository, set up development environment, and configure GitLab CI/CD pipeline.       | January 15, 2025  | ✅ Completed         |
+| **Feature 1: User Authentication** | Implement user login, registration, and password recovery functionality.                          | February 1, 2025  | 🔄 In Progress       |
+| **Feature 2: Data Management**  | Develop database schema, set up Azure SQL Database, and integrate with the app backend.           | February 15, 2025 | ⏳ Pending           |
+| **Feature 3: Data Visualization** | Create interactive charts and tables for users to analyze their progress.                        | March 1, 2025     | ⏳ Pending           |
+| **Performance Optimization**    | Refactor code for efficiency, optimize database queries, and test app scalability.                | March 15, 2025    | ⏳ Pending           |
+| **Testing and Debugging**       | Conduct unit, integration, and end-to-end testing to ensure app stability and functionality.      | April 1, 2025     | ⏳ Pending           |
+| **Final Deployment**            | Deploy the app to the production environment and finalize documentation for submission.           | April 15, 2025    | ⏳ Pending           |
+| **Capstone Presentation**       | Prepare and deliver the final presentation showcasing the app’s features and achievements.        | April 20, 2025    | ⏳ Pending           |
+
+
 ---
 
 ## **Contributing**
