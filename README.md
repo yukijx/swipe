@@ -50,8 +50,6 @@ SWIPE (name under development) is a swipe-based, cross-platform, mobile app that
 ### EXPO Set up 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
-## Get started
-
 0. make sure you are cd'd into swipe_exop
 
 1. Install dependencies
