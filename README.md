@@ -66,8 +66,8 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    npm install
    ```
 2. Install ['Android Studio'](https://developer.android.com/studio)
-3. Make sure you have the correct SDK [INSERT PHOTO] on Android Studio
-4. Start the emulator [INSERT PHOTO]
+3. Make sure you have the correct SDK on Android Studio
+4. Start the emulator
 5. Start the app
    ```bash
     npm run start 
@@ -83,8 +83,6 @@ In the output, you'll find options to open the app in a
 Front-end development happens in the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
 ## Get a fresh project 
-   since this is just the fresh template that expo makes, we can use this if we mess something up while messing around(I havn't tested this yet):
-
 ```bash
 npm run reset-project
 ```
@@ -115,14 +113,12 @@ To learn more about developing your project with Expo, look at the following res
 
 | **Milestone**                  | **Description**                                                                                   | **Deadline**      | **Status**          |
 |---------------------------------|---------------------------------------------------------------------------------------------------|-------------------|---------------------|
-| **Project Setup**               | Initialize repository, set up development environment, and configure GitLab CI/CD pipeline.       | January 15, 2025  | ✅ Completed         |
-| **Feature 1: User Authentication** | Implement user login, registration, and password recovery functionality.                          | February 1, 2025  | 🔄 In Progress       |
-| **Feature 2: Data Management**  | Develop database schema, set up Azure SQL Database, and integrate with the app backend.           | February 15, 2025 | ⏳ Pending           |
-| **Feature 3: Data Visualization** | Create interactive charts and tables for users to analyze their progress.                        | March 1, 2025     | ⏳ Pending           |
-| **Performance Optimization**    | Refactor code for efficiency, optimize database queries, and test app scalability.                | March 15, 2025    | ⏳ Pending           |
-| **Testing and Debugging**       | Conduct unit, integration, and end-to-end testing to ensure app stability and functionality.      | April 1, 2025     | ⏳ Pending           |
-| **Final Deployment**            | Deploy the app to the production environment and finalize documentation for submission.           | April 15, 2025    | ⏳ Pending           |
-| **Capstone Presentation**       | Prepare and deliver the final presentation showcasing the app’s features and achievements.        | April 20, 2025    | ⏳ Pending           |
+| **Project Setup**               | Initialize the repository, set up a development environment, and .       | January 20, 2025  | ✅ Completed         |
+| **Sprint 1 Design & Develop ** | Implement user login, registration, password recovery functionality, and the UI design associated with these functionalities.                         | TBD  | 🔄 In Progress       |
+| **Sprint 2 Design & Develop **  | Develop database schema, set up Azure SQL Database, and integrate with the app backend to handle more complex requirements for user customizations.           | TBD | ⏳ Pending           |
+| **Sprint 3 Design & Develop ** | Create interactive swipe functionality.                        | TBD     | ⏳ Pending           |
+| **Sprint 4 Design & Develop**    | Resolve any issues in the codebase and integrate additional features (TBD once we meet up with our mentor).                | TBD    | ⏳ Pending           |
+| **Capstone Presentation**       | Prepare and deliver the final presentation showcasing the app’s features and achievements.        | TBD    | ⏳ Pending           |
 
 
 ---
