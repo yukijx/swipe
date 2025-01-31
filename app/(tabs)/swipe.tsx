@@ -13,6 +13,7 @@ export default function swipePage() {
 }
 
 
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
