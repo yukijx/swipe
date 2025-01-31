@@ -3,11 +3,11 @@ import { View, Text, TextInput, Button, Image, StyleSheet, Platform, TouchableOp
 // import { useRouter } from 'expo-router'; // Use useRouter for navigation
 
 
-export default function userPageScreen() {
+export default function swipePage() {
   // const router = useRouter(); // Initialize router
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>WELCOME USER!</Text>
+      <Text style={styles.title}>THIS IS THE SWIPE PAGE!</Text>
     </View>
   );
 }
