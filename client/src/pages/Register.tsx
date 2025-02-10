@@ -32,11 +32,24 @@ const Register = ({ navigation }: { navigation: any }) => {
     if (form.password !== form.confirmPassword) {
       return Alert.alert('Error', 'Passwords do not match');
     }
-    
+  
     try {
-      await axios.post('http://localhost:5000/register', form);
+      const response = await axios.post('http://localhost:5000/register', {
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        university: form.university,
+        major: form.major,
+        experience: form.experience,
+        skills: form.skills,
+        projects: form.projects,
+        certifications: form.certifications,
+        resumeLink: form.resumeLink
+      });
+  
       Alert.alert('Success', 'Account created successfully');
       navigation.navigate('Login');
+  
     } catch (error) {
       Alert.alert('Error', error.response?.data?.error || 'Registration failed');
     }

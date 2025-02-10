@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, Alert } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
 const Login = ({ navigation }: { navigation: any }) => {
@@ -16,9 +17,12 @@ const Login = ({ navigation }: { navigation: any }) => {
   const handleLogin = async () => {
     try {
       const response = await axios.post('http://localhost:5000/login', { email, password });
+
+      // Save JWT token in local storage
+      await AsyncStorage.setItem('token', response.data.token);
+
       Alert.alert('Success', 'Logged in successfully');
-      // Navigate to home page or dashboard
-      navigation.navigate('Home');
+      navigation.navigate('Home'); // Redirect to home after login
     } catch (error) {
       Alert.alert('Error', error.response?.data?.error || 'Login failed');
     }
