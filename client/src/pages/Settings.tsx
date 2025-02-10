@@ -15,6 +15,7 @@ const Settings = ({ navigation }: { navigation: any }) => {
       <Button title="Security & Privacy" color="#893030" onPress={() => navigation.navigate('SecuritySettings')} />
       <Button title="App Settings" color="#893030" onPress={() => navigation.navigate('AppSettings')} />
       <Button title="Support & About" color="#893030" onPress={() => navigation.navigate('SupportAbout')} />
+      <Button title="Student Profile" color="#893030" onPress={() => navigation.navigate('StudentInfo')} />
       <Button title="Log Out" color="#893030" onPress={() => console.log('Logging out...')} />
     </View>
   );
