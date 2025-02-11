@@ -1,6 +1,6 @@
 import React from "react";
 import { TextInput, StyleSheet } from "react-native";
-import { useTheme } from "../context/ThemeContext"; // ✅ Import ThemeContext
+import { useTheme } from "../context/ThemeContext"; //Import ThemeContext
 
 interface InputBarProps {
   placeholder: string;
@@ -8,7 +8,7 @@ interface InputBarProps {
 }
 
 const InputBar: React.FC<InputBarProps> = ({ placeholder, secureTextEntry }) => {
-  const { theme } = useTheme(); // ✅ Get theme from context
+  const { theme } = useTheme(); //Get theme from context
   const backgroundColor = theme === "dark" ? "#4d231f" : "#fff";
   const textColor = theme === "dark" ? "#fff7d5" : "#4d231f";
 

@@ -14,7 +14,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     const loadTheme = async () => {
       const storedTheme = await AsyncStorage.getItem("theme");
       if (storedTheme === "light" || storedTheme === "dark") {
-        setTheme(storedTheme as "light" | "dark");  // ✅ Type assertion fixes error
+        setTheme(storedTheme as "light" | "dark");  //Type assertion fixes error
       }
     };
     loadTheme();
@@ -24,7 +24,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   const toggleTheme = async () => {
     const newTheme = theme === "light" ? "dark" : "light";
     setTheme(newTheme);
-    await AsyncStorage.setItem("theme", newTheme); // ✅ Persist theme
+    await AsyncStorage.setItem("theme", newTheme); //Persist theme
   };
 
   return (

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { TextInput, StyleSheet } from "react-native";
-import { useTheme } from "../context/ThemeContext"; // ✅ Import theme context
+import { useTheme } from "../context/ThemeContext"; //Import theme context
 
 interface InputDescriptionBoxProps {
   placeholder: string;
@@ -10,7 +10,7 @@ interface InputDescriptionBoxProps {
 }
 
 const InputDescriptionBox: React.FC<InputDescriptionBoxProps> = ({ placeholder, value, onChangeText, style }) => {
-  const { theme } = useTheme(); // ✅ Get current theme
+  const { theme } = useTheme(); //Get current theme
 
   return (
     <TextInput
@@ -24,11 +24,11 @@ const InputDescriptionBox: React.FC<InputDescriptionBoxProps> = ({ placeholder, 
       ]}
       placeholder={placeholder}
       placeholderTextColor={theme === "dark" ? "#fff7d5" : "#4d231f"}
-      multiline={true} // ✅ Enables multi-line input
-      numberOfLines={6} // ✅ Makes the box larger
+      multiline={true} //Enables multi-line input
+      numberOfLines={6} //Makes the box larger
       value={value}
       onChangeText={onChangeText}
-      textAlignVertical="top" // ✅ Ensures text starts from the top
+      textAlignVertical="top" //Ensures text starts from the top
     />
   );
 };

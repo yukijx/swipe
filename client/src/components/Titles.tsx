@@ -1,6 +1,6 @@
 import React from "react";
 import { useColorScheme, useWindowDimensions, Text, StyleSheet } from "react-native";
-import { useTheme } from "../context/ThemeContext"; // ✅ Use ThemeContext
+import { useTheme } from "../context/ThemeContext"; //Use ThemeContext
 
 interface TitleProps {
   title: string;
@@ -8,7 +8,7 @@ interface TitleProps {
 
 const Titles: React.FC<TitleProps> = ({ title }) => {
   const { width } = useWindowDimensions();
-  const { theme } = useTheme(); // ✅ Get theme from context
+  const { theme } = useTheme(); //Get theme from context
   const dynamicFontSize = width * 0.08;
 
   return (

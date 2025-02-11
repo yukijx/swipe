@@ -11,7 +11,7 @@ const NavBar = ({ navigation }: { navigation: any }) => {
   const { theme } = useTheme();
   const backgroundColor = "#4d231f";
   const iconColor = theme === "light" ? "#fff7d5" : "#fff7d5";
-  const iconSize = width * 0.08; // ✅ Make icon size responsive
+  const iconSize = width * 0.08; //Make icon size responsive
 
   return (
     <View style={[styles.navContainer, { backgroundColor }]}>

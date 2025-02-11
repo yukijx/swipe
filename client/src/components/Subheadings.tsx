@@ -1,5 +1,5 @@
 import React from "react";
-import { useTheme } from "../context/ThemeContext"; // ✅ Import Theme Context
+import { useTheme } from "../context/ThemeContext"; //Import Theme Context
 import { useWindowDimensions, Text, StyleSheet } from "react-native";
 
 interface SubheadingProps {
@@ -7,9 +7,9 @@ interface SubheadingProps {
 }
 
 const Subheading: React.FC<SubheadingProps> = ({ text }) => {
-  const { theme } = useTheme(); // ✅ Get theme from context
+  const { theme } = useTheme(); //Get theme from context
   const { width } = useWindowDimensions();
-  const dynamicFontSize = width * 0.06; // ✅ Scale text size
+  const dynamicFontSize = width * 0.06; //Scale text size
 
   return (
     <Text style={[

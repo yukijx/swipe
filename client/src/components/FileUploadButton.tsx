@@ -7,11 +7,11 @@ import React, { useState } from "react";
 import { Text, TouchableOpacity, StyleSheet } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import Texts from "../components/Texts";
-import { useTheme } from "../context/ThemeContext"; // ✅ Import useTheme
-import { ThemedView } from "../components/ThemedView"; // ✅ Correct import of ThemedView
+import { useTheme } from "../context/ThemeContext"; //Import useTheme
+import { ThemedView } from "../components/ThemedView"; //Correct import of ThemedView
 
 const FileUploadButton: React.FC = () => {
-  const { theme } = useTheme(); // ✅ Get current theme
+  const { theme } = useTheme(); //Get current theme
   const [file, setFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
 
   const pickDocument = async () => {
@@ -27,7 +27,7 @@ const FileUploadButton: React.FC = () => {
       console.error("Error picking file:", error);
     }
   };
-   // ✅ Dynamic Colors Based on Theme
+   //Dynamic Colors Based on Theme
    const textColor = theme === "dark" ? "#fff7d5" : "#4d231f";
 
   return (
