@@ -11,6 +11,10 @@ import Login from './pages/Login';
 import Register from './pages/Register'; 
 import StudentInfo from './pages/StudentInfo';
 import Home from './pages/Home';
+import CreateFacultyProfile from './pages/CreateFacultyProfile';
+import CreateListing from './pages/CreateListing';
+import Listing from './pages/Listing';
+import ListListings from './pages/ListListings';
 
 // this will be the normal home page but i wanted an easy way to see all the pages
 
@@ -23,6 +27,10 @@ export type StackParamList = {
   AppSettings: undefined;
   StudentInfo: undefined;
   Home: undefined;
+  CreateFacultyProfile: undefined;
+  CreateListing: undefined;
+  Listing: undefined;
+  ListListings: undefined;
 };
 
 const Stack = createStackNavigator<StackParamList>();
@@ -40,6 +48,10 @@ export default function App() {
           <Stack.Screen name="AppSettings" component={AppSettings} />
           <Stack.Screen name="StudentInfo" component={StudentInfo} />
           <Stack.Screen name="Home" component={Home} />
+          <Stack.Screen name="CreateFacultyProfile" component={CreateFacultyProfile} />
+          <Stack.Screen name="CreateListing" component={CreateListing} />
+          <Stack.Screen name="Listing" component={Listing} />
+          <Stack.Screen name="ListListings" component={ListListings} />
         </Stack.Navigator>
       </NavigationContainer>
     </ThemeProvider>

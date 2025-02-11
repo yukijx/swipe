@@ -16,6 +16,10 @@ const Settings = ({ navigation }: { navigation: any }) => {
       <Button title="App Settings" color="#893030" onPress={() => navigation.navigate('AppSettings')} />
       <Button title="Support & About" color="#893030" onPress={() => navigation.navigate('SupportAbout')} />
       <Button title="Student Profile" color="#893030" onPress={() => navigation.navigate('StudentInfo')} />
+      <Button title="Create Faculty Profile" color="#893030" onPress={() => navigation.navigate('CreateFacultyProfile')} />
+      <Button title="Create Listing" color="#893030" onPress={() => navigation.navigate('CreateListing')} />
+      <Button title="Listings" color="#893030" onPress={() => navigation.navigate('ListListings')} />
+      <Button title="Listing" color="#893030" onPress={() => navigation.navigate('Listing')} />
       <Button title="Log Out" color="#893030" onPress={() => console.log('Logging out...')} />
     </View>
   );

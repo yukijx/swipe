@@ -1,0 +1,11 @@
+//Container that holds everything on the screen. Provides boarder options. 
+  container: {
+    flex: 1,
+    backgroundColor: "#893030",
+    justifyContent: "flex-start",
+    alignItems: "center",
+    borderColor: "#4d231f",
+    borderWidth: 10,
+    borderRadius: 30,
+    width: "100%",
+  },
