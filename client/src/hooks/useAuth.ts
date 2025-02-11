@@ -1,10 +1,11 @@
 import { useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
-import Login from './pages/Login';
+import type { StackNavigationProp } from '@react-navigation/stack';
+import { StackParamList } from '../App'; 
 
 const useAuth = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<StackNavigationProp<StackParamList>>();
 
   useEffect(() => {
     const checkAuth = async () => {
