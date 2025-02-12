@@ -10,6 +10,7 @@ const Settings = ({ navigation }: { navigation: any }) => {
   return (
     <View style={{ backgroundColor, flex: 1, padding: 20 }}>
       <Text style={{ fontSize: 24, color: textColor }}>Settings</Text>
+      <Button title="Swipe" color="#893030" onPress={() => navigation.navigate('Swipe')} />
       <Button title="Profile Settings" color="#893030" onPress={() => navigation.navigate('ProfileSettings')} />
       <Button title="Preferences" color="#893030" onPress={() => navigation.navigate('Preferences')} />
       <Button title="Security & Privacy" color="#893030" onPress={() => navigation.navigate('SecuritySettings')} />
