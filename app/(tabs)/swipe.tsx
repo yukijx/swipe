@@ -1,70 +1,92 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { View, Text, Button, Image, StyleSheet, Platform, TouchableOpacity} from 'react-native';
+import Swiper from 'react-native-deck-swiper';
 
 
 export default function swipePage() {
+
+  // THIS IS TEMPORARILY HARDCODED
+  const [profiles, setProfiles] = useState([
+    { id: 1, name: 'Alex Tang', major: 'CS, Junior', skills: ['Java', 'Python', 'ADA', 'R'], experience: ['AirLab RA', 'Boeing Intern'], contact: 'alextang@ou.edu', image: require("@/assets/images/swipe-page/user-icon-removebg.png") },
+    { id: 2, name: 'Jamie Lee', major: 'EE, Senior', skills: ['C++', 'Embedded Systems'], experience: ['Intel Intern'], contact: 'jamielee@ou.edu', image: require("@/assets/images/swipe-page/user-icon-removebg.png") },
+    { id: 3, name: 'Taylor Kim', major: 'Data Science, Junior', skills: ['SQL', 'Machine Learning'], experience: ['Data Analyst Intern'], contact: 'taylorkim@ou.edu', image: require("@/assets/images/swipe-page/user-icon-removebg.png") },
+    { id: 4, name: 'Jordan Park', major: 'Cybersecurity, Senior', skills: ['Network Security', 'Python'], experience: ['Cybersecurity Intern'], contact: 'jordanpark@ou.edu', image: require("@/assets/images/swipe-page/user-icon-removebg.png") },
+    { id: 5, name: 'Andre Moore', major: 'Meteorology, Senior', skills: ['Numerical Modeling', 'Python', 'Theory'], experience: ['Cybersecurity Intern'], contact: 'andremoore@ou.edu', image: require("@/assets/images/swipe-page/user-icon-removebg.png") },
+
+  ]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const swiperRef = useRef<Swiper<any>>(null); // Create a reference to Swiper
+
   return (
     <View style={styles.container}>
 
-  {/* Menu Icon in Top Right Corner */}
-  <TouchableOpacity style={styles.menuIcon} onPress={() => console.log("Menu Clicked")}>
-    <Image source={require('@/assets/images/swipe-page/menu-icon-removebg.png')} style={styles.menuImage} />
-  </TouchableOpacity>
+    <TouchableOpacity style={styles.menuIcon} onPress={() => console.log("Menu Clicked")}>
+      <Image source={require('@/assets/images/swipe-page/menu-icon-removebg.png')} style={styles.menuImage} />
+    </TouchableOpacity>
 
+    {/* THIS IS ACCESSING THE HARDCODED DATA */}
+    {currentIndex < profiles.length ? (
+          <Swiper
+            ref={swiperRef} 
+            
+            cards={profiles}
+            renderCard={(profile) => (
+              <View style={styles.card}>
+                <Image source={profile.image} style={styles.profileImage} />
+                <Text style={styles.name}>{profile.name}</Text>
+                <Text style={styles.details}>{profile.major}</Text>
 
-      {/* Profile Card */}
-      <View style={styles.card}>
+                <Text style={styles.sectionTitle}>Skills:</Text>
+                <Text style={styles.details}>{profile.skills.join(', ')}</Text>
 
-        {/* User Icon */}
-        <View style={styles.userIcon}>
+                <Text style={styles.sectionTitle}>Experience:</Text>
+                <Text style={styles.details}>{profile.experience.join(', ')}</Text>
 
-          <Image 
-            source={require('@/assets/images/swipe-page/user-icon-removebg.png')} 
-            style={styles.profileImage} 
+                <Text style={styles.contactText}>{profile.contact}</Text>
+              </View>
+            )}
+            onSwiped={() => setCurrentIndex((prev) => prev + 1)}
+            onSwipedLeft={() => console.log("Swiped Left")}
+            onSwipedRight={() => console.log("Swiped Right")}
+            cardIndex={currentIndex}
+            stackSize={3}
+            backgroundColor="transparent"
           />
+        ) : (
+          <Text style={styles.title}>You've seen all potential matches.</Text>
+        )}
+
+{/*                 <Text style={styles.sectionTitle}>Skills</Text>
+                <Text style={styles.tagContainer}> {profile.skills.map((skill, index) => (
+                  <View key={index} style={styles.tag}> 
+                    <Text style={styles.tagText}>{skill}</Text>
+                  </View> ))}
+                <Text>...</Text> 
+                </Text>
+
+                <Text style={styles.sectionTitle}>Experience</Text>
+
+                <Text style={styles.tagContainer}> {profile.experience.map((experience, index) => (
+                  <View key={index} style={styles.tag}> 
+                    <Text style={styles.tagText}>{experience}</Text>
+                  </View>
+                ))} 
+                <Text>...</Text> 
+                </Text>
+ */}
+
+{/* THESE BUTTONS DON'T SWIPE AHHHHHHHH */}
+      {currentIndex < profiles.length && (
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity style={styles.button} onPress={() => swiperRef.current?.swipeLeft()}>            
+            <Text style={styles.buttonText}>❌</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.button} onPress={() => swiperRef.current?.swipeRight()}>
+            <Text style={styles.buttonText}>✅</Text>
+          </TouchableOpacity>
         </View>
-
-        {/* Name & Details */}
-        {/*This is a placeholder, will be handled with backend*/}
-        <Text style={styles.name}>Alex Tang</Text>
-        <Text style={styles.details}>Major, Classification, GPA</Text>
-
-        {/* Skills Section */}
-        {/*This is a placeholder, will be handled with backend*/}
-        <Text style={styles.sectionTitle}>Skills</Text>
-        <View style={styles.tagContainer}>
-          {["JAVA", "PYTHON", "COMPUTER VISION", "R", "C++", "MATLAB"].map((skill) => (
-            <View key={skill} style={styles.tag}>
-              <Text style={styles.tagText}>{skill}</Text>
-            </View>
-          ))}
-          <Text style={styles.moreText}>...</Text>
-        </View>
-
-        {/* Experience Section */}
-        <Text style={styles.sectionTitle}>Experience</Text>
-        <View style={styles.tagContainer}>
-          {["AIRLAB RA", "BOEING INTERN", "APP DEV", "OU IT EMPLOYEE"].map((exp) => (
-            <View key={exp} style={styles.tag}>
-              <Text style={styles.tagText}>{exp}</Text>
-            </View>
-          ))}
-          <Text style={styles.moreText}>...</Text>
-        </View>
-
-        {/* Contact Info */}
-        <Text style={styles.contactText}>alextang@ou.edu</Text>
-      </View>    
-    
-      {/* Action Buttons */}
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.button}>
-          <Text style={styles.buttonText}>❌</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.button}>
-          <Text style={styles.buttonText}>✔</Text>
-        </TouchableOpacity>
-      </View>
+      )}
     </View>
   );
 }
@@ -79,6 +101,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
+    justifyContent:'center',
     fontWeight: 'bold',
     marginBottom: 24,
     color: '#fff',
@@ -97,16 +120,21 @@ const styles = StyleSheet.create({
     color: '#FFFFFF'
   },
   card: {
-    width: 300,
+    width: "100%", // Make it responsive
+    maxWidth: 350, // Prevent it from getting too wide
     backgroundColor: "#fff7d5",
     borderRadius: 15,
     padding: 20,
     alignItems: "center",
+    justifyContent: "center", // Center content vertically
     shadowColor: "#000",
     shadowOffset: { width: 2, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
-    elevation: 5, 
+    elevation: 5,
+    position: "absolute",  // Keeps it stacked, but we need to adjust top
+    top: "50%", // Move it down
+    transform: [{ translateY: -150 }], // Offset it properly
   },
   userIcon: {
     width: 50,  
@@ -169,7 +197,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     width: 200,
-    marginTop: 20,
+    marginTop: 450,
   },
   button: {
     width: 50,
@@ -177,7 +205,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#622b26",
     borderRadius: 10,
     justifyContent: "center",
-    alignItems: "center",
+    alignItems: "center", 
   },
   buttonText: {
     fontSize: 24,
