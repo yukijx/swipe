@@ -6,54 +6,39 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import useAuth from '../hooks/useAuth';
 import { ResponsiveScreen } from '../components/ResponsiveScreen';
 
-interface StudentProfile {
-    name: string;
-    university: string;
-    major: string;
-    experience: string;
-    skills: string;
-    projects: string;
-    certifications: string;
-    resumeText: string;
+interface ProfileField {
+    key: string;
+    label: string;
+    multiline?: boolean;
 }
 
-interface ProfessorProfile {
-    name: string;
-    university: string;
-    department: string;
-    researchInterests: string;
-    biography: string;
-    publications: string;
-    officeHours: string;
-    contactInfo: string;
-}
+const studentFields: ProfileField[] = [
+    { key: 'name', label: 'Name' },
+    { key: 'university', label: 'University' },
+    { key: 'major', label: 'Major' },
+    { key: 'experience', label: 'Experience', multiline: true },
+    { key: 'skills', label: 'Skills', multiline: true },
+    { key: 'projects', label: 'Projects', multiline: true },
+    { key: 'certifications', label: 'Certifications', multiline: true },
+    { key: 'resumeText', label: 'Resume Text', multiline: true }
+];
+
+const professorFields: ProfileField[] = [
+    { key: 'name', label: 'Name' },
+    { key: 'university', label: 'University' },
+    { key: 'department', label: 'Department' },
+    { key: 'researchInterests', label: 'Research Interests', multiline: true },
+    { key: 'biography', label: 'Biography', multiline: true },
+    { key: 'publications', label: 'Publications', multiline: true },
+    { key: 'officeHours', label: 'Office Hours' },
+    { key: 'contactInfo', label: 'Contact Information' }
+];
 
 const ProfileSettings = ({ navigation }: { navigation: any }) => {
     const { theme } = useTheme();
     const { isFaculty } = useAuth();
     const textColor = theme === 'light' ? '#893030' : '#ffffff';
-    
-    const [studentProfile, setStudentProfile] = useState<StudentProfile>({
-        name: '',
-        university: '',
-        major: '',
-        experience: '',
-        skills: '',
-        projects: '',
-        certifications: '',
-        resumeText: ''
-    });
-
-    const [professorProfile, setProfessorProfile] = useState<ProfessorProfile>({
-        name: '',
-        university: '',
-        department: '',
-        researchInterests: '',
-        biography: '',
-        publications: '',
-        officeHours: '',
-        contactInfo: ''
-    });
+    const [profileData, setProfileData] = useState<Record<string, string>>({});
 
     useEffect(() => {
         fetchProfile();
@@ -66,12 +51,7 @@ const ProfileSettings = ({ navigation }: { navigation: any }) => {
                 'http://localhost:5000/user/profile',
                 { headers: { Authorization: token } }
             );
-            
-            if (isFaculty) {
-                setProfessorProfile(response.data);
-            } else {
-                setStudentProfile(response.data);
-            }
+            setProfileData(response.data);
         } catch (error) {
             Alert.alert('Error', 'Failed to fetch profile');
         }
@@ -80,178 +60,88 @@ const ProfileSettings = ({ navigation }: { navigation: any }) => {
     const handleSubmit = async () => {
         try {
             const token = await AsyncStorage.getItem('token');
-            const profileData = isFaculty ? professorProfile : studentProfile;
-            
             await axios.put(
                 'http://localhost:5000/user/profile',
                 profileData,
                 { headers: { Authorization: token } }
             );
-
             Alert.alert('Success', 'Profile updated successfully');
         } catch (error) {
             Alert.alert('Error', 'Failed to update profile');
         }
     };
 
-    const handleTextChange = (field: string, value: string, isStudent: boolean) => {
-        if (isStudent) {
-            setStudentProfile(prev => ({
-                ...prev,
-                [field]: value
-            }));
-        } else {
-            setProfessorProfile(prev => ({
-                ...prev,
-                [field]: value
-            }));
-        }
+    const handleChange = (key: string, value: string) => {
+        setProfileData(prev => ({ ...prev, [key]: value }));
     };
 
-    const renderStudentFields = () => (
-        <>
-            <TextInput
-                style={styles.input}
-                placeholder="Name"
-                value={studentProfile.name}
-                onChangeText={(text) => handleTextChange('name', text, true)}
-            />
-            <TextInput
-                style={styles.input}
-                placeholder="University"
-                value={studentProfile.university}
-                onChangeText={(text) => handleTextChange('university', text, true)}
-            />
-            <TextInput
-                style={styles.input}
-                placeholder="Major"
-                value={studentProfile.major}
-                onChangeText={(text) => handleTextChange('major', text, true)}
-            />
-            <TextInput
-                style={[styles.input, styles.multiline]}
-                placeholder="Experience"
-                value={studentProfile.experience}
-                onChangeText={(text) => handleTextChange('experience', text, true)}
-                multiline
-            />
-            <TextInput
-                style={[styles.input, styles.multiline]}
-                placeholder="Skills"
-                value={studentProfile.skills}
-                onChangeText={(text) => handleTextChange('skills', text, true)}
-                multiline
-            />
-            <TextInput
-                style={[styles.input, styles.multiline]}
-                placeholder="Projects"
-                value={studentProfile.projects}
-                onChangeText={(text) => handleTextChange('projects', text, true)}
-                multiline
-            />
-            <TextInput
-                style={[styles.input, styles.multiline]}
-                placeholder="Certifications"
-                value={studentProfile.certifications}
-                onChangeText={(text) => handleTextChange('certifications', text, true)}
-                multiline
-            />
-            <TextInput
-                style={[styles.input, styles.multiline]}
-                placeholder="Resume Text"
-                value={studentProfile.resumeText}
-                onChangeText={(text) => handleTextChange('resumeText', text, true)}
-                multiline
-            />
-        </>
+    const renderField = ({ key, label, multiline }: ProfileField) => (
+        <View key={key} style={styles.fieldContainer}>
+            <Text style={[styles.label, { color: textColor }]}>{label}</Text>
+            {Platform.OS === 'web' ? (
+                <textarea
+                    style={{
+                        ...styles.input,
+                        ...(multiline && styles.multiline),
+                        backgroundColor: theme === 'light' ? '#ffffff' : '#333',
+                        border: '1px solid #ddd',
+                        borderRadius: 8,
+                        padding: 12,
+                        fontSize: 16,
+                        width: '100%',
+                        fontFamily: 'inherit',
+                    }}
+                    value={profileData[key] || ''}
+                    onChange={(e) => handleChange(key, e.target.value)}
+                    placeholder={`Enter ${label.toLowerCase()}`}
+                    rows={multiline ? 4 : 1}
+                />
+            ) : (
+                <TextInput
+                    style={[
+                        styles.input,
+                        multiline && styles.multiline,
+                        { backgroundColor: theme === 'light' ? '#ffffff' : '#333' }
+                    ]}
+                    value={profileData[key] || ''}
+                    onChangeText={(text) => handleChange(key, text)}
+                    multiline={multiline}
+                    placeholderTextColor={theme === 'light' ? '#666' : '#999'}
+                    placeholder={`Enter ${label.toLowerCase()}`}
+                />
+            )}
+        </View>
     );
 
-    const renderProfessorFields = () => (
-        <>
-            <TextInput
-                style={styles.input}
-                placeholder="Name"
-                value={professorProfile.name}
-                onChangeText={(text) => handleTextChange('name', text, false)}
-            />
-            <TextInput
-                style={styles.input}
-                placeholder="University"
-                value={professorProfile.university}
-                onChangeText={(text) => handleTextChange('university', text, false)}
-            />
-            <TextInput
-                style={styles.input}
-                placeholder="Department"
-                value={professorProfile.department}
-                onChangeText={(text) => handleTextChange('department', text, false)}
-            />
-            <TextInput
-                style={[styles.input, styles.multiline]}
-                placeholder="Research Interests"
-                value={professorProfile.researchInterests}
-                onChangeText={(text) => handleTextChange('researchInterests', text, false)}
-                multiline
-            />
-            <TextInput
-                style={[styles.input, styles.multiline]}
-                placeholder="Biography"
-                value={professorProfile.biography}
-                onChangeText={(text) => handleTextChange('biography', text, false)}
-                multiline
-            />
-            <TextInput
-                style={[styles.input, styles.multiline]}
-                placeholder="Publications"
-                value={professorProfile.publications}
-                onChangeText={(text) => handleTextChange('publications', text, false)}
-                multiline
-            />
-            <TextInput
-                style={styles.input}
-                placeholder="Office Hours"
-                value={professorProfile.officeHours}
-                onChangeText={(text) => handleTextChange('officeHours', text, false)}
-            />
-            <TextInput
-                style={styles.input}
-                placeholder="Contact Information"
-                value={professorProfile.contactInfo}
-                onChangeText={(text) => handleTextChange('contactInfo', text, false)}
-            />
-        </>
-    );
+    const fields = isFaculty ? professorFields : studentFields;
 
     return (
-        <ResponsiveScreen 
-            navigation={navigation}
-            contentContainerStyle={styles.contentContainer}
-        >
-            <Text style={[styles.title, { color: textColor }]}>
-                {isFaculty ? 'Faculty Profile Settings' : 'Student Profile Settings'}
-            </Text>
+        <ResponsiveScreen navigation={navigation}>
+            <View style={styles.container}>
+                <Text style={[styles.title, { color: textColor }]}>
+                    {isFaculty ? 'Faculty Profile' : 'Student Profile'}
+                </Text>
 
-            <View style={styles.formContainer}>
-                {isFaculty ? renderProfessorFields() : renderStudentFields()}
+                <View style={styles.formContainer}>
+                    {fields.map(renderField)}
 
-                <TouchableOpacity 
-                    style={styles.submitButton}
-                    onPress={handleSubmit}
-                >
-                    <Text style={styles.submitButtonText}>Save Changes</Text>
-                </TouchableOpacity>
+                    <TouchableOpacity 
+                        style={styles.submitButton}
+                        onPress={handleSubmit}
+                    >
+                        <Text style={styles.submitButtonText}>Save Changes</Text>
+                    </TouchableOpacity>
+                </View>
             </View>
         </ResponsiveScreen>
     );
 };
 
 const styles = StyleSheet.create({
-    contentContainer: {
-        minHeight: Platform.OS === 'web' ? '100%' : undefined,
-    },
-    formContainer: {
+    container: {
+        flex: 1,
         width: '100%',
-        maxWidth: 600,
+        maxWidth: 800,
         alignSelf: 'center',
         padding: 20,
     },
@@ -259,19 +149,28 @@ const styles = StyleSheet.create({
         fontSize: 24,
         fontWeight: 'bold',
         textAlign: 'center',
-        marginVertical: 20,
+        marginBottom: 30,
     },
-    input: {
-        backgroundColor: '#ffffff',
-        padding: 15,
+    formContainer: {
+        gap: 20,
+    },
+    fieldContainer: {
+        gap: 8,
+    },
+    label: {
+        fontSize: 16,
+        fontWeight: '500',
+    },
+    input: Platform.OS === 'web' ? {} : {
+        width: '100%',
+        padding: 12,
         borderRadius: 8,
-        marginBottom: 15,
         borderWidth: 1,
         borderColor: '#ddd',
         fontSize: 16,
     },
     multiline: {
-        height: 120,
+        minHeight: 100,
         textAlignVertical: 'top',
     },
     submitButton: {

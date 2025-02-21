@@ -16,25 +16,18 @@ export const ResponsiveScreen = ({
     scrollable = true,
     contentContainerStyle 
 }: ResponsiveScreenProps) => {
-    const Content = () => (
-        <View style={[styles.content, contentContainerStyle]}>
-            {children}
-        </View>
-    );
-
     return (
         <ThemedView>
             <NavBar navigation={navigation} />
-            {scrollable ? (
-                <ScrollView 
-                    style={styles.scroll}
-                    contentContainerStyle={styles.scrollContent}
-                >
-                    <Content />
-                </ScrollView>
-            ) : (
-                <Content />
-            )}
+            <ScrollView 
+                style={styles.scroll}
+                contentContainerStyle={[
+                    styles.scrollContent,
+                    contentContainerStyle
+                ]}
+            >
+                {children}
+            </ScrollView>
         </ThemedView>
     );
 };
@@ -45,13 +38,9 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         flexGrow: 1,
-    },
-    content: {
-        flex: Platform.OS === 'web' ? undefined : 1,
-        maxWidth: Platform.OS === 'web' ? 1200 : undefined,
         width: '100%',
+        maxWidth: Platform.OS === 'web' ? 1200 : undefined,
         marginHorizontal: 'auto',
         padding: 20,
-        minHeight: Platform.OS === 'web' ? 'calc(100vh - 60px)' : undefined, // Account for navbar height
     },
 }); 
