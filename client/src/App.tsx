@@ -15,6 +15,12 @@ import CreateFacultyProfile from './pages/CreateFacultyProfile';
 import CreateListing from './pages/CreateListing';
 import Listing from './pages/Listing';
 import ListListings from './pages/ListListings';
+import FacultyHome from './pages/FacultyHome';
+import StudentSetup from './pages/StudentSetup';
+import ProfessorSetup from './pages/ProfessorSetup';
+import { useEffect } from 'react';
+import DebugPanel from './components/DebugPanel';
+import Swipe from './pages/Swipe';
 
 // this will be the normal home page but i wanted an easy way to see all the pages
 
@@ -31,15 +37,42 @@ export type StackParamList = {
   CreateListing: undefined;
   Listing: undefined;
   ListListings: undefined;
+  FacultyHome: undefined;
+  StudentSetup: undefined;
+  ProfessorSetup: undefined;
+  Swipe: undefined;
 };
 
 const Stack = createStackNavigator<StackParamList>();
 
 export default function App() {
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      const handleKeyPress = (event: KeyboardEvent) => {
+        // Add keyboard shortcuts for development
+        switch(event.key) {
+          case 'h':
+            if (event.ctrlKey) navigation.navigate('Home');
+            break;
+          case 'l':
+            if (event.ctrlKey) navigation.navigate('Login');
+            break;
+          case 's':
+            if (event.ctrlKey) navigation.navigate('Settings');
+            break;
+          // Add more shortcuts as needed
+        }
+      };
+
+      window.addEventListener('keydown', handleKeyPress);
+      return () => window.removeEventListener('keydown', handleKeyPress);
+    }
+  }, []);
+
   return (
     <ThemeProvider>
       <NavigationContainer>
-          <Stack.Navigator initialRouteName="Settings">
+          <Stack.Navigator initialRouteName="Login">
           <Stack.Screen name="Login" component={Login} />
           <Stack.Screen name="Register" component={Register} />
           <Stack.Screen name="Settings" component={Settings} />
@@ -52,7 +85,18 @@ export default function App() {
           <Stack.Screen name="CreateListing" component={CreateListing} />
           <Stack.Screen name="Listing" component={Listing} />
           <Stack.Screen name="ListListings" component={ListListings} />
+          <Stack.Screen name="FacultyHome" component={FacultyHome} />
+          <Stack.Screen name="StudentSetup" component={StudentSetup} />
+          <Stack.Screen name="ProfessorSetup" component={ProfessorSetup} />
+          <Stack.Screen 
+            name="Swipe" 
+            component={Swipe}
+            options={{
+              headerShown: false
+            }}
+          />
         </Stack.Navigator>
+        {process.env.NODE_ENV === 'development' && <DebugPanel />}
       </NavigationContainer>
     </ThemeProvider>
   );

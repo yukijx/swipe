@@ -22,7 +22,13 @@ const Login = ({ navigation }: { navigation: any }) => {
       await AsyncStorage.setItem('token', response.data.token);
 
       Alert.alert('Success', 'Logged in successfully');
-      navigation.navigate('Home'); // Redirect to home after login
+      
+      // Navigate based on user role
+      if (response.data.user.isFaculty) {
+        navigation.navigate('FacultyHome');
+      } else {
+        navigation.navigate('Home'); // Student home
+      }
     } catch (error) {
       Alert.alert('Error', error.response?.data?.error || 'Login failed');
     }

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, Alert, ScrollView } from 'react-native';
+import { View, Text, TextInput, Button, Alert, StyleSheet } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import axios from 'axios';
+import { TouchableOpacity } from 'react-native';
 
 const Register = ({ navigation }: { navigation: any }) => {
   const { theme } = useTheme();
@@ -15,18 +16,8 @@ const Register = ({ navigation }: { navigation: any }) => {
     email: '',
     password: '',
     confirmPassword: '',
-    university: '',
-    major: '',
-    experience: '',
-    skills: '',
-    projects: '',
-    certifications: '',
-    resumeLink: ''
+    isFaculty: false
   });
-
-  const handleChange = (field: string, value: string) => {
-    setForm({ ...form, [field]: value });
-  };
 
   const handleRegister = async () => {
     if (form.password !== form.confirmPassword) {
@@ -38,41 +29,106 @@ const Register = ({ navigation }: { navigation: any }) => {
         name: form.name,
         email: form.email,
         password: form.password,
-        university: form.university,
-        major: form.major,
-        experience: form.experience,
-        skills: form.skills,
-        projects: form.projects,
-        certifications: form.certifications,
-        resumeLink: form.resumeLink
+        isFaculty: form.isFaculty
       });
-  
-      Alert.alert('Success', 'Account created successfully');
-      navigation.navigate('Login');
-  
-    } catch (error) {
+
+      Alert.alert('Success', 'Account created! Please complete your profile setup.');
+      
+      // Navigate to appropriate setup page
+      if (form.isFaculty) {
+        navigation.navigate('ProfessorSetup');
+      } else {
+        navigation.navigate('StudentSetup');
+      }
+
+    } catch (error: any) {
       Alert.alert('Error', error.response?.data?.error || 'Registration failed');
     }
   };
 
   return (
-    <ScrollView style={{ backgroundColor, flex: 1, padding: 20 }}>
-      <Text style={{ fontSize: 28, color: textColor, textAlign: 'center', marginBottom: 20 }}>Create Account</Text>
-      <TextInput style={{ backgroundColor: inputBackground, color: inputTextColor, padding: 10, marginBottom: 10, borderRadius: 5 }} placeholder="Full Name" placeholderTextColor={theme === 'light' ? '#666' : '#bbb'} value={form.name} onChangeText={(text) => handleChange('name', text)} />
-      <TextInput style={{ backgroundColor: inputBackground, color: inputTextColor, padding: 10, marginBottom: 10, borderRadius: 5 }} placeholder="Email" placeholderTextColor={theme === 'light' ? '#666' : '#bbb'} value={form.email} onChangeText={(text) => handleChange('email', text)} />
-      <TextInput style={{ backgroundColor: inputBackground, color: inputTextColor, padding: 10, marginBottom: 10, borderRadius: 5 }} placeholder="Password" placeholderTextColor={theme === 'light' ? '#666' : '#bbb'} secureTextEntry value={form.password} onChangeText={(text) => handleChange('password', text)} />
-      <TextInput style={{ backgroundColor: inputBackground, color: inputTextColor, padding: 10, marginBottom: 10, borderRadius: 5 }} placeholder="Confirm Password" placeholderTextColor={theme === 'light' ? '#666' : '#bbb'} secureTextEntry value={form.confirmPassword} onChangeText={(text) => handleChange('confirmPassword', text)} />
-      <TextInput style={{ backgroundColor: inputBackground, color: inputTextColor, padding: 10, marginBottom: 10, borderRadius: 5 }} placeholder="University" placeholderTextColor={theme === 'light' ? '#666' : '#bbb'} value={form.university} onChangeText={(text) => handleChange('university', text)} />
-      <TextInput style={{ backgroundColor: inputBackground, color: inputTextColor, padding: 10, marginBottom: 10, borderRadius: 5 }} placeholder="Major" placeholderTextColor={theme === 'light' ? '#666' : '#bbb'} value={form.major} onChangeText={(text) => handleChange('major', text)} />
-      <TextInput style={{ backgroundColor: inputBackground, color: inputTextColor, padding: 10, marginBottom: 10, borderRadius: 5 }} placeholder="Work Experience" placeholderTextColor={theme === 'light' ? '#666' : '#bbb'} multiline value={form.experience} onChangeText={(text) => handleChange('experience', text)} />
-      <TextInput style={{ backgroundColor: inputBackground, color: inputTextColor, padding: 10, marginBottom: 10, borderRadius: 5 }} placeholder="Skills" placeholderTextColor={theme === 'light' ? '#666' : '#bbb'} multiline value={form.skills} onChangeText={(text) => handleChange('skills', text)} />
-      <TextInput style={{ backgroundColor: inputBackground, color: inputTextColor, padding: 10, marginBottom: 10, borderRadius: 5 }} placeholder="Projects" placeholderTextColor={theme === 'light' ? '#666' : '#bbb'} multiline value={form.projects} onChangeText={(text) => handleChange('projects', text)} />
-      <TextInput style={{ backgroundColor: inputBackground, color: inputTextColor, padding: 10, marginBottom: 10, borderRadius: 5 }} placeholder="Certifications" placeholderTextColor={theme === 'light' ? '#666' : '#bbb'} multiline value={form.certifications} onChangeText={(text) => handleChange('certifications', text)} />
-      <TextInput style={{ backgroundColor: inputBackground, color: inputTextColor, padding: 10, marginBottom: 20, borderRadius: 5 }} placeholder="Resume Link" placeholderTextColor={theme === 'light' ? '#666' : '#bbb'} value={form.resumeLink} onChangeText={(text) => handleChange('resumeLink', text)} />
+    <View style={[styles.container, { backgroundColor }]}>
+      <Text style={[styles.title, { color: textColor }]}>Create Account</Text>
+      
+      <TextInput
+        style={[styles.input, { backgroundColor: inputBackground, color: inputTextColor }]}
+        placeholder="Full Name"
+        placeholderTextColor={theme === 'light' ? '#666' : '#bbb'}
+        value={form.name}
+        onChangeText={(text) => setForm({ ...form, name: text })}
+      />
+      
+      <TextInput
+        style={[styles.input, { backgroundColor: inputBackground, color: inputTextColor }]}
+        placeholder="Email"
+        placeholderTextColor={theme === 'light' ? '#666' : '#bbb'}
+        value={form.email}
+        onChangeText={(text) => setForm({ ...form, email: text })}
+      />
+      
+      <TextInput
+        style={[styles.input, { backgroundColor: inputBackground, color: inputTextColor }]}
+        placeholder="Password"
+        placeholderTextColor={theme === 'light' ? '#666' : '#bbb'}
+        secureTextEntry
+        value={form.password}
+        onChangeText={(text) => setForm({ ...form, password: text })}
+      />
+      
+      <TextInput
+        style={[styles.input, { backgroundColor: inputBackground, color: inputTextColor }]}
+        placeholder="Confirm Password"
+        placeholderTextColor={theme === 'light' ? '#666' : '#bbb'}
+        secureTextEntry
+        value={form.confirmPassword}
+        onChangeText={(text) => setForm({ ...form, confirmPassword: text })}
+      />
+
+      <TouchableOpacity
+        style={[styles.roleButton, form.isFaculty && styles.roleButtonActive]}
+        onPress={() => setForm({ ...form, isFaculty: !form.isFaculty })}
+      >
+        <Text style={styles.roleButtonText}>
+          Register as: {form.isFaculty ? 'Professor' : 'Student'}
+        </Text>
+      </TouchableOpacity>
+
       <Button title="Register" color="#893030" onPress={handleRegister} />
       <Button title="Back to Login" color="#893030" onPress={() => navigation.navigate('Login')} />
-    </ScrollView>
+    </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+    justifyContent: 'center',
+  },
+  title: {
+    fontSize: 28,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  input: {
+    padding: 10,
+    marginBottom: 10,
+    borderRadius: 5,
+  },
+  roleButton: {
+    backgroundColor: '#893030',
+    padding: 15,
+    borderRadius: 5,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  roleButtonActive: {
+    backgroundColor: '#621010',
+  },
+  roleButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+  }
+});
 
 export default Register;
