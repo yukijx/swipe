@@ -10,6 +10,8 @@ import AppSettings from './pages/AppSettings';
 import Login from './pages/Login';
 import Register from './pages/Register'; 
 import StudentInfo from './pages/StudentInfo';
+import StudentProfileSettings from './pages/StudentProfileSettings';
+import UpdateStudentProfile from './pages/UpdateStudentProfile';
 import Home from './pages/Home';
 import CreateFacultyProfile from './pages/CreateFacultyProfile';
 import CreateListing from './pages/CreateListing';
@@ -26,6 +28,8 @@ export type StackParamList = {
   SecuritySettings: undefined;
   AppSettings: undefined;
   StudentInfo: undefined;
+  StudentProfileSettings: undefined;
+  UpdateStudentProfile: undefined;
   Home: undefined;
   CreateFacultyProfile: undefined;
   CreateListing: undefined;
@@ -47,6 +51,8 @@ export default function App() {
           <Stack.Screen name="SecuritySettings" component={SecuritySettings} />
           <Stack.Screen name="AppSettings" component={AppSettings} />
           <Stack.Screen name="StudentInfo" component={StudentInfo} />
+          <Stack.Screen name="StudentProfileSettings" component={StudentProfileSettings} />
+          <Stack.Screen name="UpdateStudentProfile" component={UpdateStudentProfile} />
           <Stack.Screen name="Home" component={Home} />
           <Stack.Screen name="CreateFacultyProfile" component={CreateFacultyProfile} />
           <Stack.Screen name="CreateListing" component={CreateListing} />
