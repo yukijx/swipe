@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Platform, Image } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import useAuth from '../hooks/useAuth';
 import { ResponsiveScreen } from '../components/ResponsiveScreen';
+import * as ImagePicker from 'expo-image-picker';
 
 interface ProfileField {
     key: string;
@@ -39,6 +40,7 @@ const ProfileSettings = ({ navigation }: { navigation: any }) => {
     const { isFaculty } = useAuth();
     const textColor = theme === 'light' ? '#893030' : '#ffffff';
     const [profileData, setProfileData] = useState<Record<string, string>>({});
+    const [profileImage, setProfileImage] = useState<string | null>(null);
 
     useEffect(() => {
         fetchProfile();
@@ -52,6 +54,9 @@ const ProfileSettings = ({ navigation }: { navigation: any }) => {
                 { headers: { Authorization: token } }
             );
             setProfileData(response.data);
+            if (response.data.profileImage?.url) {
+                setProfileImage(response.data.profileImage.url);
+            }
         } catch (error) {
             Alert.alert('Error', 'Failed to fetch profile');
         }
@@ -74,6 +79,60 @@ const ProfileSettings = ({ navigation }: { navigation: any }) => {
     const handleChange = (key: string, value: string) => {
         setProfileData(prev => ({ ...prev, [key]: value }));
     };
+
+    const pickImage = async () => {
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 1,
+        });
+
+        if (!result.canceled && result.assets[0].uri) {
+            try {
+                const token = await AsyncStorage.getItem('token');
+                const formData = new FormData();
+                formData.append('profileImage', {
+                    uri: result.assets[0].uri,
+                    type: 'image/jpeg',
+                    name: 'profile.jpg'
+                } as any);
+
+                await axios.post(
+                    'http://localhost:5000/user/profile/image',
+                    formData,
+                    {
+                        headers: {
+                            'Content-Type': 'multipart/form-data',
+                            Authorization: token
+                        }
+                    }
+                );
+
+                setProfileImage(result.assets[0].uri);
+                Alert.alert('Success', 'Profile image updated');
+            } catch (error) {
+                Alert.alert('Error', 'Failed to upload image');
+            }
+        }
+    };
+
+    const renderProfileImage = () => (
+        <View style={styles.imageContainer}>
+            <TouchableOpacity onPress={pickImage}>
+                {profileImage ? (
+                    <Image
+                        source={{ uri: profileImage }}
+                        style={styles.profileImage}
+                    />
+                ) : (
+                    <View style={styles.imagePlaceholder}>
+                        <Text style={styles.imagePlaceholderText}>Add Photo</Text>
+                    </View>
+                )}
+            </TouchableOpacity>
+        </View>
+    );
 
     const renderField = ({ key, label, multiline }: ProfileField) => (
         <View key={key} style={styles.fieldContainer}>
@@ -122,6 +181,8 @@ const ProfileSettings = ({ navigation }: { navigation: any }) => {
                     {isFaculty ? 'Faculty Profile' : 'Student Profile'}
                 </Text>
 
+                {renderProfileImage()}
+                
                 <View style={styles.formContainer}>
                     {fields.map(renderField)}
 
@@ -184,6 +245,27 @@ const styles = StyleSheet.create({
         color: '#ffffff',
         fontSize: 18,
         fontWeight: 'bold',
+    },
+    imageContainer: {
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    profileImage: {
+        width: 150,
+        height: 150,
+        borderRadius: 75,
+    },
+    imagePlaceholder: {
+        width: 150,
+        height: 150,
+        borderRadius: 75,
+        backgroundColor: '#ddd',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    imagePlaceholderText: {
+        color: '#666',
+        fontSize: 16,
     }
 });
 

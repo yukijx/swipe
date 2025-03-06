@@ -11,7 +11,7 @@ const SecuritySettings = ({ navigation }: { navigation: any }) => {
         {
             title: 'Change Password',
             description: 'Update your account password',
-            onPress: () => console.log('Change Password'),
+            onPress: () => navigation.navigate('ChangePassword'),
             icon: '🔑'
         },
         {
@@ -28,9 +28,9 @@ const SecuritySettings = ({ navigation }: { navigation: any }) => {
         },
         {
             title: 'Privacy Settings',
-            description: 'Manage your privacy preferences',
-            onPress: () => console.log('Privacy Settings'),
-            icon: '👁️'
+            description: 'Control what others can see',
+            onPress: () => navigation.navigate('PrivacySettings'),
+            icon: '🔒'
         },
         {
             title: 'Connected Accounts',

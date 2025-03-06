@@ -21,6 +21,8 @@ import ProfessorSetup from './pages/ProfessorSetup';
 import { useEffect } from 'react';
 import DebugPanel from './components/DebugPanel';
 import Swipe from './pages/Swipe';
+import PrivacySettings from './pages/PrivacySettings';
+import ChangePassword from './pages/ChangePassword';
 
 // this will be the normal home page but i wanted an easy way to see all the pages
 
@@ -41,6 +43,8 @@ export type StackParamList = {
   StudentSetup: undefined;
   ProfessorSetup: undefined;
   Swipe: undefined;
+  PrivacySettings: undefined;
+  ChangePassword: undefined;
 };
 
 const Stack = createStackNavigator<StackParamList>();
@@ -95,6 +99,8 @@ export default function App() {
               headerShown: false
             }}
           />
+          <Stack.Screen name="PrivacySettings" component={PrivacySettings} />
+          <Stack.Screen name="ChangePassword" component={ChangePassword} />
         </Stack.Navigator>
         {process.env.NODE_ENV === 'development' && <DebugPanel />}
       </NavigationContainer>

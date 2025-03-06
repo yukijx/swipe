@@ -52,7 +52,26 @@ const UserSchema = new mongoose.Schema({
     // Common fields
     settings: { type: Object, default: {} },
     createdAt: { type: Date, default: Date.now },
-    updatedAt: { type: Date, default: Date.now }
+    updatedAt: { type: Date, default: Date.now },
+
+    // Profile image
+    profileImage: {
+        url: String,
+        publicId: String  // For Cloudinary reference
+    },
+
+    // Privacy settings
+    privacySettings: {
+        name: { type: Boolean, default: true },
+        university: { type: Boolean, default: true },
+        major: { type: Boolean, default: true },
+        experience: { type: Boolean, default: true },
+        skills: { type: Boolean, default: true },
+        projects: { type: Boolean, default: true },
+        certifications: { type: Boolean, default: true },
+        profileImage: { type: Boolean, default: true },
+        resumeText: { type: Boolean, default: false }
+    }
 });
 
 // Add a pre-save middleware to update the updatedAt field

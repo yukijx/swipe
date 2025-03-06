@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, Alert } from 'react-native';
+import { View, Text, TextInput, Button, Alert, TouchableOpacity } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
@@ -45,13 +45,19 @@ const Login = ({ navigation }: { navigation: any }) => {
         onChangeText={setEmail}
       />
       <TextInput
-        style={{ backgroundColor: inputBackground, color: inputTextColor, padding: 10, marginBottom: 20, borderRadius: 5 }}
+        style={{ backgroundColor: inputBackground, color: inputTextColor, padding: 10, marginBottom: 10, borderRadius: 5 }}
         placeholder="Password"
         placeholderTextColor={theme === 'light' ? '#666' : '#bbb'}
         secureTextEntry
         value={password}
         onChangeText={setPassword}
       />
+      <TouchableOpacity
+        onPress={() => console.log('Forgot password')}
+        style={{ alignSelf: 'flex-end', marginBottom: 20 }}
+      >
+        <Text style={{ color: textColor, textDecorationLine: 'underline' }}>Forgot Password?</Text>
+      </TouchableOpacity>
       <Button title="Login" color="#893030" onPress={handleLogin} />
       <Button title="Create Account" color="#893030" onPress={() => navigation.navigate('Register')} />
     </View>
