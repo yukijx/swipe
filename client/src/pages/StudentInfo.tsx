@@ -1,23 +1,51 @@
-import React from 'react';
-import { View, Text, ScrollView, Button, Linking, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, Button, Linking, Image, Alert } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { StackScreenProps } from '@react-navigation/stack';
+import { StackParamList } from '../App';
 
-const StudentInfo = ({ route, navigation }) => {
+type Props = StackScreenProps<StackParamList, 'StudentInfo'>;
+
+const StudentInfo: React.FC<Props> = ({ navigation, route }) => {
   const { theme } = useTheme();
   const backgroundColor = theme === 'light' ? '#fff7d5' : '#222';
   const textColor = theme === 'light' ? '#893030' : '#ffffff';
-  
-  // Sample student data (replace with real data)
-  const student = route.params?.student || {
-    name: 'Ryan Williams',
-    email: 'ryan.williams@ou.edu',
-    university: 'University of Oklahoma',
-    major: 'Computer Science',
-    experience: 'Intern at Google, TA at OU',
-    skills: 'React Native, Python, Machine Learning',
-    projects: 'Swipe App, AI Chatbot',
-    certifications: 'AWS Certified, Google Cloud Professional',
-    resumeLink: 'https://example.com/resume.pdf',
+
+  const [student, setStudent] = useState({
+    name: '',
+    email: '',
+    university: '',
+    major: '',
+    experience: '',
+    skills: '',
+    projects: '',
+    certifications: '',
+    resumeText: '',
+    profileImage: null
+  });
+
+  useEffect(() => {
+    fetchStudentProfile();
+  }, []);
+
+  const fetchStudentProfile = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const response = await axios.get(
+        'http://localhost:5000/user/profile',
+        { headers: { Authorization: token } }
+      );
+      setStudent(response.data);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to fetch student profile');
+    }
+  }, [route.params?.student]);
+
+  const handleUpdateProfilePicture = () => {
+    // Navigate to UpdateStudentProfile page, passing current profile picture
+    navigation.navigate('UpdateStudentProfile', { student, setStudent });
   };
 
   return (
@@ -25,10 +53,12 @@ const StudentInfo = ({ route, navigation }) => {
       <Text style={{ fontSize: 28, color: textColor, textAlign: 'center', marginBottom: 20 }}>Student Information</Text>
       <View style={{ alignItems: 'center', marginBottom: 20 }}>
         <Image 
-          source={require('../../../client/assets/images/ProfilePic.png')} // Adjusted local image path
+          source={student.profileImage ? { uri: student.profileImage.url } : require('../../../client/assets/images/ProfilePic.png')}
           style={{ width: 100, height: 100, borderRadius: 50, borderWidth: 2, borderColor: textColor }}
         />
+        <Button title="Change Profile Picture" onPress={handleUpdateProfilePicture} />
       </View>
+
       <Text style={{ fontSize: 20, color: textColor, marginBottom: 10 }}>Name: {student.name}</Text>
       <Text style={{ fontSize: 16, color: textColor, marginBottom: 10 }}>Email: {student.email}</Text>
       <Text style={{ fontSize: 16, color: textColor, marginBottom: 10 }}>University: {student.university}</Text>
@@ -37,9 +67,20 @@ const StudentInfo = ({ route, navigation }) => {
       <Text style={{ fontSize: 16, color: textColor, marginBottom: 10 }}>Skills: {student.skills}</Text>
       <Text style={{ fontSize: 16, color: textColor, marginBottom: 10 }}>Projects: {student.projects}</Text>
       <Text style={{ fontSize: 16, color: textColor, marginBottom: 10 }}>Certifications: {student.certifications}</Text>
-      <Text style={{ fontSize: 16, color: textColor, marginBottom: 20 }}>Resume: <Text style={{ color: 'blue' }} onPress={() => Linking.openURL(student.resumeLink)}>Download Resume</Text></Text>
+      {student.resumeText && (
+        <Text style={{ fontSize: 16, color: textColor, marginBottom: 20 }}>Resume Text: {student.resumeText}</Text>
+      )}
       
-      <Button title="Back" color="#893030" onPress={() => navigation.goBack()} />
+      <Button 
+        title="Edit Profile" 
+        color="#893030" 
+        onPress={() => navigation.navigate('ProfileSettings')} 
+      />
+      <Button 
+        title="Back" 
+        color="#893030" 
+        onPress={() => navigation.goBack()} 
+      />
     </ScrollView>
   );
 };

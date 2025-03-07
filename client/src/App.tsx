@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, useNavigation } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { ThemeProvider } from './context/ThemeContext';
 import NavBar from './components/NavBar';
@@ -23,6 +23,8 @@ import DebugPanel from './components/DebugPanel';
 import Swipe from './pages/Swipe';
 import PrivacySettings from './pages/PrivacySettings';
 import ChangePassword from './pages/ChangePassword';
+import Filter from './pages/Filter';
+import { StackNavigationProp } from '@react-navigation/stack';
 
 // this will be the normal home page but i wanted an easy way to see all the pages
 
@@ -45,11 +47,14 @@ export type StackParamList = {
   Swipe: undefined;
   PrivacySettings: undefined;
   ChangePassword: undefined;
+  Filter: undefined;
 };
 
 const Stack = createStackNavigator<StackParamList>();
 
 export default function App() {
+  const navigation = useNavigation<StackNavigationProp<StackParamList>>();
+
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
       const handleKeyPress = (event: KeyboardEvent) => {
@@ -71,7 +76,7 @@ export default function App() {
       window.addEventListener('keydown', handleKeyPress);
       return () => window.removeEventListener('keydown', handleKeyPress);
     }
-  }, []);
+  }, [navigation]);
 
   return (
     <ThemeProvider>
@@ -101,6 +106,7 @@ export default function App() {
           />
           <Stack.Screen name="PrivacySettings" component={PrivacySettings} />
           <Stack.Screen name="ChangePassword" component={ChangePassword} />
+          <Stack.Screen name="Filter" component={Filter} />
         </Stack.Navigator>
         {process.env.NODE_ENV === 'development' && <DebugPanel />}
       </NavigationContainer>
