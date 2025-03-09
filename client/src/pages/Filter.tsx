@@ -1,67 +1,75 @@
 import React, { useState } from "react";
-import { View, Text, Button, StyleSheet, ScrollView } from "react-native";
+import { View, Text, Button, StyleSheet, ScrollView, TextInput } from "react-native";
 import DropDownPicker from "react-native-dropdown-picker";
-import { StackScreenProps } from "@react-navigation/stack";
-import { StackParamList } from "../App";
+import axios from "axios";
 
-type Props = StackScreenProps<StackParamList, "Filter">;
+const API_URL = "http://localhost:5000/filter-jobs";
 
-const Filter: React.FC<Props> = ({ navigation }) => {
-  
+const Filter: React.FC = () => {
   const [experienceOpen, setExperienceOpen] = useState(false);
   const [experienceValue, setExperienceValue] = useState(null);
-  const [experienceOptions, seEexperienceOptions] = useState([
-    { label: "Entry Level", value: "$entry level" },
-    { label: "Mid Level", value: "mid level" },
-    { label: "Senior Level", value: "senior level" },
-  ]);                  
+  const [experienceOptions, setExperienceOptions] = useState([
+    { label: "Entry Level", value: "Entry Level" },
+    { label: "Mid Level", value: "Mid Level" },
+    { label: "Senior Level", value: "Senior Level" },
+  ]);
 
-  const [payOpen, setPayOpen] = useState(false);
-  const [payValue, setPayValue] = useState(null);
-  const [payOptions, setPayOptions] = useState([
-    { label: "$0-$10", value: "$0-$10" },
-    { label: "$10-$20", value: "$10-$20" },
-    { label: "$20-$30", value: "$20-$30" },
-    { label: "$30+", value: "$30+" },
-  ]);                                                                                                                                        
+  const [payMin, setPayMin] = useState("");
+  const [payMax, setPayMax] = useState("");
 
   const [locationOpen, setLocationOpen] = useState(false);
   const [locationValue, setLocationValue] = useState(null);
   const [locationOptions, setLocationOptions] = useState([
-    { label: "Remote", value: "remote" },
-    { label: "In Person", value: "in person" },
+    { label: "Remote", value: "Remote" },
+    { label: "In Person", value: "In Person" },
   ]);
 
   const [availabilityOpen, setAvailabilityOpen] = useState(false);
   const [availabilityValue, setAvailabilityValue] = useState(null);
   const [availabilityOptions, setAvailabilityOptions] = useState([
-    { label: "Full-Time", value: "fulltime" },
-    { label: "Part-Time", value: "parttime" },
-    { label: "Internships", value: "internships" },
+    { label: "Full-Time", value: "Full-Time" },
+    { label: "Part-Time", value: "Part-Time" },
+    { label: "Internships", value: "Internships" },
   ]);
 
   const [employmentOpen, setEmploymentOpen] = useState(false);
   const [employmentValue, setEmploymentValue] = useState(null);
   const [employmentOptions, setEmploymentOptions] = useState([
-    { label: "Morining", value: "morining" },
-    { label: "Afternoon", value: "afternoon" },
-    { label: "Night", value: "night" },
-
+    { label: "Morning", value: "Morning" },
+    { label: "Afternoon", value: "Afternoon" },
+    { label: "Night", value: "Night" },
   ]);
 
-  const handleApplyFilters = () => {
-    console.log({
-      Pay: payValue,
-      Location: locationValue,
-      Availability: availabilityValue,
-      EmploymentTime: employmentValue,
-    });
+  const [filteredJobs, setFilteredJobs] = useState([]);
+
+  const handleApplyFilters = async () => {
+    try {
+      const filters = {
+        experience: experienceValue,
+        pay_min: payMin || undefined, 
+        pay_max: payMax || undefined,
+        location: locationValue,
+        jobType: availabilityValue,
+        shift: employmentValue,
+      };
+  
+      const cleanFilters = Object.fromEntries(
+        Object.entries(filters).filter(([_, v]) => v !== undefined)
+      );
+  
+      const response = await axios.get(API_URL, { 
+        params: cleanFilters 
+      });
+      
+      setFilteredJobs(response.data);
+    } catch (error) {
+      console.error("Error fetching jobs:", error);
+    }
   };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 20 }}>
       <Text style={styles.title}>Filter Preferences</Text>
-
 
       <View style={[styles.dropdownContainer, { zIndex: experienceOpen ? 4000 : 1000 }]}>
         <DropDownPicker
@@ -70,25 +78,29 @@ const Filter: React.FC<Props> = ({ navigation }) => {
           items={experienceOptions}
           setOpen={setExperienceOpen}
           setValue={setExperienceValue}
-          setItems={seEexperienceOptions}
+          setItems={setExperienceOptions}
           placeholder="Select Your Level"
           style={styles.dropdown}
           dropDownContainerStyle={styles.dropdownBox}
         />
       </View>
 
-
-      <View style={[styles.dropdownContainer, { zIndex: payOpen ? 4000 : 1000 }]}>
-        <DropDownPicker
-          open={payOpen}
-          value={payValue}
-          items={payOptions}
-          setOpen={setPayOpen}
-          setValue={setPayValue}
-          setItems={setPayOptions}
-          placeholder="Select Pay Per Hour"
-          style={styles.dropdown}
-          dropDownContainerStyle={styles.dropdownBox}
+      <Text style={styles.label}>Enter Pay Range ($ per hour)</Text>
+      <View style={styles.payContainer}>
+        <TextInput
+          style={styles.input}
+          placeholder="Min"
+          keyboardType="numeric"
+          value={payMin}
+          onChangeText={setPayMin}
+        />
+        <Text style={styles.toText}>to</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Max"
+          keyboardType="numeric"
+          value={payMax}
+          onChangeText={setPayMax}
         />
       </View>
 
@@ -135,6 +147,12 @@ const Filter: React.FC<Props> = ({ navigation }) => {
       </View>
 
       <Button title="Apply Filters" onPress={handleApplyFilters} />
+
+      <View style={styles.results}>
+        {filteredJobs.map((job, index) => (
+          <Text key={index} style={styles.jobText}>{job.title} - {job.company}</Text>
+        ))}
+      </View>
     </ScrollView>
   );
 };
@@ -160,6 +178,39 @@ const styles = StyleSheet.create({
   dropdownBox: {
     backgroundColor: "#fff",
     borderColor: "#ccc",
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 5,
+    color: "#fff",
+  },
+  payContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 15,
+  },
+  input: {
+    flex: 1,
+    backgroundColor: "#fff",
+    padding: 10,
+    borderRadius: 5,
+    borderColor: "#ccc",
+    borderWidth: 1,
+    marginHorizontal: 5,
+    textAlign: "center",
+  },
+  toText: {
+    fontSize: 16,
+    color: "#fff",
+  },
+  results: {
+    marginTop: 20,
+  },
+  jobText: {
+    fontSize: 16,
+    color: "#fff",
+    marginBottom: 5,
   },
 });
 
