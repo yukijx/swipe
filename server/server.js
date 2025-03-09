@@ -40,6 +40,21 @@ const UserSchema = new mongoose.Schema({
 });
 const User = mongoose.model('User', UserSchema);
 
+
+const JobSchema = new mongoose.Schema({
+    title: { type: String, required: true },
+    company: { type: String, required: true },
+    experienceLevel: { type: String },
+    payPerHour: { type: Number },
+    locationType: { type: String },
+    jobType: { type: String },
+    shiftTiming: { type: String },
+    // Add other job fields as needed
+});
+const Job = mongoose.model('Job', JobSchema);
+
+
+
 // AES-256 Encryption & Decryption
 const encrypt = (text) => {
     const key = crypto.scryptSync(AES_SECRET, SALT, 32);
@@ -131,6 +146,41 @@ app.post('/match', async (req, res) => {
         res.status(500).json({ error: "Python Matching API is not reachable. Make sure it's running." });
     }
 });
+
+// Filter Jobs API
+app.get('/filter-jobs', async (req, res) => {
+    try {
+        const { 
+            experience, 
+            pay_min, 
+            pay_max, 
+            location, 
+            jobType, 
+            shift 
+        } = req.query;
+
+        const filter = {};
+
+        if (experience) filter.experienceLevel = experience;
+        if (location) filter.locationType = location;
+        if (jobType) filter.jobType = jobType;
+        if (shift) filter.shiftTiming = shift;
+
+        if (pay_min || pay_max) {
+            filter.payPerHour = {};
+            if (pay_min) filter.payPerHour.$gte = Number(pay_min);
+            if (pay_max) filter.payPerHour.$lte = Number(pay_max);
+        }
+
+        const jobs = await Job.find(filter);
+        res.json(jobs);
+
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+module.exports = router;
 
 // Start Express Server (Only One `app.listen`)
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
