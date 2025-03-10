@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, Switch, ScrollView, Button } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 
-const StudentProfileSettings = ({ navigation }) => {
+const StudentProfileSettings = ({ navigation }: { navigation: any }) => {
   const { theme } = useTheme();
   const backgroundColor = theme === 'light' ? '#fff7d5' : '#222';
   const textColor = theme === 'light' ? '#893030' : '#ffffff';

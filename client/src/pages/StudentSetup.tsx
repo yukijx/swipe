@@ -33,18 +33,27 @@ const StudentSetup = ({ navigation }: { navigation: any }) => {
         try {
             const result = await DocumentPicker.getDocumentAsync({
                 type: 'application/pdf',
-                copyToCacheDirectory: true
+                copyToCacheDirectory: true,
+                multiple: false
             });
-
-            if (result.type === 'success') {
+    
+            // Check if user canceled the selection or if assets is null
+            if (!result.assets || result.assets.length === 0) {
+                Alert.alert('Notice', 'No file was selected.');
+                return;
+            }
+    
+            const file = result.assets[0];
+    
+            if (file) {
                 // Create form data for file upload
                 const formData = new FormData();
                 formData.append('resume', {
-                    uri: result.uri,
-                    name: result.name,
-                    type: 'application/pdf'
+                    uri: file.uri,
+                    name: file.name,
+                    type: file.mimeType || 'application/pdf'
                 } as any);
-
+    
                 const token = await AsyncStorage.getItem('token');
                 const response = await axios.post(
                     'http://localhost:5001/parse-resume',
@@ -56,13 +65,13 @@ const StudentSetup = ({ navigation }: { navigation: any }) => {
                         }
                     }
                 );
-
+    
                 // Update profile with extracted text
                 setProfile(prev => ({
                     ...prev,
                     resumeText: response.data.text
                 }));
-                setPdfFileName(result.name);
+                setPdfFileName(file.name);
                 Alert.alert('Success', 'Resume uploaded and parsed successfully');
             }
         } catch (error) {
@@ -70,6 +79,7 @@ const StudentSetup = ({ navigation }: { navigation: any }) => {
             console.error(error);
         }
     };
+    
 
     const handleSubmit = async () => {
         try {

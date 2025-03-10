@@ -4,16 +4,27 @@ import { useTheme } from '../context/ThemeContext';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StackScreenProps } from '@react-navigation/stack';
-import { StackParamList } from '../App';
+import { StackParamList } from '../navigation/types';
 
 type Props = StackScreenProps<StackParamList, 'StudentInfo'>;
 
-const StudentInfo: React.FC<Props> = ({ navigation, route }) => {
+const StudentInfo = ({ route, navigation }: { route: any, navigation: any }) => {
   const { theme } = useTheme();
   const backgroundColor = theme === 'light' ? '#fff7d5' : '#222';
   const textColor = theme === 'light' ? '#893030' : '#ffffff';
 
-  const [student, setStudent] = useState({
+  const [student, setStudent] = useState<{
+    name: string;
+    email: string;
+    university: string;
+    major: string;
+    experience: string;
+    skills: string;
+    projects: string;
+    certifications: string;
+    resumeText: string;
+    profileImage: { url: string } | null;
+  }>({
     name: '',
     email: '',
     university: '',
@@ -23,7 +34,7 @@ const StudentInfo: React.FC<Props> = ({ navigation, route }) => {
     projects: '',
     certifications: '',
     resumeText: '',
-    profileImage: null
+    profileImage: null, // Ensures proper handling when no profile image is set
   });
 
   useEffect(() => {
@@ -41,6 +52,9 @@ const StudentInfo: React.FC<Props> = ({ navigation, route }) => {
     } catch (error) {
       Alert.alert('Error', 'Failed to fetch student profile');
     }
+  };
+  useEffect(() => {
+    fetchStudentProfile();
   }, [route.params?.student]);
 
   const handleUpdateProfilePicture = () => {
@@ -53,7 +67,7 @@ const StudentInfo: React.FC<Props> = ({ navigation, route }) => {
       <Text style={{ fontSize: 28, color: textColor, textAlign: 'center', marginBottom: 20 }}>Student Information</Text>
       <View style={{ alignItems: 'center', marginBottom: 20 }}>
         <Image 
-          source={student.profileImage ? { uri: student.profileImage.url } : require('../../../client/assets/images/ProfilePic.png')}
+          source={student.profileImage ? { uri: student.profileImage.url} : require('../../../client/assets/images/ProfilePic.png')}
           style={{ width: 100, height: 100, borderRadius: 50, borderWidth: 2, borderColor: textColor }}
         />
         <Button title="Change Profile Picture" onPress={handleUpdateProfilePicture} />
