@@ -1,30 +1,38 @@
-import React from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
-import { useTheme } from '../context/ThemeContext';
+import React from "react";
+import { View, StyleSheet, Platform, ViewProps } from "react-native";
+import { useTheme } from "../context/ThemeContext";
 
-export const ThemedView: React.FC<{ children: React.ReactNode, style?: any }> = ({ children, style }) => {
-    const { theme } = useTheme();
+interface ThemedViewProps extends ViewProps {
+  children: React.ReactNode;
+  lightColor?: string;
+  darkColor?: string;
+}
 
-    return (
-        <View style={[
-            styles.container,
-            {
-                backgroundColor: theme === 'light' ? '#fff7d5' : '#222',
-                ...(Platform.OS === 'web' && {
-                    minHeight: '100vh',
-                    overflowX: 'hidden',
-                })
-            },
-            style
-        ]}>
-            {children}
-        </View>
-    );
+const ThemedView: React.FC<ThemedViewProps> = ({ children, style, lightColor, darkColor, ...props }) => {
+  const { theme } = useTheme();
+  const backgroundColor = theme === "light" ? lightColor || "#fff7d5" : darkColor || "#222";
+
+  return (
+    <View
+      style={[
+        styles.container,
+        { backgroundColor },
+        Platform.OS === "web"
+          ? { minHeight: "100%", flex: 1, width: "100%" } // ✅ Fix for Web
+          : {},
+        style
+      ]}
+      {...props}
+    >
+      {children}
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
+  container: {
+    flex: 1,
+  },
 });
 
+export default ThemedView;

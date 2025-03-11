@@ -3,6 +3,8 @@ import { View, Text, TextInput, Button, Alert, TouchableOpacity } from 'react-na
 import { useTheme } from '../context/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { getBackendURL } from '../utils/network';
+
 
 const Login = ({ navigation }: { navigation: any }) => {
   const { theme } = useTheme();
@@ -16,24 +18,30 @@ const Login = ({ navigation }: { navigation: any }) => {
 
   const handleLogin = async () => {
     try {
-      const response = await axios.post('http://localhost:5000/login', { email, password });
+        const backendUrl = `${getBackendURL()}/login`; 
+        const response = await axios.post(backendUrl, { email, password });
 
-      // Save JWT token in local storage
-      await AsyncStorage.setItem('token', response.data.token);
+        console.log("Login Response:", response.data);
+        
+        if (!response.data || !response.data.token) {
+            throw new Error("No token received from the backend");
+        }
 
-      Alert.alert('Success', 'Logged in successfully');
-      
-      // Navigate based on user role
-      if (response.data.user.isFaculty) {
-        navigation.navigate('FacultyHome');
-      } else {
-        navigation.navigate('Home'); // Student home
-      }
-    } catch (error) {
-      Alert.alert('Error', error.response?.data?.error || 'Login failed');
+        await AsyncStorage.setItem('token', response.data.token);
+        console.log("Saved Token:", await AsyncStorage.getItem('token'));
+
+        Alert.alert('Success', 'Logged in successfully');
+        if (response.data.user && response.data.user.isFaculty) {
+            navigation.navigate('FacultyHome');
+        } else {
+            navigation.navigate('Home');
+        }
+    } catch (error: any) {
+        console.error("Login error:", error.response?.data || error.message);
+        Alert.alert('Error', error.response?.data?.error || 'Login failed');
     }
-  };
-
+};
+  
   return (
     <View style={{ backgroundColor, flex: 1, padding: 20, justifyContent: 'center' }}>
       <Text style={{ fontSize: 28, color: textColor, textAlign: 'center', marginBottom: 20 }}>Login</Text>

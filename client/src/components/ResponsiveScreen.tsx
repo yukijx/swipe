@@ -1,7 +1,7 @@
 import React from 'react';
-import { ScrollView, StyleSheet, Platform, View } from 'react-native';
-import { ThemedView } from './ThemedView';
-import NavBar from './NavBar';
+import { ScrollView, StyleSheet, Platform } from 'react-native';
+import ThemedView from '../components/ThemedView'; // ✅ Correct import
+import NavBar from '../components/NavBar'; // ✅ Correct import
 
 interface ResponsiveScreenProps {
     children: React.ReactNode;
@@ -17,22 +17,26 @@ export const ResponsiveScreen = ({
     contentContainerStyle 
 }: ResponsiveScreenProps) => {
     return (
-        <ThemedView>
+        <ThemedView style={styles.container}>
             <NavBar navigation={navigation} />
-            <ScrollView 
-                style={styles.scroll}
-                contentContainerStyle={[
-                    styles.scrollContent,
-                    contentContainerStyle
-                ]}
-            >
-                {children}
-            </ScrollView>
+            {scrollable ? (
+                <ScrollView 
+                    style={styles.scroll}
+                    contentContainerStyle={[styles.scrollContent, contentContainerStyle]}
+                >
+                    {children}
+                </ScrollView>
+            ) : (
+                <>{children}</>
+            )}
         </ThemedView>
     );
 };
 
 const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+    },
     scroll: {
         flex: 1,
     },
@@ -43,4 +47,6 @@ const styles = StyleSheet.create({
         marginHorizontal: 'auto',
         padding: 20,
     },
-}); 
+});
+
+export default ResponsiveScreen; // ✅ Ensure export is present
