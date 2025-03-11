@@ -3,7 +3,7 @@ import { View, Text, TextInput, Button, Alert, StyleSheet, ScrollView, Touchable
 import { useTheme } from '../context/ThemeContext';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import ResponsiveScreen from '../components/ResponsiveScreen';
+import {ResponsiveScreen} from '../components/ResponsiveScreen';
 
 interface ProfessorProfile {
     university: string;

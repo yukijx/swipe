@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
-import { StackParamList } from '../App';
+import { StackParamList } from '../navigation/types';
 import { jwtDecode } from "jwt-decode";
 
 interface DecodedToken {
