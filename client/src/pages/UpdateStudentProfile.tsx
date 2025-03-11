@@ -1,40 +1,40 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, ScrollView, Image } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
-import { launchImageLibrary } from 'react-native-image-picker';
+import { launchImageLibrary, ImageLibraryOptions } from 'react-native-image-picker';
 
-const UpdateStudentProfile = ({ route, navigation }) => {
+const UpdateStudentProfile = ({ navigation, route }: { navigation: any, route: any }) => {
   const { theme } = useTheme();
   const backgroundColor = theme === 'light' ? '#fff7d5' : '#222';
   const textColor = theme === 'light' ? '#893030' : '#ffffff';
-
   const { student, setStudent } = route.params; // Receive student and setStudent from navigation params
 
   // Local state for handling changes
   const [updatedStudent, setUpdatedStudent] = useState(student);
 
   const handleUpdateProfilePicture = () => {
+    
     // Allow user to pick an image from gallery
-    const options = {
+    const options: ImageLibraryOptions = {
       mediaType: 'photo',
       quality: 0.8,
       includeBase64: false,
     };
 
-    launchImageLibrary(options, (response) => {
-      if (response.didCancel) {
-        console.log('User canceled image picker');
-      } else if (response.errorCode) {
-        console.log('ImagePicker Error: ', response.errorMessage);
-      } else {
-        const newProfilePicture = { uri: response.assets[0].uri };
-        setUpdatedStudent((prevStudent) => ({
-          ...prevStudent,
-          profilePicture: newProfilePicture, // Update profile picture
-        }));
-      }
-    });
-  };
+  launchImageLibrary(options, (response) => { 
+        if (response.didCancel) {
+          console.log('User canceled image picker');
+        } else if (response.errorCode) {
+          console.log('ImagePicker Error: ', response.errorMessage);
+        } else if (response.assets && response.assets.length > 0) {
+          const newProfilePicture = { uri: response.assets[0].uri };
+          setUpdatedStudent((prevStudent: any) => ({
+            ...prevStudent,
+            profilePicture: newProfilePicture, // Update profile picture
+          }));
+        }
+      });
+    };
 
   const handleUpdate = () => {
     setStudent(updatedStudent); // Update the student data in StudentInfo
