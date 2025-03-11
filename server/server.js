@@ -10,11 +10,13 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-
+const IP = process.env.SERVER_IP || 'localhost';
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey";
 const AES_SECRET = process.env.AES_SECRET || "your_aes_key_here";
 const SALT = process.env.SALT || "your_salt_here";
+
+app.listen(PORT, IP, () => console.log(`Server running on http://${IP}:${PORT}`));
 
 // Connect to MongoDB (Single Connection)
 mongoose.connect(process.env.MONGO_URI, {
@@ -134,6 +136,7 @@ app.post('/register', async (req, res) => {
         const existingUser = await User.findOne({ email });
         if (existingUser) return res.status(400).json({ error: 'Email already exists' });
         
+        
         const encryptedPassword = encrypt(password);
         const user = new User({
             name, 
@@ -206,7 +209,7 @@ app.post('/match', async (req, res) => {
         const { job_abstracts, student_cv } = req.body;
         
         // Ensure Python API is running
-        const pythonApiUrl = "http://localhost:5001/match";  // Adjust to correct Python backend port
+        const pythonApiUrl = "http://localhost:5000/match";  // Adjust to correct Python backend port
 
         const response = await axios.post(pythonApiUrl, { job_abstracts, student_cv });
         res.json(response.data);
