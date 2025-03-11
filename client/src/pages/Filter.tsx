@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { View, Text, Button, StyleSheet, ScrollView } from "react-native";
 import DropDownPicker from "react-native-dropdown-picker";
 import { StackScreenProps } from "@react-navigation/stack";
-import { StackParamList } from "../App";
+import { StackParamList } from "../navigation/types";
 
 type Props = StackScreenProps<StackParamList, "Filter">;
 
