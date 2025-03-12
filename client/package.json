@@ -51,12 +51,13 @@
     "react-native-screens": "~4.4.0",
     "react-native-svg": "15.8.0",
     "react-native-vector-icons": "^10.2.0",
-    "react-native-web": "~0.19.13",
+    "react-native-web": "^0.19.13",
     "react-navigation": "^5.0.0",
     "react-redux": "^9.2.0",
     "typescript": "^5.7.3"
   },
   "devDependencies": {
+    "@types/node": "^22.13.10",
     "@types/react-native-vector-icons": "^6.4.18"
   }
 }
