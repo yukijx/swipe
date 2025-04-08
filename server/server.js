@@ -42,7 +42,13 @@ const UserSchema = new mongoose.Schema({
     projects: { type: String },
     certifications: { type: String },
     resumeText: { type: String },  // New field for resume text
-    
+
+        // THIS WILL KEEP TRACK OF SPECIFIC STUDENT SWIPE HISTORY
+    swipeHistory: {
+        swipedRight: [ObjectId],  // Listing IDs
+        swipedLeft: [ObjectId],
+    }, 
+      
     // Professor specific fields
     department: { type: String },
     researchInterests: { type: String },
@@ -220,8 +226,16 @@ app.post('/match', async (req, res) => {
 
 // Middleware to verify JWT token
 const verifyToken = (req, res, next) => {
-    const token = req.headers['authorization'];
-    if (!token) return res.status(401).json({ error: 'No token provided' });
+    const authHeader = req.headers['authorization'];
+
+    if (!authHeader) {
+        return res.status(401).json({ error: 'No token provided' });
+    }
+
+    const token = authHeader.split(' ')[1]; // Extract token from "Bearer <token>"
+    if (!token) {
+        return res.status(401).json({ error: 'Malformed token' });
+    }
 
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
@@ -272,7 +286,7 @@ app.post('/listings/create', verifyToken, isFaculty, async (req, res) => {
 app.get('/listings', verifyToken, async (req, res) => {
     try {
         const listings = await Listing.find({ active: true })
-            .populate('facultyId', 'name email university -password');
+            .populate('facultyId', 'name email university');
         res.json(listings);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -489,6 +503,8 @@ app.get('/user/profile/:userId', verifyToken, async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+
 
 // Start Express Server (Only One `app.listen`)
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
