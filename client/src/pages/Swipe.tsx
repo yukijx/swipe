@@ -1,142 +1,217 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Button, Alert } from 'react-native';
-import axios from 'axios';
-import { useTheme } from '../context/ThemeContext';
+import React, { useEffect, useState, useRef } from "react";
+import { View, Text, StyleSheet, ActivityIndicator, Alert } from "react-native";
+import axios from "axios";
+import useAuth from '../hooks/useAuth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ResponsiveScreen } from '../components/ResponsiveScreen';
+import Swiper from 'react-native-deck-swiper';
+import { useTheme } from '../context/ThemeContext';
+import ThemedView from '../components/ThemedView'; 
+import { getBackendURL } from "../utils/network";
 
-interface Listing {
+type Listing = {
     _id: string;
+    facultyId: string;
     title: string;
     description: string;
     requirements: string;
-    facultyId: {
-        name: string;
-        university: string;
-    };
-}
+    duration: string;
+    compensation: string;
+    active: boolean;
+    createdAt: string;
+};
 
 const Swipe = ({ navigation }: { navigation: any }) => {
-    const [currentListing, setCurrentListing] = useState<Listing | null>(null);
+    const [loading, setLoading] = useState(true);
     const [listings, setListings] = useState<Listing[]>([]);
+    const [index, setIndex] = useState(0);
+    const swiperRef = useRef<Swiper<Listing>>(null);
     const { theme } = useTheme();
-    
+    const { isFaculty } = useAuth();
+
+
+    const debugToken = async () => {
+        const token = await AsyncStorage.getItem("authToken");
+        console.log("STORED TOKEN:", token);
+    };    
+
+
     useEffect(() => {
-        fetchListings();
-    }, []);
+        
+        // debugToken();
 
-    const fetchListings = async () => {
-        try {
-            const token = await AsyncStorage.getItem('token');
-            const response = await axios.get('http://localhost:5000/listings', {
-                headers: { Authorization: token }
-            });
-            setListings(response.data);
-            if (response.data.length > 0) {
-                setCurrentListing(response.data[0]);
-            }
-        } catch (error) {
-            console.error('Error fetching listings:', error);
+        // DON'T KNOW HOW TO TEST THIS 
+        if (isFaculty) {
+            Alert.alert('Error', 'Only Students can view Listings Swipe Page');
+            return;
         }
-    };
-
-    const handleSwipe = async (direction: 'left' | 'right') => {
-        if (!currentListing) return;
-
-        if (direction === 'right') {
-            try {
-                // Get user CV from profile or storage
-                const userCV = "Example CV text"; // Replace with actual CV
+        
+        // Fetch listings with the token
+        const fetchListings = async () => {
+            setLoading(true); 
+            try {  
+                // retrieve stored token
+                const token = await AsyncStorage.getItem("token");
+                console.log("Retrieved Token~: ", token); 
+ 
+                // checking if token is null :( 
+                if (!token) {
+                    console.log('No token found');
+                    setLoading(false);
+                    return;
+                }
                 
-                const matchResponse = await axios.post('http://localhost:5001/match', {
-                    student_cv: userCV,
-                    job_description: currentListing.description + " " + currentListing.requirements
+                // API request with token
+                const response = await axios.get(`${getBackendURL()}/listings`, {
+                headers: {
+                    Authorization: `Bearer ${token}`, 
+                },
+                timeout: 10000, 
                 });
 
-                if (matchResponse.data.should_show) {
-                    Alert.alert(
-                        'Match!',
-                        `Match score: ${matchResponse.data.match_score}%`
-                    );
-                }
+                setListings(response.data);
+                console.log("Response: ", response.data);
+
             } catch (error) {
-                console.error('Error matching:', error);
+                console.error("Error fetching listings:", error);
+
+            } finally { 
+                setLoading(false); 
             }
-        }
+        };
 
-        // Move to next listing
-        const currentIndex = listings.findIndex(l => l._id === currentListing._id);
-        if (currentIndex < listings.length - 1) {
-            setCurrentListing(listings[currentIndex + 1]);
-        } else {
-            setCurrentListing(null);
-            Alert.alert('No more listings', 'Check back later for more opportunities!');
-        }
-    };
+        fetchListings(); 
+        debugToken();
 
+    }, []);   
+
+    if (loading) { 
+        return (
+            <ThemedView style={styles.container}>
+                <ActivityIndicator size="large" color="#fff" />
+            </ThemedView>
+        );
+    }
+    
     return (
-        <ResponsiveScreen navigation={navigation} scrollable={false}>
-            {currentListing ? (
-                <>
-                    <View style={[styles.container, { backgroundColor: theme === 'light' ? '#fff7d5' : '#222' }]}>
-                        <View style={styles.card}>
-                            <Text style={styles.title}>{currentListing.title}</Text>
-                            <Text style={styles.faculty}>By: {currentListing.facultyId.name}</Text>
-                            <Text style={styles.university}>{currentListing.facultyId.university}</Text>
-                            <Text style={styles.description}>{currentListing.description}</Text>
-                            <Text style={styles.requirements}>{currentListing.requirements}</Text>
-                        </View>
-                        <View style={styles.buttonContainer}>
-                            <Button title="Pass" onPress={() => handleSwipe('left')} color="#ff0000" />
-                            <Button title="Like" onPress={() => handleSwipe('right')} color="#00ff00" />
-                        </View>
-                    </View>
-                </>
+        <ThemedView style={styles.container}>
+            {loading ? (
+                <ActivityIndicator size="large" color="#0000ff" />
+            ) : listings.length === 0 || index >= listings.length ? (
+                <Text style={styles.noListings}>No listings available</Text>
             ) : (
-                <Text>No more listings available</Text>
+                <Swiper
+                    ref={swiperRef}
+                    cards={listings}
+                    renderCard={(item) => (
+                        <View key={item._id} style={styles.card}>
+                            <Text style={styles.title}>{item.title}</Text>
+                            <Text style={styles.description}>{item.description}</Text>
+                            <Text style={styles.details}>Duration: {item.duration}</Text>
+                            <Text style={styles.details}>Compensation: {item.compensation}</Text>
+                        </View>
+                    )}
+                    onSwiped={(cardIndex) => setIndex(cardIndex + 1)}
+                    onSwipedAll={() => setIndex(listings.length)}
+                    backgroundColor="transparent"
+                    stackSize={3}
+                    cardIndex={index}
+                    infinite={false}
+                    animateOverlayLabelsOpacity
+                    overlayLabels={{
+                        left: {
+                            title: "Nope",
+                            style: {
+                                wrapper: styles.overlayWrapperLeft,
+                                // text: styles.overlayTextLeft,
+                            }
+                        },
+                        right: {
+                            title: "Interested",
+                            style: {
+                                wrapper: styles.overlayWrapperRight,
+                                // text: styles.overlayTextRight,
+                            }
+                        }
+                    }}
+                />
             )}
-        </ResponsiveScreen>
+        </ThemedView>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
         padding: 20,
+        backgroundColor: "#893030",
+        alignItems: 'center',
+        flex: 1,
+        justifyContent: 'center',
     },
     card: {
-        backgroundColor: '#fff',
-        padding: 20,
-        borderRadius: 10,
-        marginBottom: 20,
-        elevation: 3,
+        width: '100%',
+        maxWidth: 350,
+        backgroundColor: "#fff7d5",
+        padding: 24,
+        borderRadius: 20,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 6,
+        elevation: 8,
+        borderColor: '#000',
+        borderStyle: 'solid',
+        borderWidth: 4,
+        position: 'absolute',
     },
     title: {
         fontSize: 24,
-        fontWeight: 'bold',
-        marginBottom: 10,
-    },
-    faculty: {
-        fontSize: 18,
-        marginBottom: 5,
-    },
-    university: {
-        fontSize: 16,
-        marginBottom: 15,
-        color: '#666',
+        fontWeight: "bold",
+        marginBottom: 24,
+        color: "#000",
     },
     description: {
-        fontSize: 16,
-        marginBottom: 15,
+        fontSize: 20,
+        color: "#000",
+        marginBottom: 10,
     },
-    requirements: {
+    details: {
         fontSize: 16,
-        fontStyle: 'italic',
+        color: "#000",
+        marginBottom: 10,
     },
-    buttonContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-    }
+    noListings: {
+        textAlign: "center",
+        fontSize: 20,
+        color: "#fff",
+    },
+    overlayWrapperLeft: {
+        label: {
+            backgroundColor: 'red',
+            color: 'white',
+            fontSize: 24,
+            padding: 10,
+        },
+        wrapper: {
+            flexDirection: 'column',
+            alignItems: 'flex-end',
+            justifyContent: 'center',
+            paddingRight: 20,
+        }
+    },
+    overlayWrapperRight: {
+        label: {
+            backgroundColor: 'green',
+            color: 'white',
+            fontSize: 24,
+            padding: 10,
+        },
+        wrapper: {
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+            justifyContent: 'center',
+            paddingLeft: 20,
+        }
+    },
 });
 
 export default Swipe;
