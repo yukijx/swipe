@@ -4,7 +4,7 @@ import { useTheme } from '../context/ThemeContext';
 import axios from 'axios';
 import useAuth from '../hooks/useAuth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ThemedView } from "../components/ThemedView";
+import ThemedView from "../components/ThemedView";
 import { ResponsiveContainer } from "../components/ResponsiveContainer";
 import NavBar from "../components/NavBar";
 import { webStyles } from "../utils/webStyles";
@@ -20,8 +20,15 @@ const CreateListing = ({ navigation, route }: { navigation: any, route: any }) =
         title: existingListing?.title || '',
         description: existingListing?.description || '',
         requirements: existingListing?.requirements || '',
-        duration: existingListing?.duration || '',
-        compensation: existingListing?.compensation || ''
+        duration: {
+            value: existingListing?.duration?.value || '',
+            unit: existingListing?.duration?.unit || 'months'
+        },
+        wage: {
+            type: existingListing?.wage?.type || 'hourly',
+            amount: existingListing?.wage?.amount || '',
+            isPaid: existingListing?.wage?.isPaid ?? true
+        }
     });
 
     const handleSubmit = async () => {
@@ -31,19 +38,38 @@ const CreateListing = ({ navigation, route }: { navigation: any, route: any }) =
                 return;
             }
 
+            // Validate form data
+            if (!listing.title || !listing.description || !listing.requirements) {
+                Alert.alert('Error', 'Please fill in all required fields');
+                return;
+            }
+
+            // Convert duration value to number
+            const formData = {
+                ...listing,
+                duration: {
+                    ...listing.duration,
+                    value: Number(listing.duration.value)
+                },
+                wage: {
+                    ...listing.wage,
+                    amount: Number(listing.wage.amount)
+                }
+            };
+
             const token = await AsyncStorage.getItem('token');
             
             if (isEditing) {
                 await axios.put(
                     `http://localhost:5000/listings/${existingListing._id}`,
-                    listing,
+                    formData,
                     { headers: { Authorization: token } }
                 );
                 Alert.alert('Success', 'Listing updated successfully');
             } else {
                 await axios.post(
                     'http://localhost:5000/listings/create',
-                    listing,
+                    formData,
                     { headers: { Authorization: token } }
                 );
                 Alert.alert('Success', 'Listing created successfully');
@@ -106,21 +132,61 @@ const CreateListing = ({ navigation, route }: { navigation: any, route: any }) =
                 onChangeText={(text) => setListing({...listing, requirements: text})}
             />
             
-            <TextInput
-                style={[styles.input, webInputStyle]}
-                placeholder="Duration (e.g., '3 months')"
-                placeholderTextColor={theme === 'light' ? '#666' : '#999'}
-                value={listing.duration}
-                onChangeText={(text) => setListing({...listing, duration: text})}
-            />
+            <View style={styles.durationContainer}>
+                <TextInput
+                    style={[styles.input, styles.durationInput, webInputStyle]}
+                    placeholder="Duration Value"
+                    placeholderTextColor={theme === 'light' ? '#666' : '#999'}
+                    keyboardType="numeric"
+                    value={listing.duration.value.toString()}
+                    onChangeText={(text) => setListing({
+                        ...listing,
+                        duration: { ...listing.duration, value: text }
+                    })}
+                />
+                <TextInput
+                    style={[styles.input, styles.durationInput, webInputStyle]}
+                    placeholder="Duration Unit (days/weeks/months/years)"
+                    value={listing.duration.unit}
+                    onChangeText={(text) => setListing({
+                        ...listing,
+                        duration: { ...listing.duration, unit: text }
+                    })}
+                />
+            </View>
             
-            <TextInput
-                style={[styles.input, webInputStyle]}
-                placeholder="Compensation"
-                placeholderTextColor={theme === 'light' ? '#666' : '#999'}
-                value={listing.compensation}
-                onChangeText={(text) => setListing({...listing, compensation: text})}
-            />
+            <View style={styles.wageContainer}>
+                <TextInput
+                    style={[styles.input, styles.wageInput, webInputStyle]}
+                    placeholder="Wage Amount"
+                    keyboardType="numeric"
+                    value={listing.wage.amount.toString()}
+                    onChangeText={(text) => setListing({
+                        ...listing,
+                        wage: { ...listing.wage, amount: text }
+                    })}
+                />
+                <TextInput
+                    style={[styles.input, styles.wageInput, webInputStyle]}
+                    placeholder="Wage Type (hourly/monthly/total)"
+                    value={listing.wage.type}
+                    onChangeText={(text) => setListing({
+                        ...listing,
+                        wage: { ...listing.wage, type: text }
+                    })}
+                />
+                <TouchableOpacity
+                    style={[styles.isPaidButton, { backgroundColor: listing.wage.isPaid ? '#4CAF50' : '#f44336' }]}
+                    onPress={() => setListing({
+                        ...listing,
+                        wage: { ...listing.wage, isPaid: !listing.wage.isPaid }
+                    })}
+                >
+                    <Text style={styles.isPaidButtonText}>
+                        {listing.wage.isPaid ? 'Paid' : 'Unpaid'}
+                    </Text>
+                </TouchableOpacity>
+            </View>
 
             <TouchableOpacity 
                 style={[
@@ -167,6 +233,38 @@ const styles = StyleSheet.create({
     multiline: {
         height: 120,
         textAlignVertical: 'top' as const,
+    },
+    durationContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        width: '100%',
+        maxWidth: 500,
+        marginBottom: 15,
+    },
+    durationInput: {
+        flex: 1,
+        marginHorizontal: 5,
+    },
+    wageContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        width: '100%',
+        maxWidth: 500,
+        marginBottom: 15,
+    },
+    wageInput: {
+        flex: 1,
+        marginHorizontal: 5,
+    },
+    isPaidButton: {
+        padding: 10,
+        borderRadius: 5,
+        marginHorizontal: 5,
+    },
+    isPaidButtonText: {
+        color: '#ffffff',
+        fontWeight: 'bold',
     },
     button: {
         backgroundColor: '#893030',
