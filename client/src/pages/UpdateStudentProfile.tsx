@@ -20,6 +20,7 @@ const UpdateStudentProfile = ({ navigation, route }: { navigation: any, route: a
       quality: 0.8,
       includeBase64: false,
     };
+    
 
   launchImageLibrary(options, (response) => { 
         if (response.didCancel) {

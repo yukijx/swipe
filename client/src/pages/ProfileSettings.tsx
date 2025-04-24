@@ -79,60 +79,118 @@ const ProfileSettings = ({ navigation }: { navigation: any }) => {
     const handleChange = (key: string, value: string) => {
         setProfileData(prev => ({ ...prev, [key]: value }));
     };
+    useEffect(() => {
+        (async () => {
+          const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+          if (status !== 'granted') {
+            Alert.alert('Permission Denied', 'We need access to your media library to upload profile pictures.');
+          }
+        })();
+      
+        fetchProfile();
+      }, []);      
 
     const pickImage = async () => {
         const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true,
-            aspect: [1, 1],
-            quality: 1,
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 1,
         });
-
-        if (!result.canceled && result.assets[0].uri) {
-            try {
-                const token = await AsyncStorage.getItem('token');
-                const formData = new FormData();
-                formData.append('profileImage', {
-                    uri: result.assets[0].uri,
-                    type: 'image/jpeg',
-                    name: 'profile.jpg'
-                } as any);
-
-                await axios.post(
-                    'http://localhost:5000/user/profile/image',
-                    formData,
-                    {
-                        headers: {
-                            'Content-Type': 'multipart/form-data',
-                            Authorization: token
-                        }
-                    }
-                );
-
-                setProfileImage(result.assets[0].uri);
-                Alert.alert('Success', 'Profile image updated');
-            } catch (error) {
-                Alert.alert('Error', 'Failed to upload image');
-            }
+      
+        // This check ensures we actually picked an image
+        if (result.canceled || !result.assets || !result.assets[0]?.uri) {
+          Alert.alert('No image selected');
+          return;
         }
-    };
+      
+        const imageUri = result.assets[0].uri;
+      
+        try {
+          const token = await AsyncStorage.getItem('token');
+          const formData = new FormData();
+          formData.append('profileImage', {
+            uri: imageUri,
+            type: 'image/jpeg',
+            name: 'profile.jpg',
+          } as any);
+      
+          const uploadRes = await fetch('http://localhost:5000/user/profile/image', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'multipart/form-data',
+              Authorization: token || '',
+            },
+            body: formData,
+          });
+      
+          const data = await uploadRes.json();
+      
+          if (data?.profileImage?.url) {
+            setProfileImage(data.profileImage.url); // show image on screen
+          } else {
+            Alert.alert('Upload failed', 'No image URL returned');
+          }
+        } catch (error) {
+          Alert.alert('Error', 'Failed to upload image');
+        }
+      };
+      
+      const handleWebImageUpload = async (event: any) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+      
+        const formData = new FormData();
+        formData.append('profileImage', file);  // File is already a Blob
+      
+        try {
+          const token = await AsyncStorage.getItem('token');
+          const res = await fetch('http://localhost:5000/user/profile/image', {
+            method: 'POST',
+            headers: {
+              Authorization: token || '', // Don't add Content-Type here; let fetch set it
+            },
+            body: formData,
+          });
+      
+          const data = await res.json();
+          if (data?.profileImage?.url) {
+            setProfileImage(data.profileImage.url);
+          } else {
+            Alert.alert('Upload Error', 'No image URL returned from server');
+          }
+        } catch (error) {
+          Alert.alert('Upload Failed', 'Something went wrong while uploading');
+        }
+      };
+      
+      
 
-    const renderProfileImage = () => (
+      const renderProfileImage = () => (
         <View style={styles.imageContainer}>
-            <TouchableOpacity onPress={pickImage}>
-                {profileImage ? (
-                    <Image
-                        source={{ uri: profileImage }}
-                        style={styles.profileImage}
-                    />
-                ) : (
-                    <View style={styles.imagePlaceholder}>
-                        <Text style={styles.imagePlaceholderText}>Add Photo</Text>
-                    </View>
-                )}
-            </TouchableOpacity>
+          <TouchableOpacity onPress={() => document.getElementById('fileInput')?.click()}>
+            {profileImage ? (
+              <Image source={{ uri: profileImage }} style={styles.profileImage} />
+            ) : (
+              <View style={styles.imagePlaceholder}>
+                <Text style={styles.imagePlaceholderText}>Add Photo</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+      
+          {/* Hidden input for web uploads */}
+          {Platform.OS === 'web' && (
+            <input
+              type="file"
+              id="fileInput"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={handleWebImageUpload}
+            />
+          )}
         </View>
-    );
+      );
+      
 
     const renderField = ({ key, label, multiline }: ProfileField) => (
         <View key={key} style={styles.fieldContainer}>
@@ -145,8 +203,8 @@ const ProfileSettings = ({ navigation }: { navigation: any }) => {
                         backgroundColor: theme === 'light' ? '#ffffff' : '#333',
                         border: '1px solid #ddd',
                         borderRadius: 8,
-                        padding: 12,
-                        fontSize: 16,
+                        padding: 10,
+                        fontSize: 14,
                         width: '100%',
                         fontFamily: 'inherit',
                     }}
@@ -157,7 +215,7 @@ const ProfileSettings = ({ navigation }: { navigation: any }) => {
                 />
             ) : (
                 <TextInput
-                    style={[
+                    style={[ 
                         styles.input,
                         multiline && styles.multiline,
                         { backgroundColor: theme === 'light' ? '#ffffff' : '#333' }
@@ -176,25 +234,30 @@ const ProfileSettings = ({ navigation }: { navigation: any }) => {
 
     return (
         <ResponsiveScreen navigation={navigation}>
-            <View style={styles.container}>
-                <Text style={[styles.title, { color: textColor }]}>
-                    {isFaculty ? 'Faculty Profile' : 'Student Profile'}
-                </Text>
+        <View style={styles.container}>
+            <Text style={[styles.title, { color: textColor }]}>
+            {isFaculty ? 'Faculty Profile' : 'Student Profile'}
+            </Text>
 
-                {renderProfileImage()}
-                
-                <View style={styles.formContainer}>
-                    {fields.map(renderField)}
+            {/* Group Save and View buttons together */}
+            <View style={styles.buttonGroup}>
+            <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+                <Text style={styles.submitButtonText}>Save Changes</Text>
+            </TouchableOpacity>
 
-                    <TouchableOpacity 
-                        style={styles.submitButton}
-                        onPress={handleSubmit}
-                    >
-                        <Text style={styles.submitButtonText}>Save Changes</Text>
-                    </TouchableOpacity>
-                </View>
+            <TouchableOpacity style={styles.viewButton} onPress={() => navigation.navigate('StudentInfo')}>
+                <Text style={styles.viewButtonText}>View Profile</Text>
+            </TouchableOpacity>
             </View>
+
+            {renderProfileImage()}
+
+            <View style={styles.formContainer}>
+            {fields.map(renderField)}
+            </View>
+        </View>
         </ResponsiveScreen>
+
     );
 };
 
@@ -246,6 +309,23 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: 'bold',
     },
+    buttonGroup: {
+        gap: 12,
+        marginBottom: 20,
+      },
+      viewButton: {
+        borderWidth: 1,
+        borderColor: '#893030',
+        padding: 15,
+        borderRadius: 8,
+        alignItems: 'center',
+        backgroundColor: 'transparent',
+      },
+      viewButtonText: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#893030',
+      },
     imageContainer: {
         alignItems: 'center',
         marginBottom: 20,

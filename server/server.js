@@ -4,11 +4,15 @@ const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const multer = require('multer');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
 app.use(express.json());
 app.use(cors());
+app.use('/uploads', express.static('uploads'));
+
 
 const IP = process.env.SERVER_IP || 'localhost';
 const PORT = process.env.PORT || 5000;
@@ -42,13 +46,7 @@ const UserSchema = new mongoose.Schema({
     projects: { type: String },
     certifications: { type: String },
     resumeText: { type: String },  // New field for resume text
-
-        // THIS WILL KEEP TRACK OF SPECIFIC STUDENT SWIPE HISTORY
-    swipeHistory: {
-        swipedRight: [ObjectId],  // Listing IDs
-        swipedLeft: [ObjectId],
-    }, 
-      
+    
     // Professor specific fields
     department: { type: String },
     researchInterests: { type: String },
@@ -96,8 +94,15 @@ const ListingSchema = new mongoose.Schema({
     title: { type: String, required: true },
     description: { type: String, required: true },
     requirements: { type: String, required: true },
-    duration: { type: String, required: true },
-    compensation: { type: String, required: true },
+    duration: {
+        value: { type: Number, required: true },
+        unit: { type: String, required: true, enum: ['days', 'weeks', 'months', 'years'] }
+    },
+    wage: {
+        type: { type: String, required: true, enum: ['hourly', 'monthly', 'total'] },
+        amount: { type: Number, required: true },
+        isPaid: { type: Boolean, default: true }
+    },
     createdAt: { type: Date, default: Date.now },
     active: { type: Boolean, default: true }
 });
@@ -121,6 +126,20 @@ const decrypt = (text) => {
     decrypted += decipher.final('utf8');
     return decrypted;
 };
+
+
+// Multer config for profile pics
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/'); // Ensure this folder exists
+  },
+  filename: function (req, file, cb) {
+    const ext = path.extname(file.originalname);
+    cb(null, `${req.user.id}${ext}`);
+  }
+});
+
+const upload = multer({ storage });
 
 // Register User API
 app.post('/register', async (req, res) => {
@@ -226,16 +245,8 @@ app.post('/match', async (req, res) => {
 
 // Middleware to verify JWT token
 const verifyToken = (req, res, next) => {
-    const authHeader = req.headers['authorization'];
-
-    if (!authHeader) {
-        return res.status(401).json({ error: 'No token provided' });
-    }
-
-    const token = authHeader.split(' ')[1]; // Extract token from "Bearer <token>"
-    if (!token) {
-        return res.status(401).json({ error: 'Malformed token' });
-    }
+    const token = req.headers['authorization'];
+    if (!token) return res.status(401).json({ error: 'No token provided' });
 
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
@@ -267,14 +278,21 @@ app.get('/faculty-only', verifyToken, isFaculty, async (req, res) => {
 // Add these routes after your existing routes
 app.post('/listings/create', verifyToken, isFaculty, async (req, res) => {
     try {
-        const { title, description, requirements, duration, compensation } = req.body;
+        const { 
+            title, 
+            description, 
+            requirements, 
+            duration,  // { value: number, unit: string }
+            wage      // { type: string, amount: number, isPaid: boolean }
+        } = req.body;
+
         const listing = new Listing({
             facultyId: req.user.id,
             title,
             description,
             requirements,
             duration,
-            compensation
+            wage
         });
         await listing.save();
         res.status(201).json(listing);
@@ -286,7 +304,7 @@ app.post('/listings/create', verifyToken, isFaculty, async (req, res) => {
 app.get('/listings', verifyToken, async (req, res) => {
     try {
         const listings = await Listing.find({ active: true })
-            .populate('facultyId', 'name email university');
+            .populate('facultyId', 'name email university -password');
         res.json(listings);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -486,6 +504,50 @@ app.put('/user/profile', verifyToken, async (req, res) => {
     }
 });
 
+// Route to upload profile image
+app.post('/user/profile/image', verifyToken, upload.single('profileImage'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+      }
+  
+      const imageUrl = `http://${IP}:${PORT}/uploads/${req.file.filename}`;
+      const userId = req.user.id;
+  
+      if (!userId) {
+        return res.status(401).json({ error: 'Missing user ID in token' });
+      }
+  
+      // Debugging logs
+      console.log('Uploading image for user:', userId);
+      console.log('Saving image URL:', imageUrl);
+  
+      // Ensure the field is created/updated even if it doesn't exist
+      const updatedUser = await User.findByIdAndUpdate(
+        userId,
+        {
+          $set: {
+            'profileImage.url': imageUrl,
+            updatedAt: new Date(),
+          }
+        },
+        { new: true, upsert: false }
+      );
+  
+      if (!updatedUser) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+  
+      res.json({ profileImage: { url: updatedUser.profileImage.url } });
+  
+    } catch (error) {
+      console.error('Image upload error:', error);
+      res.status(500).json({ error: 'Failed to upload image' });
+    }
+  });
+  
+
+
 // Get public profile (for viewing other users' profiles)
 app.get('/user/profile/:userId', verifyToken, async (req, res) => {
     try {
@@ -505,6 +567,94 @@ app.get('/user/profile/:userId', verifyToken, async (req, res) => {
 });
 
 
+// Filter Jobs API
+app.get('/filter-jobs', async (req, res) => {
+    try {
+        const { 
+            experience, 
+            pay_min, 
+            pay_max, 
+            location, 
+            jobType, 
+            shift 
+        } = req.query;
 
+        const filter = {};
+
+        if (experience) filter.experienceLevel = experience;
+        if (location) filter.locationType = location;
+        if (jobType) filter.jobType = jobType;
+        if (shift) filter.shiftTiming = shift;
+
+        if (pay_min || pay_max) {
+            filter.payPerHour = {};
+            if (pay_min) filter.payPerHour.$gte = Number(pay_min);
+            if (pay_max) filter.payPerHour.$lte = Number(pay_max);
+        }
+
+        const jobs = await Job.find(filter);
+        res.json(jobs);
+
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Update the filter listings route
+app.get('/filter-listings', verifyToken, async (req, res) => {
+    try {
+        const { 
+            searchTerm,
+            minWage,
+            maxWage,
+            wageType,
+            durationMin,
+            durationUnit,
+            isPaid
+        } = req.query;
+
+        const filter = { active: true };
+
+        // Text search across title and description
+        if (searchTerm) {
+            filter.$or = [
+                { title: { $regex: searchTerm, $options: 'i' } },
+                { description: { $regex: searchTerm, $options: 'i' } }
+            ];
+        }
+
+        // Filter by wage
+        if (minWage || maxWage || wageType) {
+            filter.wage = {};
+            if (wageType) filter.wage.type = wageType;
+            if (minWage || maxWage) {
+                filter.wage.amount = {};
+                if (minWage) filter.wage.amount.$gte = Number(minWage);
+                if (maxWage) filter.wage.amount.$lte = Number(maxWage);
+            }
+        }
+
+        // Filter by paid/unpaid
+        if (isPaid !== undefined) {
+            filter['wage.isPaid'] = isPaid === 'true';
+        }
+
+        // Filter by duration
+        if (durationMin && durationUnit) {
+            filter['duration.value'] = { $gte: Number(durationMin) };
+            filter['duration.unit'] = durationUnit;
+        }
+
+        const listings = await Listing.find(filter)
+            .populate('facultyId', 'name email university -password')
+            .sort({ createdAt: -1 });
+            
+        res.json(listings);
+
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
 // Start Express Server (Only One `app.listen`)
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
