@@ -131,7 +131,8 @@ const styles = StyleSheet.create({
         marginBottom: 15,
         fontSize: 16,
         ...(Platform.OS === 'web' ? {
-            outline: 'none',
+            outlineWidth: 0,
+            outlineStyle: 'none',
         } : {})
     },
     submitButton: {

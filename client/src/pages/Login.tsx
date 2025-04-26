@@ -4,10 +4,11 @@ import { useTheme } from '../context/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { getBackendURL } from '../utils/network';
-
+import { useAuthContext } from '../context/AuthContext';
 
 const Login = ({ navigation }: { navigation: any }) => {
   const { theme } = useTheme();
+  const { refreshAuth } = useAuthContext();
   const backgroundColor = theme === 'light' ? '#fff7d5' : '#222';
   const textColor = theme === 'light' ? '#893030' : '#ffffff';
   const inputBackground = theme === 'light' ? '#ffffff' : '#333';
@@ -32,16 +33,19 @@ const Login = ({ navigation }: { navigation: any }) => {
         const response = await axios.post(backendUrl, { email, password });
 
         console.log("Login response received, status:", response.status);
-        console.log("Login Response:", response.data);
         
         if (!response.data || !response.data.token) {
             console.log("No token in response");
             throw new Error("No token received from the backend");
         }
 
+        // Store the token in AsyncStorage
         await AsyncStorage.setItem('token', response.data.token);
         console.log("Saved Token:", await AsyncStorage.getItem('token'));
 
+        // Refresh auth context to update authentication state
+        await refreshAuth();
+        
         // Check if user needs to complete profile setup
         const user = response.data.user;
         const isFaculty = user && user.isFaculty;
@@ -54,34 +58,32 @@ const Login = ({ navigation }: { navigation: any }) => {
             : (!user.university || !user.major || !user.skills);
             
         console.log("Needs profile setup:", needsProfileSetup);
-        console.log("User profile data:", {
-          university: user.university,
-          department: user.department,
-          major: user.major,
-          skills: user.skills
-        });
         
-        if (needsProfileSetup) {
-            console.log("Navigating to profile setup");
-            Alert.alert('Welcome', 'Please complete your profile setup');
-            if (isFaculty) {
-                console.log("Navigating to ProfessorSetup");
-                navigation.navigate('ProfessorSetup');
+        // Success alert
+        Alert.alert('Success', 'Logged in successfully');
+        
+        // Navigate to appropriate screen after a small delay to ensure auth state is updated
+        setTimeout(() => {
+            if (needsProfileSetup) {
+                console.log("Navigating to profile setup");
+                if (isFaculty) {
+                    console.log("Navigating to ProfessorSetup");
+                    navigation.replace('ProfessorSetup');
+                } else {
+                    console.log("Navigating to StudentSetup");
+                    navigation.replace('StudentSetup');
+                }
             } else {
-                console.log("Navigating to StudentSetup");
-                navigation.navigate('StudentSetup');
+                // Directly navigate to the appropriate home screen
+                if (isFaculty) {
+                    console.log("Navigating to FacultyHome");
+                    navigation.replace('FacultyHome');
+                } else {
+                    console.log("Navigating to Home");
+                    navigation.replace('Home');
+                }
             }
-        } else {
-            console.log("User profile is complete");
-            Alert.alert('Success', 'Logged in successfully');
-            if (isFaculty) {
-                console.log("Navigating to FacultyHome");
-                navigation.navigate('FacultyHome');
-            } else {
-                console.log("Navigating to Home");
-                navigation.navigate('Home');
-            }
-        }
+        }, 300);
     } catch (error: any) {
         console.error("Login error:", error);
         

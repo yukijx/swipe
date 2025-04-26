@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, FlatList, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, FlatList, TouchableOpacity, Alert, Platform } from 'react-native';
 import axios from 'axios';
 import { useTheme } from '../context/ThemeContext';
 import ThemedView from '../components/ThemedView';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getBackendURL } from '../utils/network';
-import useAuth from '../hooks/useAuth';
+import { useAuthContext } from '../context/AuthContext';
 
 type MatchedListing = {
     _id: string;
@@ -23,7 +23,7 @@ const Matches = ({ navigation }: { navigation: any }) => {
     const [matches, setMatches] = useState<MatchedListing[]>([]);
     const [loading, setLoading] = useState(true);
     const { theme } = useTheme();
-    const { isFaculty } = useAuth();
+    const { isFaculty } = useAuthContext();
 
     useEffect(() => {
         if (isFaculty) {
@@ -136,11 +136,20 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         padding: 16,
         marginBottom: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
+        ...Platform.select({
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1, 
+                shadowRadius: 4,
+            },
+            android: {
+                elevation: 3,
+            },
+            web: {
+                boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
+            }
+        }),
     },
     matchTitle: {
         fontSize: 18,

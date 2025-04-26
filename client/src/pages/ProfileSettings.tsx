@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Platform, I
 import { useTheme } from '../context/ThemeContext';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import useAuth from '../hooks/useAuth';
+import { useAuthContext } from '../context/AuthContext';
 import { ResponsiveScreen } from '../components/ResponsiveScreen';
 import * as ImagePicker from 'expo-image-picker';
 import { getBackendURL } from '../utils/network';
@@ -38,7 +38,7 @@ const professorFields: ProfileField[] = [
 
 const ProfileSettings = ({ navigation }: { navigation: any }) => {
     const { theme } = useTheme();
-    const { isFaculty } = useAuth();
+    const { isFaculty } = useAuthContext();
     const textColor = theme === 'light' ? '#893030' : '#ffffff';
     const [profileData, setProfileData] = useState<Record<string, string>>({});
     const [profileImage, setProfileImage] = useState<string | null>(null);

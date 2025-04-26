@@ -8,7 +8,7 @@ import { ResponsiveScreen } from '../components/ResponsiveScreen';
 import { StackScreenProps } from '@react-navigation/stack';
 import { StackParamList } from '../navigation/types';
 import { getBackendURL } from '../utils/network';
-import useAuth from '../hooks/useAuth';
+import { useAuthContext } from '../context/AuthContext';
 
 interface Listing {
     _id: string;
@@ -26,13 +26,15 @@ interface Listing {
     };
     facultyId?: any;
     createdAt: string;
+    expanded?: boolean;
+    applying?: boolean;
 }
 
 type Props = StackScreenProps<StackParamList, 'ListListings'>;
 
 const ListListings: React.FC<Props> = ({ navigation, route }) => {
     const { theme } = useTheme();
-    const { isFaculty } = useAuth();
+    const { isFaculty } = useAuthContext();
     const [listings, setListings] = useState<Listing[]>([]);
     const [loading, setLoading] = useState(true);
     const [isFiltered, setIsFiltered] = useState(false);
@@ -46,9 +48,69 @@ const ListListings: React.FC<Props> = ({ navigation, route }) => {
             setLoading(false);
         } else {
             // Otherwise fetch all listings
-            fetchListings();
+            fetchListingsWithFallback();
         }
     }, [route.params]);
+
+    // New function that will try the regular endpoint first, then fall back to the test endpoint
+    const fetchListingsWithFallback = async () => {
+        try {
+            // Try the regular endpoint first
+            await fetchListings();
+        } catch (error) {
+            console.warn('Standard endpoint failed, trying fallback approach...');
+            
+            // If that fails, try the test endpoint that we know works
+            try {
+                await fetchListingsViaTestEndpoint();
+            } catch (testError) {
+                console.error('Both standard and test approaches failed:', testError);
+                Alert.alert('Error', 'Failed to load listings. Please try again later.');
+                setLoading(false);
+            }
+        }
+    };
+    
+    // Function to fetch listings via the test endpoint that we know works
+    const fetchListingsViaTestEndpoint = async () => {
+        try {
+            setLoading(true);
+            
+            // Get token directly
+            const token = await AsyncStorage.getItem('token');
+            if (!token) {
+                console.error('No token found');
+                Alert.alert('Authentication Error', 'Please log in again');
+                navigation.navigate('Login');
+                return;
+            }
+            
+            console.log('Fetching via test endpoint as fallback');
+            const response = await axios.get(
+                `${getBackendURL()}/test/faculty-listings?token=${token}`
+            );
+            
+            console.log('Test endpoint response:', response.status, response.statusText);
+            
+            if (response.data && Array.isArray(response.data)) {
+                setListings(response.data);
+                console.log("Retrieved listings via test endpoint:", response.data.length);
+                
+                // Debug log if successful
+                console.log("Fallback approach successful - using test endpoint results");
+            } else {
+                console.error("Invalid response format from test endpoint:", response.data);
+                throw new Error('Invalid data format from test endpoint');
+            }
+            
+            setIsFiltered(false);
+        } catch (error: any) {
+            console.error('Error in test endpoint fallback:', error);
+            throw error; // Rethrow to handle in the parent function
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const fetchListings = async () => {
         try {
@@ -62,40 +124,68 @@ const ListListings: React.FC<Props> = ({ navigation, route }) => {
                 return;
             }
             
-            // Log partial token for debugging (first 10 chars)
-            const tokenPreview = token.substring(0, 10) + '...';
-            console.log(`Token found (preview): ${tokenPreview}`);
-            console.log(`Auth state: isFaculty = ${isFaculty}`);
-            
-            // Different endpoints for faculty vs students
-            const endpoint = isFaculty 
-                ? `${getBackendURL()}/listings/faculty` 
-                : `${getBackendURL()}/listings`;
-            
-            console.log(`Fetching listings from: ${endpoint}, as ${isFaculty ? 'faculty' : 'student'}`);
-            console.log(`Backend URL: ${getBackendURL()}`);
-                
-            const response = await axios.get(endpoint, {
-                headers: { 
-                    Authorization: `Bearer ${token}`  // Make sure to include Bearer prefix
+            // Enhanced token debugging
+            try {
+                const tokenParts = token.split('.');
+                if (tokenParts.length === 3) {
+                    // Use a more reliable Base64 decoding method
+                    const base64 = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/');
+                    const jsonPayload = decodeURIComponent(
+                        [...atob(base64)]
+                            .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+                            .join('')
+                    );
+                    
+                    const payload = JSON.parse(jsonPayload);
+                    console.log('Token payload:', payload);
+                    console.log('Token isFaculty value:', payload.isFaculty);
+                    console.log('Token user ID:', payload.id);
+                    
+                    // Save userId to AsyncStorage for use in other components
+                    await AsyncStorage.setItem('userId', payload.id);
                 }
-            });
+            } catch (e) {
+                console.error('Error parsing token:', e);
+            }
             
-            console.log("API Response:", response.status, response.statusText);
-            
-            if (response.data && Array.isArray(response.data)) {
-                setListings(response.data);
-                console.log("Retrieved listings:", response.data.length);
+            // Different endpoints for faculty vs students - use the test endpoint for faculty that we know works
+            let endpoint;
+            if (isFaculty) {
+                // Use the test endpoint that we know works for faculty
+                endpoint = `${getBackendURL()}/test/faculty-listings?token=${token}`;
+                console.log(`Using test endpoint that works: ${endpoint}`);
                 
-                // Debug: Log the first listing if available
-                if (response.data.length > 0) {
-                    console.log("Sample listing:", JSON.stringify(response.data[0], null, 2));
+                // Simple GET request with the token as a query parameter
+                const response = await axios.get(endpoint);
+                console.log("API Response:", response.status, response.statusText);
+                
+                if (response.data && Array.isArray(response.data)) {
+                    setListings(response.data);
+                    console.log("Retrieved listings:", response.data.length);
                 } else {
-                    console.log("No listings returned from the API");
+                    console.error("Invalid response format:", response.data);
+                    Alert.alert('Error', 'Invalid data format received from server');
                 }
             } else {
-                console.error("Invalid response format:", response.data);
-                Alert.alert('Error', 'Invalid data format received from server');
+                // For students, use the regular endpoint with Bearer token
+                endpoint = `${getBackendURL()}/listings`;
+                console.log(`Fetching listings from: ${endpoint}, as student`);
+                
+                const response = await axios.get(endpoint, {
+                    headers: { 
+                        Authorization: `Bearer ${token}`
+                    }
+                });
+                
+                console.log("API Response:", response.status, response.statusText);
+                
+                if (response.data && Array.isArray(response.data)) {
+                    setListings(response.data);
+                    console.log("Retrieved listings:", response.data.length);
+                } else {
+                    console.error("Invalid response format:", response.data);
+                    Alert.alert('Error', 'Invalid data format received from server');
+                }
             }
             
             setIsFiltered(false);
@@ -114,7 +204,8 @@ const ListListings: React.FC<Props> = ({ navigation, route }) => {
                 // Something happened in setting up the request that triggered an Error
                 console.error("Error message:", error.message);
             }
-            Alert.alert('Error', error.response?.data?.error || 'Failed to fetch listings');
+            
+            Alert.alert('Error', 'Failed to load listings. Please try again later.');
         } finally {
             setLoading(false);
         }
@@ -159,8 +250,18 @@ const ListListings: React.FC<Props> = ({ navigation, route }) => {
         });
     };
 
+    const toggleExpanded = (listingId: string) => {
+        setListings(prevListings => 
+            prevListings.map(listing => 
+                listing._id === listingId 
+                    ? { ...listing, expanded: !listing.expanded } 
+                    : listing
+            )
+        );
+    };
+
     const handleViewListing = (listing: Listing) => {
-        navigation.navigate('Listing', { listingId: listing._id });
+        toggleExpanded(listing._id);
     };
 
     const formatDuration = (duration: any) => {
@@ -176,6 +277,91 @@ const ListListings: React.FC<Props> = ({ navigation, route }) => {
         
         if (!wage.isPaid) return 'Unpaid position';
         return `$${wage.amount} per ${wage.type}`;
+    };
+
+    const formatDate = (dateString: string) => {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long', 
+            day: 'numeric'
+        });
+    };
+
+    const handleApply = async (listingId: string) => {
+        try {
+            // Update applying state for this listing
+            setListings(prevListings => 
+                prevListings.map(listing => 
+                    listing._id === listingId 
+                        ? { ...listing, applying: true } 
+                        : listing
+                )
+            );
+            
+            const token = await AsyncStorage.getItem('token');
+            
+            if (!token) {
+                Alert.alert('Authentication Error', 'Please log in again');
+                navigation.navigate('Login');
+                return;
+            }
+            
+            // Record the user's interest by making a swipe right via the API
+            const response = await axios.post(
+                `${getBackendURL()}/swipe`,
+                { 
+                    listingId: listingId, 
+                    interested: true 
+                },
+                {
+                    headers: { Authorization: `Bearer ${token}` }
+                }
+            );
+            
+            console.log('Swipe response:', response.data);
+            
+            // Reset applying state
+            setListings(prevListings => 
+                prevListings.map(listing => 
+                    listing._id === listingId 
+                        ? { ...listing, applying: false } 
+                        : listing
+                )
+            );
+            
+            if (response.data.isMatch) {
+                Alert.alert(
+                    'Match!', 
+                    'You matched with this listing! You can view it in your matches page.',
+                    [
+                        { text: 'View Matches', onPress: () => navigation.navigate('Matches') },
+                        { text: 'Stay Here', style: 'cancel' }
+                    ]
+                );
+            } else {
+                Alert.alert('Success', 'Your interest has been recorded');
+            }
+            
+        } catch (error: any) {
+            // Reset applying state
+            setListings(prevListings => 
+                prevListings.map(listing => 
+                    listing._id === listingId 
+                        ? { ...listing, applying: false } 
+                        : listing
+                )
+            );
+            
+            console.error('Error applying for listing:', error);
+            
+            // Check for specific error types
+            if (error.response?.status === 400 && error.response?.data?.error?.includes('already swiped')) {
+                Alert.alert('Already Applied', 'You have already expressed interest in this listing');
+            } else {
+                Alert.alert('Error', 'Failed to submit application. Please try again.');
+            }
+        }
     };
 
     const renderListingItem = (listing: Listing) => (
@@ -201,9 +387,49 @@ const ListListings: React.FC<Props> = ({ navigation, route }) => {
                     </Text>
                 </View>
                 
-                <Text style={styles.listingDescription} numberOfLines={2}>
+                <Text style={styles.listingDescription} numberOfLines={listing.expanded ? undefined : 2}>
                     {listing.description}
                 </Text>
+                
+                {/* Expanded content */}
+                {listing.expanded && (
+                    <View style={styles.expandedContent}>
+                        <View style={styles.divider} />
+                        
+                        <Text style={styles.sectionTitle}>Requirements</Text>
+                        <Text style={styles.expandedText}>{listing.requirements}</Text>
+                        
+                        <Text style={styles.sectionTitle}>Posted</Text>
+                        <Text style={styles.expandedText}>{formatDate(listing.createdAt)}</Text>
+                        
+                        {/* Express Interest button for students */}
+                        {!isFaculty && (
+                            <TouchableOpacity 
+                                style={styles.applyButton}
+                                onPress={() => handleApply(listing._id)}
+                                disabled={listing.applying}
+                            >
+                                {listing.applying ? (
+                                    <ActivityIndicator size="small" color="#ffffff" />
+                                ) : (
+                                    <Text style={styles.applyButtonText}>Express Interest</Text>
+                                )}
+                            </TouchableOpacity>
+                        )}
+                        
+                        <View style={styles.divider} />
+                        
+                        <Text style={styles.collapseText}>
+                            Tap to collapse
+                        </Text>
+                    </View>
+                )}
+                
+                {!listing.expanded && (
+                    <Text style={styles.expandPrompt}>
+                        Tap to see more details
+                    </Text>
+                )}
             </TouchableOpacity>
             
             {isFaculty && (
@@ -283,12 +509,163 @@ const ListListings: React.FC<Props> = ({ navigation, route }) => {
                         }
                     </Text>
                     {isFaculty && (
-                        <TouchableOpacity 
-                            style={styles.createButton}
-                            onPress={() => navigation.navigate('CreateListing', {})}
-                        >
-                            <Text style={styles.createButtonText}>Create New Listing</Text>
-                        </TouchableOpacity>
+                        <View style={{alignItems: 'center'}}>
+                            <TouchableOpacity 
+                                style={styles.createButton}
+                                onPress={() => navigation.navigate('CreateListing', {})}
+                            >
+                                <Text style={styles.createButtonText}>Create New Listing</Text>
+                            </TouchableOpacity>
+                            
+                            <TouchableOpacity 
+                                style={[styles.createButton, {marginTop: 10, backgroundColor: '#555'}]}
+                                onPress={async () => {
+                                    try {
+                                        // Get user ID from token or AsyncStorage
+                                        const userId = await AsyncStorage.getItem('userId');
+                                        if (!userId) {
+                                            console.error('No user ID found');
+                                            return;
+                                        }
+                                        
+                                        console.log('Checking debug endpoint for user ID:', userId);
+                                        const response = await axios.get(
+                                            `${getBackendURL()}/debug/faculty-listings/${userId}`
+                                        );
+                                        
+                                        console.log('Debug endpoint response:', response.data);
+                                        if (response.data && Array.isArray(response.data)) {
+                                            if (response.data.length > 0) {
+                                                Alert.alert('Debug Info', `Found ${response.data.length} listings in database for your ID`);
+                                                // Use these listings directly
+                                                setListings(response.data);
+                                            } else {
+                                                Alert.alert('Debug Info', 'No listings found for your ID in database');
+                                            }
+                                        }
+                                    } catch (error) {
+                                        console.error('Error in debug check:', error);
+                                        Alert.alert('Debug Error', 'Failed to check listings in database');
+                                    }
+                                }}
+                            >
+                                <Text style={styles.createButtonText}>Debug: Check My Listings</Text>
+                            </TouchableOpacity>
+                            
+                            <TouchableOpacity 
+                                style={[styles.createButton, {marginTop: 10, backgroundColor: '#2c6694'}]}
+                                onPress={async () => {
+                                    try {
+                                        // Get token directly
+                                        const token = await AsyncStorage.getItem('token');
+                                        if (!token) {
+                                            console.error('No token found');
+                                            Alert.alert('Debug Error', 'No token found in storage');
+                                            return;
+                                        }
+                                        
+                                        console.log('Testing alternative endpoint with token');
+                                        const response = await axios.get(
+                                            `${getBackendURL()}/test/faculty-listings?token=${token}`
+                                        );
+                                        
+                                        console.log('Test endpoint response:', response.data);
+                                        if (response.data && Array.isArray(response.data)) {
+                                            if (response.data.length > 0) {
+                                                Alert.alert('Test Endpoint', `Found ${response.data.length} listings with test endpoint`);
+                                                // Use these listings directly
+                                                setListings(response.data);
+                                            } else {
+                                                Alert.alert('Test Endpoint', 'No listings found with test endpoint');
+                                            }
+                                        }
+                                    } catch (error) {
+                                        console.error('Error in test endpoint:', error);
+                                        Alert.alert('Test Error', 'Failed to retrieve listings from test endpoint');
+                                    }
+                                }}
+                            >
+                                <Text style={styles.createButtonText}>Test Alt Endpoint</Text>
+                            </TouchableOpacity>
+                            
+                            <TouchableOpacity 
+                                style={[styles.createButton, {marginTop: 10, backgroundColor: '#28a745'}]}
+                                onPress={async () => {
+                                    try {
+                                        // Get token directly
+                                        const token = await AsyncStorage.getItem('token');
+                                        if (!token) {
+                                            console.error('No token found');
+                                            Alert.alert('Token Error', 'No token found in storage');
+                                            return;
+                                        }
+                                        
+                                        // Validate the token
+                                        console.log('Validating token...');
+                                        const validateResponse = await axios.get(
+                                            `${getBackendURL()}/debug/validate-token?token=${token}`
+                                        );
+                                        
+                                        console.log('Token validation response:', validateResponse.data);
+                                        
+                                        if (validateResponse.data.valid) {
+                                            Alert.alert('Token Valid', 'Your token is valid, isFaculty=' + validateResponse.data.decoded.isFaculty);
+                                        } else {
+                                            // Attempt to refresh the token
+                                            Alert.alert(
+                                                'Invalid Token', 
+                                                'Your token is invalid. Would you like to refresh it?',
+                                                [
+                                                    { text: 'Cancel', style: 'cancel' },
+                                                    { 
+                                                        text: 'Refresh', 
+                                                        onPress: async () => {
+                                                            try {
+                                                                // Get user data from the decoded payload or elsewhere
+                                                                const decodedPayload = validateResponse.data.decodedPayload;
+                                                                if (!decodedPayload || !decodedPayload.id || !decodedPayload.email) {
+                                                                    Alert.alert('Error', 'Cannot refresh token: missing user data');
+                                                                    return;
+                                                                }
+                                                                
+                                                                // Call the refresh endpoint
+                                                                const refreshResponse = await axios.post(
+                                                                    `${getBackendURL()}/refresh-token`,
+                                                                    {
+                                                                        userId: decodedPayload.id,
+                                                                        email: decodedPayload.email,
+                                                                        isFaculty: decodedPayload.isFaculty
+                                                                    }
+                                                                );
+                                                                
+                                                                if (refreshResponse.data.token) {
+                                                                    // Save the new token
+                                                                    await AsyncStorage.setItem('token', refreshResponse.data.token);
+                                                                    Alert.alert('Success', 'Token refreshed successfully. Please try viewing listings again.');
+                                                                    
+                                                                    // Reload listings
+                                                                    fetchListingsWithFallback();
+                                                                } else {
+                                                                    Alert.alert('Error', 'Failed to refresh token');
+                                                                }
+                                                            } catch (error) {
+                                                                console.error('Error refreshing token:', error);
+                                                                Alert.alert('Error', 'Failed to refresh token');
+                                                            }
+                                                        } 
+                                                    }
+                                                ]
+                                            );
+                                        }
+                                    } catch (error) {
+                                        console.error('Error validating token:', error);
+                                        Alert.alert('Error', 'Failed to validate token');
+                                    }
+                                }}
+                            >
+                                <Text style={styles.createButtonText}>Validate/Fix Token</Text>
+                            </TouchableOpacity>
+                        </View>
                     )}
                 </View>
             ) : (
@@ -376,11 +753,20 @@ const styles = StyleSheet.create({
         backgroundColor: '#ffffff',
         borderRadius: 10,
         marginBottom: 15,
-        elevation: 3,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
+        ...Platform.select({
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.1,
+                shadowRadius: 2,
+            },
+            android: {
+                elevation: 3,
+            },
+            web: {
+                boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.1)',
+            }
+        }),
     },
     listingContent: {
         padding: 15,
@@ -425,7 +811,55 @@ const styles = StyleSheet.create({
     buttonText: {
         color: '#ffffff',
         fontSize: 16,
-    }
+    },
+    expandedContent: {
+        marginTop: 10,
+        paddingTop: 5,
+    },
+    divider: {
+        height: 1,
+        backgroundColor: '#e0e0e0',
+        marginVertical: 10,
+    },
+    sectionTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#555',
+        marginTop: 8,
+        marginBottom: 4,
+    },
+    expandedText: {
+        fontSize: 14,
+        color: '#444',
+        lineHeight: 20,
+    },
+    expandPrompt: {
+        fontSize: 12,
+        color: '#888',
+        fontStyle: 'italic',
+        marginTop: 5,
+        textAlign: 'center',
+    },
+    collapseText: {
+        fontSize: 12,
+        color: '#888',
+        fontStyle: 'italic',
+        marginTop: 5,
+        textAlign: 'center',
+    },
+    applyButton: {
+        backgroundColor: '#893030',
+        padding: 12,
+        borderRadius: 8,
+        alignItems: 'center',
+        marginTop: 15,
+        marginBottom: 10,
+    },
+    applyButtonText: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 16,
+    },
 });
 
 export default ListListings;

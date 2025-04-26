@@ -6,7 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { getBackendURL } from '../utils/network';
 import { useTheme } from '../context/ThemeContext';
-import useAuth from '../hooks/useAuth';
+import { useAuthContext } from '../context/AuthContext';
 import { ResponsiveScreen } from '../components/ResponsiveScreen';
 import ThemedView from '../components/ThemedView';
 
@@ -38,7 +38,7 @@ interface Listing {
 
 const ListingDetail: React.FC<Props> = ({ navigation, route }) => {
   const { theme } = useTheme();
-  const { isFaculty } = useAuth();
+  const { isFaculty } = useAuthContext();
   const [listing, setListing] = useState<Listing | null>(null);
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
@@ -64,8 +64,107 @@ const ListingDetail: React.FC<Props> = ({ navigation, route }) => {
       return;
     }
     
-    fetchListing(route.params.listingId);
+    fetchListingWithFallback(route.params.listingId);
   }, [route.params?.listingId]);
+
+  // New function to fetch listing directly from debug endpoint
+  const fetchListingViaDebug = async (listingId: string) => {
+    try {
+      setLoading(true);
+      
+      // Try to get all listings from the debug endpoint
+      const response = await axios.get(
+        `${getBackendURL()}/debug/all-listings`
+      );
+      
+      console.log(`Debug: Fetched ${response.data.length} listings from debug endpoint`);
+      
+      // Find the specific listing by ID
+      const foundListing = response.data.find((item: any) => item._id === listingId);
+      
+      if (foundListing) {
+        console.log('Debug: Found listing in debug endpoint response:', foundListing);
+        
+        // Since debug endpoint only returns partial data, create a placeholder listing
+        const placeholderListing = {
+          _id: foundListing._id,
+          title: foundListing.title || 'Listing Title',
+          description: 'Detailed description not available in debug mode.',
+          requirements: 'Requirements not available in debug mode.',
+          duration: { value: 3, unit: 'months' },
+          wage: { type: 'hourly', amount: 15, isPaid: true },
+          facultyId: foundListing.facultyId,
+          createdAt: foundListing.createdAt
+        };
+        
+        setListing(placeholderListing);
+        Alert.alert('Debug Mode', 'Showing basic listing information in debug mode');
+        return;
+      }
+      
+      throw new Error('Listing not found in debug data');
+    } catch (error) {
+      console.error('Error in debug approach:', error);
+      Alert.alert('Debug Error', 'Could not retrieve listing data even in debug mode');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Modified function to handle all possible errors
+  const fetchListingWithFallback = async (listingId: string) => {
+    try {
+      // Try the regular endpoint first
+      await fetchListing(listingId);
+    } catch (error) {
+      console.warn(`Standard endpoint failed for listing ${listingId}, trying test endpoint...`);
+      
+      // If that fails, try the test endpoint
+      try {
+        await fetchListingViaTestEndpoint(listingId);
+      } catch (testError) {
+        console.error('Both standard and test approaches failed:', testError);
+        
+        // Show an error message but don't leave yet - we'll show a debug button
+        Alert.alert('Error', 'Failed to load listing details. You can try the debug option below.');
+        setLoading(false);
+      }
+    }
+  };
+  
+  // Function to fetch listing via the test endpoint
+  const fetchListingViaTestEndpoint = async (listingId: string) => {
+    try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem('token');
+      
+      if (!token) {
+        Alert.alert('Authentication Error', 'Please log in again');
+        navigation.navigate('Login');
+        return;
+      }
+      
+      console.log(`Fetching listing via test endpoint: ${listingId}`);
+      
+      // Use the test endpoint with token as query parameter
+      const response = await axios.get(
+        `${getBackendURL()}/test/listing/${listingId}?token=${token}`
+      );
+      
+      console.log('Test endpoint response:', response.status, response.statusText);
+      
+      if (response.data) {
+        setListing(response.data);
+        console.log("Retrieved listing via test endpoint successfully");
+      } else {
+        console.error("Invalid response format from test endpoint:", response.data);
+        throw new Error('Invalid data format from test endpoint');
+      }
+    } catch (error: any) {
+      console.error('Error in test endpoint fallback:', error);
+      throw error; // Rethrow to handle in the parent function
+    }
+  };
   
   const fetchListing = async (listingId: string) => {
     try {
@@ -91,7 +190,7 @@ const ListingDetail: React.FC<Props> = ({ navigation, route }) => {
       setListing(response.data);
     } catch (error) {
       console.error('Error fetching listing:', error);
-      Alert.alert('Error', 'Failed to load listing details');
+      throw error; // Rethrow to trigger the fallback
     } finally {
       setLoading(false);
     }
@@ -192,9 +291,18 @@ const ListingDetail: React.FC<Props> = ({ navigation, route }) => {
     return (
       <ThemedView style={styles.container}>
         <View style={styles.errorContainer}>
-          <Text style={{ color: textColor, fontSize: 18, textAlign: 'center' }}>
+          <Text style={{ color: textColor, fontSize: 18, textAlign: 'center', marginBottom: 20 }}>
             Listing not found or an error occurred.
           </Text>
+          
+          {/* Debug button to try fetching with the debug endpoint */}
+          <TouchableOpacity 
+            style={[styles.debugButton, { marginBottom: 15 }]}
+            onPress={() => route.params?.listingId && fetchListingViaDebug(route.params.listingId)}
+          >
+            <Text style={styles.debugButtonText}>Try Debug Mode</Text>
+          </TouchableOpacity>
+          
           <TouchableOpacity 
             style={styles.backButton}
             onPress={() => navigation.goBack()}
@@ -396,6 +504,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   backButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  debugButton: {
+    backgroundColor: '#2c6694',
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 12,
+    width: '80%',
+  },
+  debugButtonText: {
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',

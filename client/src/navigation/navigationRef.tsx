@@ -1,13 +1,18 @@
 import * as React from 'react';
-import { NavigationContainerRef } from '@react-navigation/native';
+import { NavigationContainerRef, CommonActions } from '@react-navigation/native';
 import { StackParamList } from '../navigation/types';
 
 export const navigationRef = React.createRef<NavigationContainerRef<StackParamList>>();
 
-// Use a simpler implementation to avoid TypeScript errors with complex navigate signatures
+// More robust navigation method that works with nested navigators
 export function navigate(screenName: string, params: any = undefined) {
   if (navigationRef.current) {
-    // Using any to bypass typechecking issues
-    (navigationRef.current as any).navigate(screenName, params);
+    // Use CommonActions.navigate for better handling of nested navigators
+    navigationRef.current.dispatch(
+      CommonActions.navigate({
+        name: screenName,
+        params,
+      })
+    );
   }
 }

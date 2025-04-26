@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, Alert, Platform, Image, ActivityIndicator } fro
 import { useTheme } from '../context/ThemeContext';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import useAuth from '../hooks/useAuth';
+import { useAuthContext } from '../context/AuthContext';
 import { ResponsiveScreen } from '../components/ResponsiveScreen';
 import { getBackendURL } from '../utils/network';
 
@@ -40,7 +40,7 @@ const professorFields: ProfileField[] = [
 
 const StudentInfo = ({ navigation, route }: { navigation: any, route: any }) => {
     const { theme } = useTheme();
-    const { isFaculty } = useAuth();
+    const { isFaculty } = useAuthContext();
     const textColor = theme === 'light' ? '#893030' : '#ffffff';
     const [profileData, setProfileData] = useState<Record<string, string>>({});
     const [profileImage, setProfileImage] = useState<string | null>(null);

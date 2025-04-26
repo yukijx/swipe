@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Platform, Switch, Button, Alert } from 'react-n
 import { useTheme } from '../context/ThemeContext';
 import { ResponsiveScreen } from '../components/ResponsiveScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import useAuth from '../hooks/useAuth';
+import { useAuthContext } from '../context/AuthContext';
 import { getBackendURL } from '../utils/network';
 
 interface PrivacySettings {
@@ -20,7 +20,7 @@ interface PrivacySettings {
 
 const PrivacySettings = ({ navigation }: { navigation: any }) => {
     const { theme } = useTheme();
-    const { isFaculty } = useAuth();
+    const { isFaculty } = useAuthContext();
     const textColor = theme === 'light' ? '#893030' : '#ffffff';
     const backgroundColor = theme === 'light' ? '#ffffff' : '#333';
     

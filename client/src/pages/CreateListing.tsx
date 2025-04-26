@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, Button, Alert, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
+import { useAuthContext } from '../context/AuthContext';
 import axios from 'axios';
-import useAuth from '../hooks/useAuth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ThemedView from "../components/ThemedView";
 import { ResponsiveContainer } from "../components/ResponsiveContainer";
@@ -13,7 +13,7 @@ import { getBackendURL } from "../utils/network";
 
 const CreateListing = ({ navigation, route }: { navigation: any, route: any }) => {
     const { theme } = useTheme();
-    const { isFaculty } = useAuth();
+    const { isFaculty } = useAuthContext();
     const isEditing = route.params?.isEditing || false;
     const existingListing = route.params?.listing;
 
@@ -75,15 +75,14 @@ const CreateListing = ({ navigation, route }: { navigation: any, route: any }) =
                     formData,
                     { headers: { Authorization: `Bearer ${token}` } }
                 );
+                
+                // Navigate immediately to ListListings
+                navigation.navigate('ListListings');
+                
+                // Then show the success alert
                 Alert.alert(
                     'Success', 
-                    'Listing updated successfully',
-                    [
-                        { 
-                            text: 'OK', 
-                            onPress: () => navigation.navigate('ListListings')
-                        }
-                    ]
+                    'Listing updated successfully'
                 );
             } else {
                 console.log('Creating new listing');
@@ -104,15 +103,13 @@ const CreateListing = ({ navigation, route }: { navigation: any, route: any }) =
                     console.log('Server response:', response.status, response.statusText);
                     console.log('Response data:', JSON.stringify(response.data, null, 2));
                     
+                    // Navigate immediately to ListListings
+                    navigation.navigate('ListListings');
+                    
+                    // Then show the success alert
                     Alert.alert(
                         'Success', 
-                        'Listing created successfully',
-                        [
-                            { 
-                                text: 'OK', 
-                                onPress: () => navigation.navigate('ListListings')
-                            }
-                        ]
+                        'Listing created successfully'
                     );
                 } catch (error: any) {
                     console.error('Error creating listing:', error);
@@ -140,7 +137,8 @@ const CreateListing = ({ navigation, route }: { navigation: any, route: any }) =
     const webInputStyle = Platform.OS === 'web' ? {
         borderColor: '#893030',
         borderWidth: 1,
-        outline: 'none'
+        outlineWidth: 0,
+        outlineStyle: 'none'
     } : {};
 
     const webButtonStyle = Platform.OS === 'web' ? {

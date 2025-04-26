@@ -283,7 +283,8 @@ app.post('/match', async (req, res) => {
 // Middleware to verify JWT token
 const verifyToken = (req, res, next) => {
     try {
-        const authHeader = req.headers['authorization'];
+        console.log('*** verifyToken middleware called ***');
+        const authHeader = req.headers['authorization'] || req.headers['Authorization'];
         console.log('Auth header received:', authHeader);
         
         if (!authHeader) {
@@ -291,29 +292,53 @@ const verifyToken = (req, res, next) => {
             return res.status(401).json({ error: 'No token provided' });
         }
         
-        // Extract token - remove "Bearer " if present
-        const token = authHeader.startsWith('Bearer ') 
-            ? authHeader.substring(7) 
-            : authHeader;
+        // Extract token - remove common prefixes
+        let token = authHeader;
+        if (authHeader.startsWith('Bearer ')) {
+            token = authHeader.substring(7);
+        } else if (authHeader.startsWith('bearer ')) {
+            token = authHeader.substring(7);
+        } else if (authHeader.startsWith('TOKEN ')) {
+            token = authHeader.substring(6);
+        }
         
-        // Verify the token
+        console.log('Extracted token prefix:', token.substring(0, 10) + '...');
+        
+        // Verify the token with detailed error handling
+    try {
         const decoded = jwt.verify(token, JWT_SECRET);
-        console.log('Token verified successfully. User:', {
-            id: decoded.id,
-            email: decoded.email,
-            isFaculty: decoded.isFaculty
-        });
-        
+            console.log('Token verified successfully. User:', {
+                id: decoded.id,
+                email: decoded.email,
+                isFaculty: decoded.isFaculty
+            });
+            
         req.user = decoded;
         next();
+        } catch (jwtError) {
+            console.error('JWT verification error details:', jwtError);
+            
+            // Try to decode without verification for debugging
+            try {
+                const decodedUnverified = jwt.decode(token);
+                console.log('Token could be decoded but not verified:', decodedUnverified);
+                console.log('JWT_SECRET length:', JWT_SECRET.length);
+                console.log('JWT_SECRET prefix:', JWT_SECRET.substring(0, 5) + '...');
+            } catch (decodeError) {
+                console.error('Could not even decode token:', decodeError);
+            }
+            
+            return res.status(401).json({ error: 'Invalid token' });
+        }
     } catch (err) {
-        console.error('Token verification error:', err.message);
+        console.error('Token verification general error:', err.message);
         return res.status(401).json({ error: 'Invalid token' });
     }
 };
 
 // Middleware to check if user is faculty
 const isFaculty = (req, res, next) => {
+    console.log('*** isFaculty middleware called ***');
     console.log('Checking if user is faculty. User:', req.user);
     
     if (!req.user) {
@@ -386,7 +411,7 @@ app.post('/listings/create', async (req, res) => {
             duration,
             wage
         } = req.body;
-        
+
         // Validate required fields
         if (!title || !description || !requirements) {
             return res.status(400).json({ error: 'Missing required fields' });
@@ -394,7 +419,8 @@ app.post('/listings/create', async (req, res) => {
         
         // Create new listing
         const listing = new Listing({
-            facultyId: user.id,
+            facultyId: mongoose.Types.ObjectId.isValid(user.id) ? 
+                new mongoose.Types.ObjectId(user.id) : user.id,
             title,
             description,
             requirements,
@@ -403,9 +429,11 @@ app.post('/listings/create', async (req, res) => {
         });
         
         // Save to database
-        console.log('Saving listing to database...');
+        console.log('Saving listing to database with faculty ID:', user.id);
+        console.log('Full listing data:', JSON.stringify(listing, null, 2));
         await listing.save();
         console.log('Listing saved successfully with ID:', listing._id);
+        console.log('Saved listing facultyId:', listing.facultyId, 'of type:', typeof listing.facultyId);
         
         res.status(201).json(listing);
     } catch (error) {
@@ -523,13 +551,81 @@ app.post('/user/setup', verifyToken, async (req, res) => {
 // Add this with your other routes
 app.get('/listings/faculty', verifyToken, isFaculty, async (req, res) => {
     try {
+        console.log('Faculty listings requested by user:', req.user.id);
+        console.log('User claims from token:', { 
+            id: req.user.id, 
+            email: req.user.email, 
+            isFaculty: req.user.isFaculty 
+        });
+        
+        // Verify the user exists and is faculty in the database
+        const user = await User.findById(req.user.id);
+        if (!user) {
+            console.error('User not found in database:', req.user.id);
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
+        console.log('User from database:', { 
+            id: user._id, 
+            email: user.email, 
+            isFaculty: user.isFaculty 
+        });
+        
+        if (!user.isFaculty) {
+            console.error('User is not faculty in database but passed middleware:', req.user.id);
+            return res.status(403).json({ error: 'Not authorized as faculty' });
+        }
+        
+        // *** UPDATED QUERY APPROACH - Using the same method as the debug endpoint ***
+        const facultyId = req.user.id;
+        console.log('Finding listings for faculty ID:', facultyId);
+        
+        // Use simple direct query to match the successful debug endpoint approach
         const listings = await Listing.find({ 
-            facultyId: req.user.id,
+            facultyId: facultyId,
             active: true 
-        }).sort({ createdAt: -1 }); // Most recent first
+        }).sort({ createdAt: -1 });
+        
+        console.log(`Found ${listings.length} listings for faculty ID: ${facultyId}`);
+        
+        if (listings.length === 0) {
+            // Try the alternate approach if no results found
+            console.log('No listings found with direct ID match, trying ObjectId approach...');
+            
+            const objectIdQuery = { 
+                facultyId: mongoose.Types.ObjectId.isValid(facultyId) ? 
+                    new mongoose.Types.ObjectId(facultyId) : facultyId,
+                active: true 
+            };
+            
+            const objectIdListings = await Listing.find(objectIdQuery).sort({ createdAt: -1 });
+            console.log(`Found ${objectIdListings.length} listings using ObjectId approach`);
+            
+            if (objectIdListings.length > 0) {
+                console.log('ObjectId approach successful, returning listings');
+                return res.json(objectIdListings);
+            }
+            
+            // Last resort - try with $or query
+            console.log('Trying $or query as last resort...');
+            const orQuery = {
+                $or: [
+                    { facultyId: facultyId },
+                    { facultyId: mongoose.Types.ObjectId.isValid(facultyId) ? 
+                        new mongoose.Types.ObjectId(facultyId) : facultyId }
+                ],
+                active: true
+            };
+            
+            const orListings = await Listing.find(orQuery).sort({ createdAt: -1 });
+            console.log(`Found ${orListings.length} listings using $or approach`);
+            
+            return res.json(orListings);
+        }
         
         res.json(listings);
     } catch (error) {
+        console.error('Error fetching faculty listings:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -607,7 +703,7 @@ app.get('/user/profile', verifyToken, async (req, res) => {
 
         // Add a timestamp for caching busting
         user._timestamp = new Date().toISOString();
-        
+
         res.json(user);
     } catch (error) {
         console.error('Profile fetch error:', error);
@@ -727,7 +823,7 @@ app.get('/user/:userId', verifyToken, async (req, res) => {
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
-        
+
         // Check if the requester is faculty
         const requesterId = req.user.id;
         const requester = await User.findById(requesterId);
@@ -988,6 +1084,327 @@ app.get('/matches/faculty', verifyToken, isFaculty, async (req, res) => {
         
     } catch (error) {
         console.error('Error getting faculty matches:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Debug endpoint to check all listings - temporary, should be removed in production
+app.get('/debug/all-listings', async (req, res) => {
+    try {
+        const allListings = await Listing.find({}).select('_id title facultyId active createdAt');
+        
+        // Log useful info for debugging
+        console.log(`All listings in database: ${allListings.length}`);
+        if (allListings.length > 0) {
+            console.log('Sample listing facultyId (first record):', allListings[0].facultyId);
+            console.log('Sample listing data (first record):', JSON.stringify(allListings[0], null, 2));
+            
+            // Count facultyIds
+            const facultyCounts = {};
+            allListings.forEach(listing => {
+                const id = listing.facultyId.toString();
+                facultyCounts[id] = (facultyCounts[id] || 0) + 1;
+            });
+            console.log('Faculty ID distribution:', facultyCounts);
+        }
+        
+        res.json(allListings);
+    } catch (error) {
+        console.error('Error in debug endpoint:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Debug endpoint to get listings for a specific faculty ID
+app.get('/debug/faculty-listings/:facultyId', async (req, res) => {
+    try {
+        const facultyId = req.params.facultyId;
+        console.log('Debug: Finding listings for faculty ID:', facultyId);
+        
+        // Query supporting both string and ObjectId formats
+        const query = { 
+            active: true,
+            $or: [
+                { facultyId: facultyId },  // String comparison
+                { facultyId: mongoose.Types.ObjectId.isValid(facultyId) ? 
+                   new mongoose.Types.ObjectId(facultyId) : facultyId }  // ObjectId comparison
+            ]
+        };
+        
+        const listings = await Listing.find(query).sort({ createdAt: -1 });
+        console.log(`Found ${listings.length} listings for faculty ID: ${facultyId}`);
+        
+        if (listings.length > 0) {
+            console.log('First listing details:', JSON.stringify(listings[0], null, 2));
+        }
+        
+        res.json(listings);
+    } catch (error) {
+        console.error('Error in debug faculty listings endpoint:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Unprotected test endpoint for faculty listings - token passed as query param instead of header
+app.get('/test/faculty-listings', async (req, res) => {
+    try {
+        console.log('*** TEST ENDPOINT CALLED ***');
+        console.log('Request query params:', req.query);
+        
+        // Get token from query param instead of header
+        const token = req.query.token;
+        if (!token) {
+            return res.status(400).json({ error: 'Token required as query parameter' });
+        }
+        
+        // Manually decode token
+        let decoded;
+        try {
+            decoded = jwt.verify(token, JWT_SECRET);
+            console.log('Test endpoint - token decoded:', {
+                id: decoded.id,
+                email: decoded.email,
+                isFaculty: decoded.isFaculty
+            });
+        } catch (err) {
+            console.error('Test endpoint - token verification error:', err.message);
+            return res.status(401).json({ error: 'Invalid token' });
+        }
+        
+        const facultyId = decoded.id;
+        console.log('Test endpoint - finding listings for faculty ID:', facultyId);
+        
+        // Same query as the debug endpoint
+        const listings = await Listing.find({ 
+            facultyId: facultyId,
+            active: true 
+        }).sort({ createdAt: -1 });
+        
+        console.log(`Test endpoint - found ${listings.length} listings using direct approach`);
+        
+        if (listings.length === 0) {
+            console.log('Test endpoint - trying alternative approaches...');
+            
+            // Try ObjectId approach
+            if (mongoose.Types.ObjectId.isValid(facultyId)) {
+                const objectIdListings = await Listing.find({ 
+                    facultyId: new mongoose.Types.ObjectId(facultyId),
+                    active: true 
+                }).sort({ createdAt: -1 });
+                
+                console.log(`Test endpoint - found ${objectIdListings.length} listings using ObjectId approach`);
+                
+                if (objectIdListings.length > 0) {
+                    return res.json(objectIdListings);
+                }
+            }
+            
+            // Try $or approach as last resort
+            const orQuery = {
+                $or: [
+                    { facultyId: facultyId },
+                    { facultyId: mongoose.Types.ObjectId.isValid(facultyId) ? 
+                        new mongoose.Types.ObjectId(facultyId) : facultyId }
+                ],
+                active: true
+            };
+            
+            const orListings = await Listing.find(orQuery).sort({ createdAt: -1 });
+            console.log(`Test endpoint - found ${orListings.length} listings using $or approach`);
+            
+            return res.json(orListings);
+        }
+        
+        res.json(listings);
+    } catch (error) {
+        console.error('Test endpoint error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Simplified faculty listings endpoint using minimal middleware
+app.get('/listings/faculty-simple', async (req, res) => {
+    try {
+        // Get token from authorization header
+        const authHeader = req.headers.authorization;
+        if (!authHeader) {
+            return res.status(401).json({ error: 'No token provided' });
+        }
+        
+        // Extract token and verify
+        const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : authHeader;
+        const decoded = jwt.verify(token, JWT_SECRET);
+        
+        // Check if faculty
+        if (!decoded.isFaculty) {
+            return res.status(403).json({ error: 'Faculty access only' });
+        }
+        
+        // Get faculty listings with simple query
+        const listings = await Listing.find({ 
+            facultyId: decoded.id,
+            active: true 
+        }).sort({ createdAt: -1 });
+        
+        res.json(listings);
+    } catch (err) {
+        console.error('Error in simplified faculty endpoint:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Debug endpoint to validate tokens - no protection, for debugging only
+app.get('/debug/validate-token', (req, res) => {
+    try {
+        console.log('Token validation endpoint called');
+        const token = req.query.token;
+        
+        if (!token) {
+            return res.status(400).json({ error: 'No token provided in query parameter' });
+        }
+        
+        console.log('Validating token:', token.substring(0, 15) + '...');
+        
+        try {
+            // Try to verify the token
+            const decoded = jwt.verify(token, JWT_SECRET);
+            console.log('Token verified successfully:', decoded);
+            return res.json({ 
+                valid: true, 
+                decoded: decoded
+            });
+        } catch (jwtError) {
+            console.error('Token verification failed:', jwtError);
+            
+            // Try to decode it anyway for debugging
+            try {
+                const decodedPayload = jwt.decode(token);
+                return res.json({
+                    valid: false,
+                    error: jwtError.message,
+                    decodedPayload: decodedPayload 
+                });
+            } catch (decodeError) {
+                return res.json({
+                    valid: false,
+                    error: 'Could not verify or decode token'
+                });
+            }
+        }
+    } catch (error) {
+        console.error('Error in token validation endpoint:', error);
+        return res.status(500).json({ error: 'Server error validating token' });
+    }
+});
+
+// Endpoint to refresh a token with correct authentication
+app.post('/refresh-token', async (req, res) => {
+    try {
+        const { userId, email, isFaculty } = req.body;
+        
+        // Validate required fields
+        if (!userId || !email || isFaculty === undefined) {
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
+        
+        // Verify that the user exists in the database
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
+        // Verify that the email matches
+        if (user.email !== email) {
+            return res.status(403).json({ error: 'Email mismatch' });
+        }
+        
+        // Generate a new token with the correct claims
+        const token = jwt.sign({ 
+            id: userId, 
+            email: email,
+            isFaculty: user.isFaculty
+        }, JWT_SECRET, { expiresIn: '24h' });
+        
+        // Return the new token
+        return res.json({ token });
+    } catch (error) {
+        console.error('Error refreshing token:', error);
+        return res.status(500).json({ error: 'Server error refreshing token' });
+    }
+});
+
+// Test endpoint for faculty listings that works with token as query parameter
+app.get('/test/faculty-listings', async (req, res) => {
+    try {
+        const token = req.query.token;
+        if (!token) {
+            return res.status(401).json({ error: 'No token provided' });
+        }
+        
+        // Verify the token
+        let decoded;
+        try {
+            decoded = jwt.verify(token, JWT_SECRET);
+        } catch (err) {
+            console.error('Token verification error:', err);
+            return res.status(401).json({ error: 'Invalid token' });
+        }
+        
+        // Check if user is faculty
+        if (!decoded.isFaculty) {
+            console.error('User is not faculty:', decoded.id);
+            return res.status(403).json({ error: 'Not authorized as faculty' });
+        }
+        
+        // Get user's faculty ID
+        const facultyId = decoded.id;
+        
+        // Find all active listings for this faculty
+        const listings = await Listing.find({ 
+            facultyId: facultyId,
+            active: true 
+        }).sort({ createdAt: -1 });
+        
+        res.json(listings);
+    } catch (error) {
+        console.error('Error in test faculty-listings endpoint:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Add test endpoint for a single listing that works with token as query parameter
+app.get('/test/listing/:id', async (req, res) => {
+    try {
+        const token = req.query.token;
+        if (!token) {
+            return res.status(401).json({ error: 'No token provided' });
+        }
+        
+        // Verify the token
+        let decoded;
+        try {
+            decoded = jwt.verify(token, JWT_SECRET);
+        } catch (err) {
+            console.error('Token verification error:', err);
+            return res.status(401).json({ error: 'Invalid token' });
+        }
+        
+        // Get the listing ID from the request parameters
+        const listingId = req.params.id;
+        
+        // Find the listing
+        const listing = await Listing.findOne({ 
+            _id: listingId,
+            active: true 
+        }).populate('facultyId', 'name email university department -password');
+        
+        if (!listing) {
+            return res.status(404).json({ error: 'Listing not found' });
+        }
+        
+        res.json(listing);
+    } catch (error) {
+        console.error('Error in test listing endpoint:', error);
         res.status(500).json({ error: error.message });
     }
 });
