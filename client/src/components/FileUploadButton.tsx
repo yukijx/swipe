@@ -1,14 +1,9 @@
-
- 
-
-
-
 import React, { useState } from "react";
 import { Text, TouchableOpacity, StyleSheet } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import Texts from "../components/Texts";
 import { useTheme } from "../context/ThemeContext"; //Import useTheme
-import { ThemedView } from "../components/ThemedView"; //Correct import of ThemedView
+import ThemedView from "../components/ThemedView"; // Fixed import
 
 const FileUploadButton: React.FC = () => {
   const { theme } = useTheme(); //Get current theme

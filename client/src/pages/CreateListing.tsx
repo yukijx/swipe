@@ -9,6 +9,7 @@ import { ResponsiveContainer } from "../components/ResponsiveContainer";
 import NavBar from "../components/NavBar";
 import { webStyles } from "../utils/webStyles";
 import { ResponsiveScreen } from '../components/ResponsiveScreen';
+import { getBackendURL } from "../utils/network";
 
 const CreateListing = ({ navigation, route }: { navigation: any, route: any }) => {
     const { theme } = useTheme();
@@ -58,25 +59,80 @@ const CreateListing = ({ navigation, route }: { navigation: any, route: any }) =
             };
 
             const token = await AsyncStorage.getItem('token');
-            
-            if (isEditing) {
-                await axios.put(
-                    `http://localhost:5000/listings/${existingListing._id}`,
-                    formData,
-                    { headers: { Authorization: token } }
-                );
-                Alert.alert('Success', 'Listing updated successfully');
-            } else {
-                await axios.post(
-                    'http://localhost:5000/listings/create',
-                    formData,
-                    { headers: { Authorization: token } }
-                );
-                Alert.alert('Success', 'Listing created successfully');
+            if (!token) {
+                Alert.alert('Authentication Error', 'Please log in again');
+                navigation.navigate('Login');
+                return;
             }
             
-            navigation.navigate('FacultyHome');
+            console.log(`Creating/updating listing with token: ${token.substring(0, 10)}...`);
+            console.log('Form data:', JSON.stringify(formData, null, 2));
+            
+            if (isEditing) {
+                console.log(`Updating listing ${existingListing._id}`);
+                await axios.put(
+                    `${getBackendURL()}/listings/${existingListing._id}`,
+                    formData,
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+                Alert.alert(
+                    'Success', 
+                    'Listing updated successfully',
+                    [
+                        { 
+                            text: 'OK', 
+                            onPress: () => navigation.navigate('ListListings')
+                        }
+                    ]
+                );
+            } else {
+                console.log('Creating new listing');
+                console.log('Authorization header:', `Bearer ${token}`);
+                
+                try {
+                    const response = await axios.post(
+                        `${getBackendURL()}/listings/create`,
+                        formData,
+                        { 
+                            headers: { 
+                                Authorization: `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            }
+                        }
+                    );
+                    
+                    console.log('Server response:', response.status, response.statusText);
+                    console.log('Response data:', JSON.stringify(response.data, null, 2));
+                    
+                    Alert.alert(
+                        'Success', 
+                        'Listing created successfully',
+                        [
+                            { 
+                                text: 'OK', 
+                                onPress: () => navigation.navigate('ListListings')
+                            }
+                        ]
+                    );
+                } catch (error: any) {
+                    console.error('Error creating listing:', error);
+                    if (error.response) {
+                        console.error('Response status:', error.response.status);
+                        console.error('Response data:', JSON.stringify(error.response.data, null, 2));
+                    } else if (error.request) {
+                        console.error('No response received:', error.request);
+                    } else {
+                        console.error('Error message:', error.message);
+                    }
+                    throw error; // Re-throw to be caught by the outer catch block
+                }
+            }
         } catch (error: any) {
+            console.error('Error saving listing:', error);
+            if (error.response) {
+                console.error('Response data:', error.response.data);
+                console.error('Response status:', error.response.status);
+            }
             Alert.alert('Error', error.response?.data?.error || 'Failed to save listing');
         }
     };

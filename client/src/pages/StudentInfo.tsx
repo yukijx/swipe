@@ -1,11 +1,12 @@
 // Keep the imports as-is
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Alert, Platform, Image } from 'react-native';
+import { View, Text, StyleSheet, Alert, Platform, Image, ActivityIndicator } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import useAuth from '../hooks/useAuth';
 import { ResponsiveScreen } from '../components/ResponsiveScreen';
+import { getBackendURL } from '../utils/network';
 
 interface ProfileField {
     key: string;
@@ -15,6 +16,7 @@ interface ProfileField {
 
 const studentFields: ProfileField[] = [
     { key: 'name', label: 'Name' },
+    { key: 'email', label: 'Email' },
     { key: 'university', label: 'University' },
     { key: 'major', label: 'Major' },
     { key: 'experience', label: 'Experience', multiline: true },
@@ -26,6 +28,7 @@ const studentFields: ProfileField[] = [
 
 const professorFields: ProfileField[] = [
     { key: 'name', label: 'Name' },
+    { key: 'email', label: 'Email' },
     { key: 'university', label: 'University' },
     { key: 'department', label: 'Department' },
     { key: 'researchInterests', label: 'Research Interests', multiline: true },
@@ -35,30 +38,90 @@ const professorFields: ProfileField[] = [
     { key: 'contactInfo', label: 'Contact Information' }
 ];
 
-const StudentInfo = ({ navigation }: { navigation: any }) => {
+const StudentInfo = ({ navigation, route }: { navigation: any, route: any }) => {
     const { theme } = useTheme();
     const { isFaculty } = useAuth();
     const textColor = theme === 'light' ? '#893030' : '#ffffff';
     const [profileData, setProfileData] = useState<Record<string, string>>({});
     const [profileImage, setProfileImage] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
+    
+    // Check if we're viewing another student's profile or own profile
+    const viewingStudentId = route.params?.studentId;
+    const viewingOtherProfile = viewingStudentId && isFaculty;
+    const profileTitle = viewingOtherProfile ? 'Student Profile' : (isFaculty ? 'Faculty Profile' : 'Student Profile');
 
     useEffect(() => {
         fetchProfile();
-    }, []);
+    }, [viewingStudentId]);
 
     const fetchProfile = async () => {
         try {
+            setLoading(true);
             const token = await AsyncStorage.getItem('token');
+            
+            if (!token) {
+                Alert.alert('Authentication Error', 'Please log in again');
+                navigation.navigate('Login');
+                return;
+            }
+            
+            // If faculty is viewing a student profile, fetch that specific student
+            const endpoint = viewingOtherProfile 
+                ? `${getBackendURL()}/user/${viewingStudentId}` 
+                : `${getBackendURL()}/user/profile`;
+                
+            console.log('Fetching profile from:', endpoint);
+            
             const response = await axios.get(
-                'http://localhost:5000/user/profile',
+                endpoint,
                 { headers: { Authorization: token } }
             );
+            
+            console.log('Profile data received, fields:', Object.keys(response.data));
+            
+            // For debugging purposes
+            if (!viewingOtherProfile && !isFaculty) {
+                // Check if student fields exist
+                const missingFields = studentFields
+                    .filter(field => !response.data[field.key] && field.key !== 'resumeText')
+                    .map(field => field.label);
+                
+                if (missingFields.length > 0) {
+                    console.warn('Missing student profile fields:', missingFields.join(', '));
+                }
+            }
+            
             setProfileData(response.data);
             if (response.data.profileImage?.url) {
                 setProfileImage(response.data.profileImage.url);
             }
-        } catch (error) {
-            Alert.alert('Error', 'Failed to fetch profile');
+        } catch (error: any) {
+            console.error('Error fetching profile:', error);
+            const errorMessage = error.response?.data?.error || 'Failed to fetch profile';
+            Alert.alert('Error', errorMessage);
+            
+            // If we get a 404 or 401, redirect to setup
+            if (error.response?.status === 404 || error.response?.status === 401) {
+                if (!isFaculty && !viewingOtherProfile) {
+                    Alert.alert(
+                        'Profile Incomplete', 
+                        'Your profile is incomplete. Would you like to set it up now?',
+                        [
+                            { 
+                                text: 'Yes', 
+                                onPress: () => navigation.navigate('StudentSetup')
+                            },
+                            { 
+                                text: 'No', 
+                                style: 'cancel'
+                            }
+                        ]
+                    );
+                }
+            }
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -86,13 +149,24 @@ const StudentInfo = ({ navigation }: { navigation: any }) => {
         </View>
     );
 
-    const fields = isFaculty ? professorFields : studentFields;
+    // Determine which fields to show based on whose profile we're viewing
+    const fields = viewingOtherProfile ? studentFields : (isFaculty ? professorFields : studentFields);
+
+    if (loading) {
+        return (
+            <ResponsiveScreen navigation={navigation}>
+                <View style={[styles.container, styles.loadingContainer]}>
+                    <ActivityIndicator size="large" color={textColor} />
+                </View>
+            </ResponsiveScreen>
+        );
+    }
 
     return (
         <ResponsiveScreen navigation={navigation}>
             <View style={styles.container}>
                 <Text style={[styles.title, { color: textColor }]}>
-                    {isFaculty ? 'Faculty Profile' : 'Student Profile'}
+                    {profileTitle}
                 </Text>
                 {renderProfileImage()}
                 <View style={styles.formContainer}>
@@ -110,6 +184,10 @@ const styles = StyleSheet.create({
         maxWidth: 800,
         alignSelf: 'center',
         padding: 15,
+    },
+    loadingContainer: {
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     title: {
         fontSize: 22,

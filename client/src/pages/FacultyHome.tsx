@@ -28,6 +28,13 @@ const FacultyHome = ({ navigation }: { navigation: any }) => {
 
                 <TouchableOpacity 
                     style={styles.button}
+                    onPress={() => navigation.navigate('FacultyMatches')}
+                >
+                    <Text style={styles.buttonText}>View Student Matches</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                    style={styles.button}
                     onPress={() => navigation.navigate('ProfileSettings')}
                 >
                     <Text style={styles.buttonText}>Edit Profile</Text>

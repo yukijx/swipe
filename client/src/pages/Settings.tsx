@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
-import { ThemedView } from '../components/ThemedView';
+import ThemedView from '../components/ThemedView';
 import NavBar from '../components/NavBar';
 import useAuth from '../hooks/useAuth';
 import AsyncStorage from '@react-native-async-storage/async-storage';

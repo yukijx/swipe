@@ -4,9 +4,10 @@ import { StackParamList } from '../navigation/types';
 
 export const navigationRef = React.createRef<NavigationContainerRef<StackParamList>>();
 
-export function navigate<T extends keyof StackParamList>(screen: T, params: StackParamList[T]): void;
-export function navigate<T extends keyof StackParamList>(screen: T): void;
-export function navigate<T extends keyof StackParamList>(screen: T, params?: StackParamList[T]) {
-  // Cast params to 'any' to simplify the union type complexity
-  navigationRef.current?.navigate(screen, params as any);
+// Use a simpler implementation to avoid TypeScript errors with complex navigate signatures
+export function navigate(screenName: string, params: any = undefined) {
+  if (navigationRef.current) {
+    // Using any to bypass typechecking issues
+    (navigationRef.current as any).navigate(screenName, params);
+  }
 }

@@ -4,6 +4,7 @@ import { useTheme } from '../context/ThemeContext';
 import { ResponsiveScreen } from '../components/ResponsiveScreen';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getBackendURL } from '../utils/network';
 
 const ChangePassword = ({ navigation }: { navigation: any }) => {
     const { theme } = useTheme();
@@ -24,17 +25,32 @@ const ChangePassword = ({ navigation }: { navigation: any }) => {
             }
 
             const token = await AsyncStorage.getItem('token');
-            await axios.put(
-                'http://localhost:5000/user/change-password',
+            if (!token) {
+                Alert.alert('Authentication Error', 'Please log in again');
+                return;
+            }
+
+            const response = await fetch(
+                `${getBackendURL()}/user/change-password`,
                 {
-                    currentPassword: passwords.currentPassword,
-                    newPassword: passwords.newPassword
-                },
-                { headers: { Authorization: token } }
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        currentPassword: passwords.currentPassword,
+                        newPassword: passwords.newPassword
+                    })
+                }
             );
 
-            Alert.alert('Success', 'Password changed successfully');
-            navigation.goBack();
+            if (response.ok) {
+                Alert.alert('Success', 'Password changed successfully');
+                navigation.goBack();
+            } else {
+                Alert.alert('Error', 'Failed to change password');
+            }
         } catch (error: any) {
             Alert.alert('Error', error.response?.data?.error || 'Failed to change password');
         }
