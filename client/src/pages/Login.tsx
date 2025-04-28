@@ -62,7 +62,7 @@ const Login = ({ navigation }: { navigation: any }) => {
         // Success alert
         Alert.alert('Success', 'Logged in successfully');
         
-        // Navigate to appropriate screen after a small delay to ensure auth state is updated
+        // Navigate to appropriate screen after a slightly longer delay
         setTimeout(() => {
             if (needsProfileSetup) {
                 console.log("Navigating to profile setup");
@@ -83,7 +83,7 @@ const Login = ({ navigation }: { navigation: any }) => {
                     navigation.replace('Home');
                 }
             }
-        }, 300);
+        }, 600);
     } catch (error: any) {
         console.error("Login error:", error);
         
