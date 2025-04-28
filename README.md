@@ -52,7 +52,7 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 
 0. make sure you are cd'd into swipe_exop
 
-1. Install dependencies
+1. Install dependencies in both server and client directories
    ```bash
    npm install
    ```
@@ -61,7 +61,11 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 4. Start the emulator
 5. Start the app
    ```bash
+    cd client
     npx expo -c
+    cd .. 
+    cd server
+    node server.js
    ```
 
 In the output, you'll find options to open the app in a

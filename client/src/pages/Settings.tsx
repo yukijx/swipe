@@ -1,16 +1,16 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
-import { ThemedView } from '../components/ThemedView';
+import ThemedView from '../components/ThemedView';
 import NavBar from '../components/NavBar';
-import useAuth from '../hooks/useAuth';
+import { useAuthContext } from '../context/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ResponsiveScreen } from '../components/ResponsiveScreen';
 import WebAlert from '../components/WebAlert';
 
 const Settings = ({ navigation }: { navigation: any }) => {
     const { theme } = useTheme();
-    const { logout, isFaculty } = useAuth();
+    const { logout, isFaculty } = useAuthContext();
     const textColor = theme === 'light' ? '#893030' : '#ffffff';
     const [showAlert, setShowAlert] = useState(false);
 

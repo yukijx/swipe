@@ -3,9 +3,10 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Platform, I
 import { useTheme } from '../context/ThemeContext';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import useAuth from '../hooks/useAuth';
+import { useAuthContext } from '../context/AuthContext';
 import { ResponsiveScreen } from '../components/ResponsiveScreen';
 import * as ImagePicker from 'expo-image-picker';
+import { getBackendURL } from '../utils/network';
 
 interface ProfileField {
     key: string;
@@ -37,7 +38,7 @@ const professorFields: ProfileField[] = [
 
 const ProfileSettings = ({ navigation }: { navigation: any }) => {
     const { theme } = useTheme();
-    const { isFaculty } = useAuth();
+    const { isFaculty } = useAuthContext();
     const textColor = theme === 'light' ? '#893030' : '#ffffff';
     const [profileData, setProfileData] = useState<Record<string, string>>({});
     const [profileImage, setProfileImage] = useState<string | null>(null);
@@ -50,7 +51,7 @@ const ProfileSettings = ({ navigation }: { navigation: any }) => {
         try {
             const token = await AsyncStorage.getItem('token');
             const response = await axios.get(
-                'http://localhost:5000/user/profile',
+                `${getBackendURL()}/user/profile`,
                 { headers: { Authorization: token } }
             );
             setProfileData(response.data);
@@ -66,11 +67,19 @@ const ProfileSettings = ({ navigation }: { navigation: any }) => {
         try {
             const token = await AsyncStorage.getItem('token');
             await axios.put(
-                'http://localhost:5000/user/profile',
+                `${getBackendURL()}/user/profile`,
                 profileData,
                 { headers: { Authorization: token } }
             );
-            Alert.alert('Success', 'Profile updated successfully');
+            Alert.alert('Success', 'Profile updated successfully', [
+                { 
+                    text: 'OK', 
+                    onPress: () => {
+                        // Navigate to appropriate dashboard based on user type
+                        navigation.navigate(isFaculty ? 'FacultyHome' : 'Home');
+                    } 
+                }
+            ]);
         } catch (error) {
             Alert.alert('Error', 'Failed to update profile');
         }
@@ -115,7 +124,7 @@ const ProfileSettings = ({ navigation }: { navigation: any }) => {
             name: 'profile.jpg',
           } as any);
       
-          const uploadRes = await fetch('http://localhost:5000/user/profile/image', {
+          const uploadRes = await fetch(`${getBackendURL()}/user/profile/image`, {
             method: 'POST',
             headers: {
               'Content-Type': 'multipart/form-data',
@@ -145,7 +154,7 @@ const ProfileSettings = ({ navigation }: { navigation: any }) => {
       
         try {
           const token = await AsyncStorage.getItem('token');
-          const res = await fetch('http://localhost:5000/user/profile/image', {
+          const res = await fetch(`${getBackendURL()}/user/profile/image`, {
             method: 'POST',
             headers: {
               Authorization: token || '', // Don't add Content-Type here; let fetch set it

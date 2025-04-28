@@ -12,6 +12,8 @@ export type StackParamList = {
     StudentSetup: undefined;
     ProfessorSetup: undefined;
     Swipe: undefined;
+    Matches: undefined;
+    FacultyMatches: undefined;
     PrivacySettings: undefined;
     ChangePassword: undefined;
   
@@ -19,9 +21,35 @@ export type StackParamList = {
     // (Adjust these as needed for your app)
     StudentInfo: { studentId: string } | undefined;
     CreateFacultyProfile: { facultyId?: string } | undefined;
-    CreateListing: { listingId?: string } | undefined;
+    CreateListing: {
+      isEditing?: boolean;
+      listing?: any;
+    };
     Listing: { listingId: string } | undefined;
-    ListListings: { filter?: string } | undefined;
-    Filter: { filterType?: string } | undefined;
-  };
+    ListListings: { 
+      filter?: string;
+      filteredListings?: any[];
+      filters?: {
+        searchTerm?: string;
+        minWage?: string;
+        maxWage?: string;
+        wageType?: string;
+        durationMin?: string;
+        durationUnit?: string;
+        isPaid?: boolean | null;
+      }
+    } | undefined;
+    Filter: { 
+      filterType?: string;
+      filters?: {
+        searchTerm?: string;
+        minWage?: string;
+        maxWage?: string;
+        wageType?: string;
+        durationMin?: string;
+        durationUnit?: string;
+        isPaid?: boolean | null;
+      }
+    } | undefined;
+};
   

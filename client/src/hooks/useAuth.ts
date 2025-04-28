@@ -1,76 +1,69 @@
-//Manages authentication state. 
-//It checks if a token is stored in AsyncStorage, 
-//decodes it using the jwt-decode package, 
-//and then sets authentication flags accordingly.
-
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
-import type { StackNavigationProp } from '@react-navigation/stack';
-import { StackParamList } from '../navigation/types';
-import { jwtDecode } from "jwt-decode";
+import { jwtDecode } from 'jwt-decode';
 
-interface DecodedToken {
+interface JwtPayload {
   id: string;
+  name: string;
   email: string;
-  isFaculty: boolean;
+  faculty: boolean;
+  iat: number;
+  exp: number;
 }
 
 const useAuth = () => {
-  const navigation = useNavigation<StackNavigationProp<StackParamList>>();
+  const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isFaculty, setIsFaculty] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [userData, setUserData] = useState<JwtPayload | null>(null);
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const checkAuthStatus = async () => {
       try {
         const token = await AsyncStorage.getItem('token');
         
-        //If no token is found, it sets isAuthenticated to false and redirects to the Login screen.
-        if (!token) {
-
-          setIsAuthenticated(false);
-          navigation.navigate('Login');
-          return;
+        if (token) {
+          const decoded = jwtDecode<JwtPayload>(token);
+          const currentTime = Date.now() / 1000;
           
+          if (decoded.exp > currentTime) {
+            setIsAuthenticated(true);
+            setIsFaculty(decoded.faculty);
+            setUserData(decoded);
+          } else {
+            await AsyncStorage.removeItem('token');
+            setIsAuthenticated(false);
+          }
         }
-        //If a token is found, it decodes the token 
-        // (expecting it to include the user’s ID, email, and whether they’re faculty) 
-        // and updates the state with that data.
-
-        // Decode token and check role
-        const decoded = jwtDecode(token) as DecodedToken;
-        setIsFaculty(decoded.isFaculty);
-        setIsAuthenticated(true);
-
       } catch (error) {
-
+        console.error('Auth check error:', error);
         setIsAuthenticated(false);
-        navigation.navigate('Login');
-      
       } finally {
-
-        setLoading(false);
-
+        setIsLoading(false);
       }
     };
 
-    checkAuth();
+    checkAuthStatus();
   }, []);
 
-  //Debug Panel On Login Screen
   const logout = async () => {
     try {
       await AsyncStorage.removeItem('token');
       setIsAuthenticated(false);
       setIsFaculty(false);
+      setUserData(null);
     } catch (error) {
-      console.error('Error during logout:', error);
+      console.error('Logout error:', error);
     }
   };
 
-  return { isAuthenticated, isFaculty, loading, logout };
+  return {
+    isLoading,
+    isAuthenticated,
+    isFaculty,
+    userData,
+    logout,
+  };
 };
 
-export default useAuth;
+export default useAuth; 

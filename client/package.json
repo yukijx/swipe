@@ -4,7 +4,11 @@
   "description": "front end",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "expo start",
+    "web": "expo start --web",
+    "android": "expo start --android",
+    "ios": "expo start --ios"
   },
   "repository": {
     "type": "git",
@@ -59,6 +63,7 @@
     "typescript": "^5.7.3"
   },
   "devDependencies": {
+    "@react-native-community/cli": "^18.0.0",
     "@types/lodash": "^4.17.16",
     "@types/node": "^22.13.10",
     "@types/react-native-vector-icons": "^6.4.18"

@@ -1,10 +1,10 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import useAuth from '../hooks/useAuth';
+import React, { useState } from 'react';
+import { useAuthContext } from '../context/AuthContext';
+import { View, Text, Button, StyleSheet, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const DebugPanel = () => {
-    const { isAuthenticated, isFaculty } = useAuth();
+    const { isAuthenticated, isFaculty } = useAuthContext();
 
     const checkToken = async () => {
         const token = await AsyncStorage.getItem('token');

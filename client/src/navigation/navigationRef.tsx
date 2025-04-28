@@ -1,12 +1,18 @@
 import * as React from 'react';
-import { NavigationContainerRef } from '@react-navigation/native';
+import { NavigationContainerRef, CommonActions } from '@react-navigation/native';
 import { StackParamList } from '../navigation/types';
 
 export const navigationRef = React.createRef<NavigationContainerRef<StackParamList>>();
 
-export function navigate<T extends keyof StackParamList>(screen: T, params: StackParamList[T]): void;
-export function navigate<T extends keyof StackParamList>(screen: T): void;
-export function navigate<T extends keyof StackParamList>(screen: T, params?: StackParamList[T]) {
-  // Cast params to 'any' to simplify the union type complexity
-  navigationRef.current?.navigate(screen, params as any);
+// More robust navigation method that works with nested navigators
+export function navigate(screenName: string, params: any = undefined) {
+  if (navigationRef.current) {
+    // Use CommonActions.navigate for better handling of nested navigators
+    navigationRef.current.dispatch(
+      CommonActions.navigate({
+        name: screenName,
+        params,
+      })
+    );
+  }
 }

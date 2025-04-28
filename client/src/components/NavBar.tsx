@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
-import useAuth from '../hooks/useAuth';
+import { useAuthContext } from '../context/AuthContext';
+import { navigationRef } from '../navigation/navigationRef';
 
 const NavBar = ({ navigation }: { navigation: any }) => {
     const { theme } = useTheme();
-    const { isFaculty } = useAuth();
+    const { isFaculty } = useAuthContext();
     
     const navItems = [
         { title: 'Home', onPress: () => navigation.navigate(isFaculty ? 'FacultyHome' : 'Home') },

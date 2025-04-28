@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Platform, Switch } from 'react-native';
+import { View, Text, StyleSheet, Platform, Switch, Button, Alert } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { ResponsiveScreen } from '../components/ResponsiveScreen';
-import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import useAuth from '../hooks/useAuth';
+import { useAuthContext } from '../context/AuthContext';
+import { getBackendURL } from '../utils/network';
 
 interface PrivacySettings {
     name: boolean;
@@ -20,7 +20,7 @@ interface PrivacySettings {
 
 const PrivacySettings = ({ navigation }: { navigation: any }) => {
     const { theme } = useTheme();
-    const { isFaculty } = useAuth();
+    const { isFaculty } = useAuthContext();
     const textColor = theme === 'light' ? '#893030' : '#ffffff';
     const backgroundColor = theme === 'light' ? '#ffffff' : '#333';
     
@@ -37,21 +37,38 @@ const PrivacySettings = ({ navigation }: { navigation: any }) => {
     });
 
     useEffect(() => {
+        const fetchPrivacySettings = async () => {
+            try {
+                const token = await AsyncStorage.getItem('token');
+                if (!token) {
+                    Alert.alert('Authentication Error', 'Please log in again');
+                    return;
+                }
+
+                const response = await fetch(
+                    `${getBackendURL()}/user/privacy-settings`,
+                    {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    }
+                );
+
+                if (response.ok) {
+                    const data = await response.json();
+                    setPrivacySettings(data);
+                } else {
+                    Alert.alert('Error', 'Failed to fetch privacy settings');
+                }
+            } catch (error) {
+                console.error('Error fetching privacy settings:', error);
+                Alert.alert('Error', 'Failed to fetch privacy settings');
+            }
+        };
+
         fetchPrivacySettings();
     }, []);
-
-    const fetchPrivacySettings = async () => {
-        try {
-            const token = await AsyncStorage.getItem('token');
-            const response = await axios.get(
-                'http://localhost:5000/user/privacy-settings',
-                { headers: { Authorization: token } }
-            );
-            setPrivacySettings(response.data.privacySettings);
-        } catch (error) {
-            console.error('Failed to fetch privacy settings:', error);
-        }
-    };
 
     const handleToggle = async (key: keyof PrivacySettings) => {
         try {
@@ -61,15 +78,32 @@ const PrivacySettings = ({ navigation }: { navigation: any }) => {
             };
             
             const token = await AsyncStorage.getItem('token');
-            await axios.put(
-                'http://localhost:5000/user/privacy-settings',
-                { privacySettings: newSettings },
-                { headers: { Authorization: token } }
+            if (!token) {
+                Alert.alert('Authentication Error', 'Please log in again');
+                return;
+            }
+
+            const response = await fetch(
+                `${getBackendURL()}/user/privacy-settings`,
+                {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(newSettings)
+                }
             );
-            
-            setPrivacySettings(newSettings);
+
+            if (response.ok) {
+                Alert.alert('Success', 'Privacy settings updated successfully');
+                setPrivacySettings(newSettings);
+            } else {
+                Alert.alert('Error', 'Failed to update privacy settings');
+            }
         } catch (error) {
-            console.error('Failed to update privacy settings:', error);
+            console.error('Error saving privacy settings:', error);
+            Alert.alert('Error', 'Failed to update privacy settings');
         }
     };
 

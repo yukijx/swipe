@@ -9,12 +9,30 @@ const Home = ({ navigation }: { navigation: any }) => {
     return (
         <ResponsiveScreen navigation={navigation}>
             <View style={styles.container}>
-                <TouchableOpacity
-                    style={styles.button}
-                    onPress={() => navigation.navigate('Swipe')}
-                >
-                    <Text style={styles.buttonText}>Browse Opportunities</Text>
-                </TouchableOpacity>
+                <Text style={styles.title}>Student Dashboard</Text>
+                
+                <View style={styles.buttonGroup}>
+                    <TouchableOpacity
+                        style={styles.button}
+                        onPress={() => navigation.navigate('Swipe')}
+                    >
+                        <Text style={styles.buttonText}>Browse Opportunities</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity
+                        style={styles.button}
+                        onPress={() => navigation.navigate('Matches')}
+                    >
+                        <Text style={styles.buttonText}>View My Matches</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity
+                        style={styles.button}
+                        onPress={() => navigation.navigate('ProfileSettings')}
+                    >
+                        <Text style={styles.buttonText}>Edit Profile</Text>
+                    </TouchableOpacity>
+                </View>
             </View>
         </ResponsiveScreen>
     );
@@ -25,6 +43,17 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
+        padding: 20,
+    },
+    title: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        color: '#893030',
+        marginBottom: 40,
+    },
+    buttonGroup: {
+        width: '100%',
+        gap: 15,
     },
     button: {
         backgroundColor: '#893030',

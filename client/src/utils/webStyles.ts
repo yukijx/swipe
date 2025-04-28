@@ -12,6 +12,8 @@ export const webStyles = {
         cursor: Platform.OS === 'web' ? 'pointer' : undefined,
     },
     input: {
+        outlineWidth: Platform.OS === 'web' ? '1px' : undefined,
+        outlineStyle: Platform.OS === 'web' ? 'solid' : undefined,
         outlineColor: Platform.OS === 'web' ? '#893030' : undefined,
         width: Platform.OS === 'web' ? '400px' : '100%',
     },
