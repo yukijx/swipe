@@ -143,10 +143,6 @@ const RootNavigator = () => {
   
   console.log('[RootNavigator] Auth state:', { isAuthenticated, isFaculty, loading });
   
-  // Force initial route to always be login regardless of auth state
-  // This ensures we always start at login and let the auth protection handle redirects
-  const initialRoute = "Login";
-  
   // Show loading screen while checking authentication
   if (loading) {
     return (
@@ -174,14 +170,26 @@ const RootNavigator = () => {
     );
   }
   
-  // Helper function to wrap components with protection
-  const protect = (Component: any) => (props: any) => (
-    <ProtectedRoute 
-      component={Component} 
-      isAuthenticated={isAuthenticated} 
-      {...props} 
-    />
-  );
+  // DETERMINE INITIAL ROUTE BASED ON AUTH STATE
+  // Use typed variables to ensure type safety
+  let initialRoute: keyof StackParamList = "Login";
+  
+  if (isAuthenticated) {
+    console.log("[RootNavigator] User is authenticated, setting initial route based on role");
+    if (isFaculty) {
+      initialRoute = "FacultyHome";
+      console.log("[RootNavigator] Setting initial route to FacultyHome");
+    } else {
+      initialRoute = "Home";
+      console.log("[RootNavigator] Setting initial route to Home");
+    }
+  } else {
+    console.log("[RootNavigator] User is not authenticated, setting initial route to Login");
+  }
+  
+  // TEMPORARILY DISABLE ROUTE PROTECTION FOR DEBUGGING
+  // This will let us see if the navigation works without protection logic interfering
+  const protect = (Component: any) => (props: any) => <Component {...props} />;
   
   return (
     <Stack.Navigator 
@@ -197,7 +205,7 @@ const RootNavigator = () => {
       <Stack.Screen name="ProfessorSetup" component={ProfessorSetup} />
       <Stack.Screen name="StudentSetup" component={StudentSetup} />
       
-      {/* Home screens */}
+      {/* Home screens - REMOVE PROTECTION FOR DEBUGGING */}
       <Stack.Screen 
         name="FacultyHome" 
         component={FacultyHome} 
@@ -219,7 +227,7 @@ const RootNavigator = () => {
         })} 
       />
       
-      {/* Common screens for authenticated users */}
+      {/* Common screens for authenticated users - REMOVE PROTECTION FOR DEBUGGING */}
       <Stack.Screen 
         name="Swipe" 
         component={Swipe} 

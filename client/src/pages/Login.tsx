@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Alert, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, Alert, TouchableOpacity, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
@@ -59,31 +59,12 @@ const Login = ({ navigation }: { navigation: any }) => {
             
         console.log("Needs profile setup:", needsProfileSetup);
         
-        // Success alert
-        Alert.alert('Success', 'Logged in successfully');
+        // Simply show success alert - navigation will be handled by parent router
+        console.log("Login successful, auth context updated");
+        console.log("Let the router handle navigation based on auth state");
         
-        // Navigate to appropriate screen after a slightly longer delay
-        setTimeout(() => {
-            if (needsProfileSetup) {
-                console.log("Navigating to profile setup");
-                if (isFaculty) {
-                    console.log("Navigating to ProfessorSetup");
-                    navigation.replace('ProfessorSetup');
-                } else {
-                    console.log("Navigating to StudentSetup");
-                    navigation.replace('StudentSetup');
-                }
-            } else {
-                // Directly navigate to the appropriate home screen
-                if (isFaculty) {
-                    console.log("Navigating to FacultyHome");
-                    navigation.replace('FacultyHome');
-                } else {
-                    console.log("Navigating to Home");
-                    navigation.replace('Home');
-                }
-            }
-        }, 600);
+        // Show success alert
+        Alert.alert('Success', 'Logged in successfully');
     } catch (error: any) {
         console.error("Login error:", error);
         

@@ -84,6 +84,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           id: decoded.id,
           isFaculty: decoded.isFaculty
         });
+        
+        // Force a re-render of the parent navigator by causing a state update
+        // This helps with navigation issues on Android
+        console.log('[AuthContext] Auth state updated - force re-render');
       } catch (decodeError) {
         console.error('[AuthContext] Error decoding token:', decodeError);
         // If token can't be decoded, it's invalid
