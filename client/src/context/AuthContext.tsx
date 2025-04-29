@@ -1,8 +1,6 @@
 import React, { createContext, ReactNode, useContext, useState, useEffect, useCallback } from 'react';
 import { jwtDecode } from "jwt-decode";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
-import type { StackNavigationProp } from '@react-navigation/stack';
 import { StackParamList } from '../navigation/types';
 
 interface DecodedToken {
@@ -42,7 +40,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isFaculty, setIsFaculty] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const navigation = useNavigation<StackNavigationProp<StackParamList>>();
 
   const checkAuth = useCallback(async () => {
     console.log('[AuthContext] Starting auth check');
@@ -107,13 +104,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsFaculty(false);
       setUserId(null);
       console.log('[AuthContext] Logged out successfully');
-      if (navigation) {
-        navigation.navigate('Login');
-      }
     } catch (error) {
       console.error('[AuthContext] Error during logout:', error);
     }
-  }, [navigation]);
+  }, []);
 
   // Check auth on initial load
   useEffect(() => {

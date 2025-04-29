@@ -1,16 +1,17 @@
 import * as React from 'react';
 import { useEffect } from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { Platform, View, TouchableOpacity, Text } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 //Import Theme
 import { ThemeProvider } from '../context/ThemeContext';
 import { AuthProvider, useAuthContext } from '../context/AuthContext';
 
 //Import Components
-import DebugPanel from '../components/DebugPanel';
 import NavBar from '../components/NavBar';
 
 //Import Screens
@@ -126,13 +127,15 @@ export default function App() {
 
   return (
     <ThemeProvider>
-      <NavigationContainer ref={navigationRef}>
-        <AuthProvider>
-          {/* Use a simpler approach with a single root navigator */}
-          <RootNavigator />
-          {process.env.NODE_ENV === 'development' && <DebugPanel />}
-        </AuthProvider>
-      </NavigationContainer>
+      <AuthProvider>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <SafeAreaProvider>
+            <NavigationContainer ref={navigationRef}>
+              <RootNavigator />
+            </NavigationContainer>
+          </SafeAreaProvider>
+        </GestureHandlerRootView>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

@@ -39,113 +39,189 @@ const Swipe = ({ navigation }: { navigation: any }) => {
     const textColor = theme === 'light' ? '#893030' : '#ffffff';
     const backgroundColor = theme === 'light' ? '#f9f9f9' : '#333';
     const cardColor = theme === 'light' ? '#fff7d5' : '#444';
+    const [swipingListings, setSwipingListings] = useState<{[key: string]: boolean}>({});
+    const [swipedListings, setSwipedListings] = useState<{[key: string]: 'left' | 'right'}>({});
 
     useEffect(() => {
         if (isFaculty) {
-            Alert.alert('Error', 'Only Students can view Research Opportunities');
+            console.error('Error: Only Students can view Research Opportunities');
             navigation.goBack();
             return;
         }
         
         console.log('Swipe component mounted, auth state:', { isFaculty });
         fetchListings();
+        fetchSwipeHistory();
     }, []);   
 
-    const fetchListings = async () => {
-        setLoading(true); 
-        try {  
+        const fetchListings = async () => {
+            setLoading(true); 
+            try {  
+                const token = await AsyncStorage.getItem("token");
+                if (!token) {
+                    console.log('No token found');
+                console.error('Authentication Error: Please log in again');
+                navigation.navigate('Login');
+                    setLoading(false);
+                    return;
+                }
+                
+            console.log('Fetching listings...');
+            
+            try {
+                // Use the listings endpoint with proper authentication
+                const response = await axios.get(`${getBackendURL()}/listings`, {
+                headers: {
+                    Authorization: `Bearer ${token}`, 
+                },
+                timeout: 10000, 
+                });
+
+                console.log("API Response:", response.status, response.statusText);
+                
+                if (response.data && Array.isArray(response.data)) {
+                    console.log(`Retrieved ${response.data.length} listings`);
+                setListings(response.data);
+                    setLoading(false);
+                    return;
+                }
+            } catch (error) {
+                console.log("Standard endpoint failed, trying debug endpoint...");
+            }
+            
+            // Fallback to debug endpoint with proper token
+            try {
+                const debugResponse = await axios.get(`${getBackendURL()}/debug/all-listings`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                });
+                
+                if (debugResponse.data && Array.isArray(debugResponse.data)) {
+                    console.log(`Debug endpoint found ${debugResponse.data.length} listings`);
+                    
+                    // Filter to only show active listings
+                    const activeListings = debugResponse.data.filter((listing: any) => listing.active !== false);
+                    console.log(`Found ${activeListings.length} active listings`);
+                    
+                    if (activeListings.length > 0) {
+                        // Since debug endpoint returns minimal information, enhance the listings
+                        const enhancedListings = activeListings.map((listing: any) => ({
+                            ...listing,
+                            description: listing.description || "Detailed description will be available soon.",
+                            requirements: listing.requirements || "Requirements will be available soon.",
+                            duration: listing.duration || { value: 3, unit: "months" },
+                            wage: listing.wage || { type: "hourly", amount: 15, isPaid: true }
+                        }));
+                        
+                        setListings(enhancedListings);
+                        console.log("Set listings from debug endpoint");
+                    } else {
+                        setListings([]);
+                        console.log("No active listings found");
+                    }
+                } else {
+                    console.error("Invalid response format from debug endpoint");
+                    setListings([]);
+                }
+            } catch (debugError: any) {
+                console.error("Debug endpoint failed:", debugError.message);
+                setListings([]);
+                Alert.alert(
+                    "Error",
+                    "Failed to fetch listings. Please try again later.",
+                    [{ text: "OK" }]
+                );
+            }
+        } catch (error: any) {
+            console.error("Error fetching listings:", error.message);
+            setListings([]);
+            Alert.alert(
+                "Error",
+                "Failed to fetch listings. Please try again later.",
+                [{ text: "OK" }]
+            );
+            } finally { 
+                setLoading(false); 
+            }
+        };
+
+    const fetchSwipeHistory = async () => {
+        try {
             const token = await AsyncStorage.getItem("token");
             if (!token) {
-                console.log('No token found');
-                Alert.alert('Authentication Error', 'Please log in again');
-                navigation.navigate('Login');
-                setLoading(false);
+                console.log('No token found for swipe history');
                 return;
             }
             
-            console.log('Fetching listings from debug endpoint...');
+            console.log('Fetching user swipe history...');
             
-            // Use the debug endpoint that we know works
-            const debugResponse = await axios.get(`${getBackendURL()}/debug/all-listings`);
-            
-            if (debugResponse.data && Array.isArray(debugResponse.data)) {
-                console.log(`Debug endpoint found ${debugResponse.data.length} listings`);
-                
-                // Filter to only show active listings
-                const activeListings = debugResponse.data.filter((listing: any) => listing.active !== false);
-                console.log(`Found ${activeListings.length} active listings`);
-                
-                if (activeListings.length > 0) {
-                    // Since debug endpoint returns minimal information, enhance the listings
-                    const enhancedListings = activeListings.map((listing: any) => ({
-                        ...listing,
-                        description: listing.description || "Detailed description will be available soon.",
-                        requirements: listing.requirements || "Requirements will be available soon.",
-                        duration: listing.duration || { value: 3, unit: "months" },
-                        wage: listing.wage || { type: "hourly", amount: 15, isPaid: true }
-                    }));
-                    
-                    setListings(enhancedListings);
-                    console.log("Set listings from debug endpoint");
-                } else {
-                    setListings([]);
-                    console.log("No active listings found");
+            // Call the API to get swipe history
+            const response = await axios.get(`${getBackendURL()}/swipes/history`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
                 }
-            } else {
-                // Fallback to a direct database endpoint
-                console.log('Debug endpoint failed, trying /listings endpoint...');
+            });
+            
+            if (response.data && Array.isArray(response.data)) {
+                console.log(`Retrieved ${response.data.length} previous swipes`);
                 
-                try {
-                    const response = await axios.get(`${getBackendURL()}/listings`, {
-                        headers: {
-                            Authorization: `Bearer ${token}`, 
-                        },
-                        timeout: 10000, 
-                    });
+                // Update the swipedListings state with the user's history
+                const swipedHistory: {[key: string]: 'left' | 'right'} = {};
+                
+                response.data.forEach((swipe: any) => {
+                    swipedHistory[swipe.listingId] = swipe.interested ? 'right' : 'left';
+                });
+                
+                setSwipedListings(swipedHistory);
+                
+                // Also update matches if any of the swipes resulted in a match
+                const matchIds = response.data
+                    .filter((swipe: any) => swipe.isMatch)
+                    .map((swipe: any) => swipe.listingId);
                     
-                    console.log("API Response:", response.status, response.statusText);
-                    
-                    if (response.data && Array.isArray(response.data)) {
-                        console.log("Retrieved listings:", response.data.length);
-                        setListings(response.data);
-                        
-                        // Debug: Log the first listing if available
-                        if (response.data.length > 0) {
-                            console.log("Sample listing:", JSON.stringify(response.data[0], null, 2));
-                        }
-                    } else {
-                        console.error("Invalid response format:", response.data);
-                        Alert.alert('Error', 'Invalid data format received from server');
-                        setListings([]);
-                    }
-                } catch (standardError: any) {
-                    console.error("Standard endpoint also failed:", standardError);
-                    Alert.alert('Error', 'Could not retrieve listings. Please try again later.');
-                    setListings([]);
+                if (matchIds.length > 0) {
+                    console.log(`Found ${matchIds.length} previous matches`);
+                    setMatches(matchIds);
                 }
             }
-        } catch (error: any) {
-            console.error("Error fetching listings:", error);
-            Alert.alert('Error', 'Failed to fetch listings. Please try again.');
-            setListings([]);
-        } finally { 
-            setLoading(false); 
+        } catch (error) {
+            console.error('Error fetching swipe history:', error);
+            // Non-critical error, so just log it
         }
     };
 
     const handleSwipe = async (direction: 'left' | 'right', listingId: string) => {
-        if (swipingInProgress) return;
+        // Validate inputs
+        if (!listingId) {
+            console.error('Invalid listing ID for swipe');
+            return;
+        }
         
-        setSwipingInProgress(true);
+        // Prevent multiple swipes on the same listing
+        if (swipingListings[listingId] || swipedListings[listingId]) {
+            console.log(`Listing ${listingId} already swiped or in progress`);
+            return;
+        }
+        
+        // Update swiping state for this listing
+        setSwipingListings(prev => ({ ...prev, [listingId]: true }));
+        
         try {
             const token = await AsyncStorage.getItem("token");
             if (!token) {
-                Alert.alert('Authentication Error', 'Please log in again');
-                navigation.navigate('Login');
+                console.error('Authentication Error: Please log in again');
+                Alert.alert(
+                    "Authentication Error",
+                    "Please log in again to continue",
+                    [{ text: "OK", onPress: () => navigation.navigate('Login') }]
+                );
                 return;
             }
             
             const interested = direction === 'right';
+            console.log(`Swiping ${interested ? 'right (interested)' : 'left (not interested)'} on listing ${listingId}`);
+            
             const response = await axios.post(`${getBackendURL()}/swipe`, 
                 { 
                     listingId, 
@@ -160,17 +236,21 @@ const Swipe = ({ navigation }: { navigation: any }) => {
             
             console.log('Swipe response:', response.data);
             
+            // Record this listing as swiped
+            setSwipedListings(prev => ({ ...prev, [listingId]: direction }));
+            
             // If it's a match, add to matches list and show a notification
             if (interested && response.data.isMatch) {
                 setMatches(prev => [...prev, listingId]);
-                Alert.alert(
-                    'Match!', 
-                    'You matched with this listing. Check your matches page!',
-                    [
-                        { text: 'View Matches', onPress: () => navigation.navigate('Matches') },
-                        { text: 'Continue Browsing', style: 'cancel' }
-                    ]
-                );
+                console.log('Match found! Listing added to matches');
+                
+                // Consider showing a match alert or notification here
+            } else if (interested) {
+                // If interested but not a match yet
+                console.log('Interest recorded');
+            } else {
+                // If not interested, show a subtle confirmation
+                console.log('Not interested recorded');
             }
             
         } catch (error: any) {
@@ -178,10 +258,30 @@ const Swipe = ({ navigation }: { navigation: any }) => {
             
             // Show alert for specific errors
             if (error.response?.status === 400 && error.response?.data?.error?.includes('already swiped')) {
-                Alert.alert('Already Swiped', 'You have already expressed interest in this listing');
+                console.log('Already swiped on this listing');
+                // Record this listing as already swiped (we don't know the direction)
+                setSwipedListings(prev => ({ ...prev, [listingId]: direction }));
+            } else if (error.response?.status === 401) {
+                // Token expired or invalid
+                Alert.alert(
+                    "Authentication Error",
+                    "Your session has expired. Please log in again.",
+                    [{ text: "OK", onPress: () => navigation.navigate('Login') }]
+                );
+            } else {
+                Alert.alert(
+                    "Error",
+                    "Failed to record your choice. Please try again.",
+                    [{ text: "OK" }]
+                );
             }
         } finally {
-            setSwipingInProgress(false);
+            // Reset swiping state for this listing
+            setSwipingListings(prev => {
+                const newState = {...prev};
+                delete newState[listingId];
+                return newState;
+            });
         }
     };
 
@@ -217,7 +317,15 @@ const Swipe = ({ navigation }: { navigation: any }) => {
         return (
             <ScrollView style={styles.scrollView}>
                 {listings.map((listing) => (
-                    <View key={listing._id} style={[styles.listingCard, { backgroundColor: cardColor }]}>
+                    <View key={listing._id} style={[
+                        styles.listingCard, 
+                        { backgroundColor: cardColor },
+                        swipedListings[listing._id] && (
+                            swipedListings[listing._id] === 'right' 
+                                ? styles.cardSwipedRight 
+                                : styles.cardSwipedLeft
+                        )
+                    ]}>
                         <View style={styles.listingContent}>
                             <Text style={[styles.listingTitle, { color: textColor }]}>{listing.title}</Text>
                             
@@ -247,21 +355,36 @@ const Swipe = ({ navigation }: { navigation: any }) => {
                             <Text style={styles.sectionTitle}>Requirements</Text>
                             <Text style={styles.listingDescription}>{listing.requirements}</Text>
                             
-                            <View style={styles.buttonRow}>
-                                <TouchableOpacity 
-                                    style={styles.swipeLeftButton}
-                                    onPress={() => handleSwipe('left', listing._id)}
-                                >
-                                    <Text style={styles.swipeButtonText}>Not Interested</Text>
-                                </TouchableOpacity>
-                                
-                                <TouchableOpacity 
-                                    style={styles.swipeRightButton}
-                                    onPress={() => handleSwipe('right', listing._id)}
-                                >
-                                    <Text style={styles.swipeButtonText}>Interested</Text>
-                                </TouchableOpacity>
-                            </View>
+                            {!swipedListings[listing._id] ? (
+                                <View style={styles.buttonRow}>
+                                    <TouchableOpacity 
+                                        style={styles.swipeLeftButton}
+                                        onPress={() => handleSwipe('left', listing._id)}
+                                        disabled={swipingListings[listing._id]}
+                                    >
+                                        <Text style={styles.swipeButtonText}>
+                                            {swipingListings[listing._id] ? 'Processing...' : 'Not Interested'}
+                                        </Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity 
+                                        style={styles.swipeRightButton}
+                                        onPress={() => handleSwipe('right', listing._id)}
+                                        disabled={swipingListings[listing._id]}
+                                    >
+                                        <Text style={styles.swipeButtonText}>
+                                            {swipingListings[listing._id] ? 'Processing...' : 'Interested'}
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+                            ) : (
+                                <View style={styles.swipedStatusContainer}>
+                                    <Text style={styles.swipedStatusText}>
+                                        {swipedListings[listing._id] === 'right' 
+                                            ? 'You marked this as interested' 
+                                            : 'You marked this as not interested'}
+                                    </Text>
+                                </View>
+                            )}
                         </View>
                     </View>
                 ))}
@@ -284,7 +407,8 @@ const Swipe = ({ navigation }: { navigation: any }) => {
     };
     
     const renderSwipeView = () => {
-        if (listings.length === 0) {
+        // First check if there are any listings at all
+        if (!listings || listings.length === 0) {
             return (
                 <View style={styles.noListingsContainer}>
                     <Text style={[styles.noListings, { color: textColor }]}>
@@ -300,50 +424,128 @@ const Swipe = ({ navigation }: { navigation: any }) => {
             );
         }
         
-        return (
-            <View style={styles.swiperContainer}>
-                <Swiper
-                    cards={listings}
-                    renderCard={(listing) => (
-                        <View key={listing._id} style={[styles.card, { backgroundColor: cardColor }]}>
-                            <Text style={[styles.title, { color: textColor }]}>{listing.title}</Text>
-                            
-                            {listing.facultyId && (
-                                <Text style={styles.facultyName}>
-                                    {typeof listing.facultyId === 'object' && listing.facultyId?.name 
-                                        ? `By: ${listing.facultyId.name}` 
-                                        : 'By: Faculty Member'}
-                                </Text>
-                            )}
-                            
-                            <View style={styles.listingDetails}>
-                                <Text style={styles.listingDetail}>
-                                    Duration: {formatDuration(listing.duration)}
-                                </Text>
-                                <Text style={styles.listingDetail}>
-                                    Compensation: {formatWage(listing.wage)}
-                                </Text>
-                            </View>
-                            
-                            <Text style={styles.sectionTitle}>Description</Text>
-                            <Text style={styles.description}>{listing.description}</Text>
-                            
-                            <Text style={styles.sectionTitle}>Requirements</Text>
-                            <Text style={styles.description}>{listing.requirements}</Text>
+        // Filter out listings that have already been swiped
+        const availableListings = listings.filter(listing => !swipedListings[listing._id]);
+        
+        // Check if all listings have been swiped
+        if (!availableListings || availableListings.length === 0) {
+            return (
+                <View style={styles.noListingsContainer}>
+                    <Text style={[styles.noListings, { color: textColor }]}>
+                        You've swiped through all available listings
+                    </Text>
+                    <TouchableOpacity 
+                        style={styles.refreshButton} 
+                        onPress={fetchListings}
+                    >
+                        <Text style={styles.refreshButtonText}>Refresh Listings</Text>
+                    </TouchableOpacity>
+                </View>
+            );
+        }
+        
+        // Log the first card to help with debugging
+        if (availableListings.length > 0) {
+            console.log("First available card:", availableListings[0].title);
+        }
+        
+        try {
+            return (
+                <View style={styles.swiperContainer}>
+                    <Swiper
+                        cards={availableListings}
+                        renderCard={(listing) => {
+                            // Check if listing is valid
+                            if (!listing || !listing._id || !listing.title) {
+                                return (
+                                    <View style={[styles.card, { backgroundColor: cardColor }]}>
+                                        <Text style={[styles.title, { color: textColor }]}>
+                                            Invalid listing
+                                        </Text>
+                                        <Text style={styles.description}>
+                                            This listing appears to be invalid or incomplete. Please swipe left to continue.
+                                        </Text>
+                                    </View>
+        );
+    }
+    
+    return (
+                            <View key={listing._id} style={[styles.card, { backgroundColor: cardColor }]}>
+                                <Text style={[styles.title, { color: textColor }]}>{listing.title}</Text>
+                                
+                                {listing.facultyId && (
+                                    <Text style={styles.facultyName}>
+                                        {typeof listing.facultyId === 'object' && listing.facultyId?.name 
+                                            ? `By: ${listing.facultyId.name}` 
+                                            : 'By: Faculty Member'}
+                                    </Text>
+                                )}
+                                
+                                <View style={styles.listingDetails}>
+                                    <Text style={styles.listingDetail}>
+                                        Duration: {formatDuration(listing.duration)}
+                                    </Text>
+                                    <Text style={styles.listingDetail}>
+                                        Compensation: {formatWage(listing.wage)}
+                                    </Text>
+                                </View>
+                                
+                                <Text style={styles.sectionTitle}>Description</Text>
+                                <Text style={styles.description}>{listing.description}</Text>
+                                
+                                <Text style={styles.sectionTitle}>Requirements</Text>
+                                <Text style={styles.description}>{listing.requirements}</Text>
+                                
+                                <View style={styles.swipeInstructions}>
+                                    <Text style={styles.swipeInstructionText}>
+                                        Swipe right if interested, left if not interested
+                                    </Text>
+                                </View>
                         </View>
-                    )}
-                    onSwiped={(cardIndex) => {
-                        setIndex(cardIndex + 1);
-                    }}
-                    onSwipedLeft={(cardIndex) => {
-                        const listing = listings[cardIndex];
-                        handleSwipe('left', listing._id);
-                    }}
-                    onSwipedRight={(cardIndex) => {
-                        const listing = listings[cardIndex];
-                        handleSwipe('right', listing._id);
-                    }}
-                    onSwipedAll={() => setIndex(listings.length)}
+                            );
+                        }}
+                        onSwiped={(cardIndex) => {
+                            setIndex(cardIndex + 1);
+                        }}
+                        onSwipedLeft={(cardIndex) => {
+                            try {
+                                if (cardIndex < 0 || cardIndex >= availableListings.length) {
+                                    console.error("Invalid card index:", cardIndex);
+                                    return;
+                                }
+                                
+                                const listing = availableListings[cardIndex];
+                                if (!listing || !listing._id || !listing.title) {
+                                    console.error("Error: Undefined or invalid listing at index", cardIndex);
+                                    return;
+                                }
+                                console.log("Swiped LEFT (not interested) on:", listing.title);
+                                handleSwipe('left', listing._id);
+                            } catch (error) {
+                                console.error("Error in onSwipedLeft:", error);
+                            }
+                        }}
+                        onSwipedRight={(cardIndex) => {
+                            try {
+                                if (cardIndex < 0 || cardIndex >= availableListings.length) {
+                                    console.error("Invalid card index:", cardIndex);
+                                    return;
+                                }
+                                
+                                const listing = availableListings[cardIndex];
+                                if (!listing || !listing._id || !listing.title) {
+                                    console.error("Error: Undefined or invalid listing at index", cardIndex);
+                                    return;
+                                }
+                                console.log("Swiped RIGHT (interested) on:", listing.title);
+                                handleSwipe('right', listing._id);
+                            } catch (error) {
+                                console.error("Error in onSwipedRight:", error);
+                            }
+                        }}
+                        onSwipedAll={() => {
+                            console.log("Swiped through all cards!");
+                        }}
                     backgroundColor="transparent"
                     stackSize={3}
                     cardIndex={index}
@@ -351,23 +553,41 @@ const Swipe = ({ navigation }: { navigation: any }) => {
                     animateOverlayLabelsOpacity
                     overlayLabels={{
                         left: {
-                            title: "Not Interested",
+                                title: "Not Interested",
                             style: {
                                 wrapper: styles.overlayWrapperLeft,
-                                label: styles.overlayLabelLeft
+                                    label: styles.overlayLabelLeft
                             }
                         },
                         right: {
                             title: "Interested",
                             style: {
                                 wrapper: styles.overlayWrapperRight,
-                                label: styles.overlayLabelRight
+                                    label: styles.overlayLabelRight
+                                }
                             }
-                        }
-                    }}
-                />
-            </View>
-        );
+                        }}
+                        cardVerticalMargin={Platform.OS === 'web' ? 20 : 10}
+                        useViewOverflow={Platform.OS === 'web'}
+                    />
+                </View>
+            );
+        } catch (error) {
+            console.error("Error rendering Swiper:", error);
+            return (
+                <View style={styles.noListingsContainer}>
+                    <Text style={[styles.noListings, { color: textColor }]}>
+                        Error loading research opportunities
+                    </Text>
+                    <TouchableOpacity 
+                        style={styles.refreshButton} 
+                        onPress={fetchListings}
+                    >
+                        <Text style={styles.refreshButtonText}>Try Again</Text>
+                    </TouchableOpacity>
+                </View>
+            );
+        }
     };
 
     if (loading) { 
@@ -472,24 +692,24 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: 10,
+        marginBottom: 60,
         paddingHorizontal: 10,
     },
     card: {
         width: '100%',
         maxWidth: 350,
-        height: 500,
+        height: 450,
         padding: 20,
         borderRadius: 15,
         ...Platform.select({
             ios: {
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.3,
-                shadowRadius: 6,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 6,
             },
             android: {
-                elevation: 8,
+        elevation: 8,
             },
             web: {
                 boxShadow: '0px 4px 6px rgba(0, 0, 0, 0.3)',
@@ -518,9 +738,10 @@ const styles = StyleSheet.create({
         padding: 15,
     },
     title: {
-        fontSize: 24,
+        fontSize: 26,
         fontWeight: "bold",
-        marginBottom: 10,
+        marginBottom: 12,
+        color: '#893030',
     },
     listingTitle: {
         fontSize: 18,
@@ -528,8 +749,9 @@ const styles = StyleSheet.create({
         marginBottom: 5,
     },
     facultyName: {
-        fontSize: 14,
-        color: '#666',
+        fontSize: 16,
+        color: '#555',
+        fontWeight: '500',
         fontStyle: 'italic',
         marginBottom: 10,
     },
@@ -537,21 +759,26 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     listingDetail: {
-        fontSize: 14,
-        color: '#666',
+        fontSize: 15,
+        color: '#444',
         marginBottom: 3,
+        fontWeight: '500',
     },
     sectionTitle: {
-        fontSize: 16,
+        fontSize: 18,
         fontWeight: 'bold',
         color: '#893030',
-        marginTop: 10,
-        marginBottom: 5,
+        marginTop: 12,
+        marginBottom: 6,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(137, 48, 48, 0.2)',
+        paddingBottom: 4,
     },
     description: {
         fontSize: 16,
-        color: '#333',
+        color: '#222',
         marginBottom: 10,
+        lineHeight: 22,
     },
     listingDescription: {
         fontSize: 14,
@@ -602,27 +829,35 @@ const styles = StyleSheet.create({
     },
     overlayLabelRight: {
         backgroundColor: '#28a745',
-        color: 'white',
-        fontSize: 24,
-        padding: 10,
+            color: 'white',
+            fontSize: 24,
+            padding: 10,
         borderRadius: 10,
-    },
+        },
     overlayWrapperLeft: {
-        flexDirection: 'column',
-        alignItems: 'flex-end',
-        justifyContent: 'center',
-        paddingRight: 20,
+            flexDirection: 'column',
+            alignItems: 'flex-end',
+            justifyContent: 'center',
+            paddingRight: 20,
     },
     overlayWrapperRight: {
-        flexDirection: 'column',
-        alignItems: 'flex-start',
-        justifyContent: 'center',
-        paddingLeft: 20,
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+            justifyContent: 'center',
+            paddingLeft: 20,
     },
     bottomButtonContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         padding: 15,
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        borderTopWidth: 1,
+        borderTopColor: '#ddd',
+        zIndex: 1000,
     },
     matchesButton: {
         backgroundColor: '#893030',
@@ -650,6 +885,36 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#fff',
     },
+    cardSwipedRight: {
+        borderLeftWidth: 5,
+        borderLeftColor: '#28a745',
+    },
+    cardSwipedLeft: {
+        borderLeftWidth: 5,
+        borderLeftColor: '#ff4444',
+    },
+    swipedStatusContainer: {
+        marginTop: 15,
+        padding: 10,
+        backgroundColor: '#f8f9fa',
+        borderRadius: 5,
+        alignItems: 'center'
+    },
+    swipedStatusText: {
+        color: '#555',
+        fontStyle: 'italic'
+    },
+    swipeInstructions: {
+        marginTop: 10,
+        padding: 10,
+        backgroundColor: '#f8f9fa',
+        borderRadius: 5,
+        alignItems: 'center'
+    },
+    swipeInstructionText: {
+        color: '#555',
+        fontStyle: 'italic'
+    }
 });
 
 export default Swipe;

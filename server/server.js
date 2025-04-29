@@ -444,10 +444,25 @@ app.post('/listings/create', async (req, res) => {
 
 app.get('/listings', verifyToken, async (req, res) => {
     try {
-        const listings = await Listing.find({ active: true })
-            .populate('facultyId', 'name email university -password');
+        // Get the user's ID from the token
+        const userId = req.user.id;
+        
+        // Get the listings that the user has already swiped on
+        const swipedListings = await Swipe.find({ studentId: userId })
+            .select('listingId');
+        
+        // Extract just the listing IDs
+        const swipedListingIds = swipedListings.map(swipe => swipe.listingId);
+        
+        // Find all active listings that haven't been swiped on
+        const listings = await Listing.find({ 
+            active: true,
+            _id: { $nin: swipedListingIds }
+        }).populate('facultyId', 'name email university -password');
+        
         res.json(listings);
     } catch (error) {
+        console.error('Error fetching listings:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -952,6 +967,10 @@ const SwipeSchema = new mongoose.Schema({
         type: Boolean, 
         required: true 
     },
+    facultyAccepted: { 
+        type: Boolean, 
+        default: null // null = pending, true = accepted, false = rejected
+    },
     createdAt: { 
         type: Date, 
         default: Date.now 
@@ -991,18 +1010,14 @@ app.post('/swipe', verifyToken, async (req, res) => {
         const swipe = new Swipe({
             studentId,
             listingId,
-            interested
+            interested,
+            facultyAccepted: null // Start as pending
         });
         
         await swipe.save();
         
-        // If student is interested, check if it's a match
+        // If student is interested, it's a potential match pending faculty approval
         let isMatch = false;
-        if (interested) {
-            // Here we would check if the faculty has also expressed interest
-            // For MVP, we'll assume all faculty are interested in students who swipe right
-            isMatch = true;
-        }
         
         res.status(201).json({ 
             message: 'Swipe recorded successfully',
@@ -1015,15 +1030,53 @@ app.post('/swipe', verifyToken, async (req, res) => {
     }
 });
 
-// Get all matches for a student
+// Faculty accepts or rejects a student's interest
+app.post('/swipe/respond', verifyToken, isFaculty, async (req, res) => {
+    try {
+        const { swipeId, accept } = req.body;
+        const facultyId = req.user.id;
+        
+        // Find the swipe record
+        const swipe = await Swipe.findById(swipeId);
+        if (!swipe) {
+            return res.status(404).json({ error: 'Swipe record not found' });
+        }
+        
+        // Check if this swipe is for a listing owned by this faculty
+        const listing = await Listing.findById(swipe.listingId);
+        if (!listing) {
+            return res.status(404).json({ error: 'Listing not found' });
+        }
+        
+        if (listing.facultyId.toString() !== facultyId) {
+            return res.status(403).json({ error: 'You can only respond to swipes on your own listings' });
+        }
+        
+        // Update the swipe record with faculty's response
+        swipe.facultyAccepted = accept;
+        await swipe.save();
+        
+        res.status(200).json({ 
+            message: `Student interest ${accept ? 'accepted' : 'rejected'} successfully`,
+            swipe
+        });
+        
+    } catch (error) {
+        console.error('Error in faculty swipe response endpoint:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get all matches for a student (only show accepted matches)
 app.get('/matches/student', verifyToken, async (req, res) => {
     try {
         const studentId = req.user.id;
         
-        // Get all listings the student has swiped right on
+        // Get all listings the student has swiped right on AND faculty has accepted
         const swipes = await Swipe.find({ 
             studentId, 
-            interested: true 
+            interested: true,
+            facultyAccepted: true // Only return accepted matches
         });
         
         // Get the listing details for each match
@@ -1074,9 +1127,16 @@ app.get('/matches/faculty', verifyToken, isFaculty, async (req, res) => {
                 _id: { $in: matchedListingIds }
             }).select('title');
             
+            // Add the swipe status to each match
             matchesWithListings.push({
                 student,
-                listings: studentListings
+                listings: studentListings,
+                swipes: studentSwipes.map(swipe => ({
+                    _id: swipe._id,
+                    listingId: swipe.listingId,
+                    status: swipe.facultyAccepted === null ? 'pending' : 
+                            swipe.facultyAccepted ? 'accepted' : 'rejected'
+                }))
             });
         }
         
@@ -1089,24 +1149,35 @@ app.get('/matches/faculty', verifyToken, isFaculty, async (req, res) => {
 });
 
 // Debug endpoint to check all listings - temporary, should be removed in production
-app.get('/debug/all-listings', async (req, res) => {
+app.get('/debug/all-listings', verifyToken, async (req, res) => {
     try {
-        const allListings = await Listing.find({}).select('_id title facultyId active createdAt');
+        // Get the user's ID from the token
+        const userId = req.user.id;
+        
+        // Check if user is faculty (faculty can see all listings)
+        const user = await User.findById(userId);
+        
+        if (user && user.isFaculty) {
+            // Faculty sees all listings
+            const allListings = await Listing.find({}).select('_id title facultyId active createdAt');
+            return res.json(allListings);
+        }
+        
+        // For students, filter out listings they've already swiped on
+        const swipedListings = await Swipe.find({ studentId: userId })
+            .select('listingId');
+        
+        // Extract just the listing IDs
+        const swipedListingIds = swipedListings.map(swipe => swipe.listingId);
+        
+        // Find all listings that haven't been swiped on
+        const allListings = await Listing.find({
+            _id: { $nin: swipedListingIds }
+        }).select('_id title facultyId active createdAt');
         
         // Log useful info for debugging
-        console.log(`All listings in database: ${allListings.length}`);
-        if (allListings.length > 0) {
-            console.log('Sample listing facultyId (first record):', allListings[0].facultyId);
-            console.log('Sample listing data (first record):', JSON.stringify(allListings[0], null, 2));
-            
-            // Count facultyIds
-            const facultyCounts = {};
-            allListings.forEach(listing => {
-                const id = listing.facultyId.toString();
-                facultyCounts[id] = (facultyCounts[id] || 0) + 1;
-            });
-            console.log('Faculty ID distribution:', facultyCounts);
-        }
+        console.log(`Returning ${allListings.length} listings to user ${userId}`);
+        console.log(`Filtered out ${swipedListingIds.length} previously swiped listings`);
         
         res.json(allListings);
     } catch (error) {
@@ -1405,6 +1476,31 @@ app.get('/test/listing/:id', async (req, res) => {
         res.json(listing);
     } catch (error) {
         console.error('Error in test listing endpoint:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get swipe history for the current user
+app.get('/swipes/history', verifyToken, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        
+        // Get all swipes by this user
+        const swipes = await Swipe.find({ studentId: userId })
+            .sort({ createdAt: -1 })
+            .select('listingId interested createdAt');
+        
+        // For each swipe, check if it resulted in a match (for now, all interested swipes are matches)
+        const swipesWithMatchInfo = swipes.map(swipe => ({
+            listingId: swipe.listingId,
+            interested: swipe.interested,
+            createdAt: swipe.createdAt,
+            isMatch: swipe.interested // In the current implementation, all interested swipes are matches
+        }));
+        
+        res.json(swipesWithMatchInfo);
+    } catch (error) {
+        console.error('Error retrieving swipe history:', error);
         res.status(500).json({ error: error.message });
     }
 });

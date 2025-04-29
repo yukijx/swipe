@@ -12,9 +12,17 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const loadTheme = async () => {
-      const storedTheme = await AsyncStorage.getItem("theme");
-      if (storedTheme === "light" || storedTheme === "dark") {
-        setTheme(storedTheme as "light" | "dark");  //Type assertion fixes error
+      try {
+        const storedTheme = await AsyncStorage.getItem("theme");
+        console.log("[ThemeContext] Loaded theme from storage:", storedTheme);
+        if (storedTheme === "light" || storedTheme === "dark") {
+          setTheme(storedTheme as "light" | "dark");
+          console.log("[ThemeContext] Set theme to:", storedTheme);
+        } else {
+          console.log("[ThemeContext] No valid theme found, using default:", theme);
+        }
+      } catch (error) {
+        console.error("[ThemeContext] Error loading theme:", error);
       }
     };
     loadTheme();
@@ -22,10 +30,27 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   
 
   const toggleTheme = async () => {
-    const newTheme = theme === "light" ? "dark" : "light";
-    setTheme(newTheme);
-    await AsyncStorage.setItem("theme", newTheme); //Persist theme
+    try {
+      const newTheme = theme === "light" ? "dark" : "light";
+      console.log("[ThemeContext] Toggling theme from", theme, "to", newTheme);
+      setTheme(newTheme);
+      await AsyncStorage.setItem("theme", newTheme);
+      console.log("[ThemeContext] Theme saved to storage:", newTheme);
+    } catch (error) {
+      console.error("[ThemeContext] Error toggling theme:", error);
+    }
   };
+
+  // Add a listener for system theme changes
+  useEffect(() => {
+    const subscription = Appearance.addChangeListener(({ colorScheme }) => {
+      console.log("[ThemeContext] System theme changed to:", colorScheme);
+    });
+
+    return () => subscription.remove();
+  }, []);
+
+  console.log("[ThemeContext] Rendering with theme:", theme);
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>

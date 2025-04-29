@@ -11,7 +11,10 @@ const AppSettings = ({ navigation }: { navigation: any }) => {
         {
             title: 'Theme',
             description: 'Toggle Dark/Light Mode',
-            onPress: toggleTheme,
+            onPress: () => {
+                console.log('[AppSettings] Theme toggle button pressed, current theme:', theme);
+                toggleTheme();
+            },
             icon: '🎨'
         },
         {

@@ -67,132 +67,176 @@ const ListingDetail: React.FC<Props> = ({ navigation, route }) => {
     fetchListingWithFallback(route.params.listingId);
   }, [route.params?.listingId]);
 
+  // Function to fetch listing via the test endpoint
+  const fetchListingViaTestEndpoint = async (listingId: string) => {
+    const token = await AsyncStorage.getItem('token');
+    
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+    
+    console.log(`Fetching listing via test endpoint: ${listingId}`);
+    
+    try {
+      // Use the test endpoint with token as query parameter
+      const response = await axios.get(
+        `${getBackendURL()}/test/listing/${listingId}?token=${token}`,
+        { timeout: 8000 }
+      );
+      
+      if (response.data) {
+        console.log('Test endpoint successful, setting listing data');
+        setListing(response.data);
+      } else {
+        throw new Error('Invalid or empty response from test endpoint');
+      }
+    } catch (error: any) {
+      console.error('Error in test endpoint fallback:', error.message);
+      
+      if (error.response?.status === 500) {
+        console.error('Server error (500) from test endpoint');
+      }
+      
+      throw error; // Rethrow to handle in the parent function
+    }
+  };
+
   // New function to fetch listing directly from debug endpoint
   const fetchListingViaDebug = async (listingId: string) => {
     try {
-      setLoading(true);
+      console.log(`Attempting to fetch listing ${listingId} from debug endpoint`);
       
       // Try to get all listings from the debug endpoint
       const response = await axios.get(
-        `${getBackendURL()}/debug/all-listings`
+        `${getBackendURL()}/debug/all-listings`,
+        { timeout: 10000 }
       );
       
-      console.log(`Debug: Fetched ${response.data.length} listings from debug endpoint`);
+      console.log(`Debug endpoint returned ${response.data.length} listings`);
       
       // Find the specific listing by ID
       const foundListing = response.data.find((item: any) => item._id === listingId);
       
       if (foundListing) {
-        console.log('Debug: Found listing in debug endpoint response:', foundListing);
+        console.log('Debug: Found matching listing:', foundListing);
         
-        // Since debug endpoint only returns partial data, create a placeholder listing
-        const placeholderListing = {
+        // Create an enhanced listing with additional fields that might be missing
+        const enhancedListing = {
           _id: foundListing._id,
-          title: foundListing.title || 'Listing Title',
-          description: 'Detailed description not available in debug mode.',
-          requirements: 'Requirements not available in debug mode.',
-          duration: { value: 3, unit: 'months' },
-          wage: { type: 'hourly', amount: 15, isPaid: true },
-          facultyId: foundListing.facultyId,
-          createdAt: foundListing.createdAt
+          title: foundListing.title || 'Research Opportunity',
+          description: foundListing.description || 'Detailed description not available in debug mode.',
+          requirements: foundListing.requirements || 'Requirements not available in debug mode.',
+          duration: foundListing.duration || { value: 3, unit: 'months' },
+          wage: foundListing.wage || { type: 'hourly', amount: 15, isPaid: true },
+          facultyId: foundListing.facultyId || null,
+          createdAt: foundListing.createdAt || new Date().toISOString()
         };
         
-        setListing(placeholderListing);
-        Alert.alert('Debug Mode', 'Showing basic listing information in debug mode');
+        console.log('Debug: Created enhanced listing with missing fields added');
+        setListing(enhancedListing);
+        
+        // Alert user but don't block the UI
+        setTimeout(() => {
+          Alert.alert('Debug Mode', 'Showing information from debug endpoint. Some details may be limited.');
+        }, 500);
+        
         return;
       }
       
+      console.error('Listing not found in debug data');
       throw new Error('Listing not found in debug data');
-    } catch (error) {
-      console.error('Error in debug approach:', error);
-      Alert.alert('Debug Error', 'Could not retrieve listing data even in debug mode');
-    } finally {
-      setLoading(false);
+    } catch (error: any) {
+      console.error('Error in debug approach:', error.message);
+      throw error;
     }
   };
   
   // Modified function to handle all possible errors
   const fetchListingWithFallback = async (listingId: string) => {
     try {
+      console.log('Starting listing fetch sequence for ID:', listingId);
+      
       // Try the regular endpoint first
-      await fetchListing(listingId);
-    } catch (error) {
-      console.warn(`Standard endpoint failed for listing ${listingId}, trying test endpoint...`);
-      
-      // If that fails, try the test endpoint
       try {
+        await fetchListing(listingId);
+        return; // If this succeeds, we're done
+      } catch (error: any) {
+        console.warn(`Standard endpoint failed for listing ${listingId}: ${error.message}`);
+        // Continue to the next fallback
+      }
+      
+      // Try the test endpoint as first fallback
+      try {
+        console.log(`Trying test endpoint for listing ${listingId}...`);
         await fetchListingViaTestEndpoint(listingId);
-      } catch (testError) {
-        console.error('Both standard and test approaches failed:', testError);
+        return; // If this succeeds, we're done
+      } catch (testError: any) {
+        console.error(`Test endpoint also failed: ${testError.message}`);
+        // Continue to the next fallback
+      }
+      
+      // Try the debug/all-listings as final fallback
+      try {
+        console.log('Trying debug/all-listings as final fallback...');
+        await fetchListingViaDebug(listingId);
+        return; // If this succeeds, we're done
+      } catch (debugError) {
+        console.error('All approaches failed, showing error message');
         
-        // Show an error message but don't leave yet - we'll show a debug button
-        Alert.alert('Error', 'Failed to load listing details. You can try the debug option below.');
-        setLoading(false);
+        // Create a minimal listing with the ID so user can at least see something
+        setListing({
+          _id: listingId,
+          title: 'Listing Information',
+          description: 'Details for this listing could not be loaded. Please try again later.',
+          requirements: 'Not available',
+          duration: { value: 0, unit: 'months' },
+          wage: { type: 'hourly', amount: 0, isPaid: false },
+          createdAt: new Date().toISOString()
+        });
+        
+        setTimeout(() => {
+          Alert.alert('Error', 'Failed to load complete listing details. Showing partial information.');
+        }, 500);
       }
-    }
-  };
-  
-  // Function to fetch listing via the test endpoint
-  const fetchListingViaTestEndpoint = async (listingId: string) => {
-    try {
-      setLoading(true);
-      const token = await AsyncStorage.getItem('token');
-      
-      if (!token) {
-        Alert.alert('Authentication Error', 'Please log in again');
-        navigation.navigate('Login');
-        return;
-      }
-      
-      console.log(`Fetching listing via test endpoint: ${listingId}`);
-      
-      // Use the test endpoint with token as query parameter
-      const response = await axios.get(
-        `${getBackendURL()}/test/listing/${listingId}?token=${token}`
-      );
-      
-      console.log('Test endpoint response:', response.status, response.statusText);
-      
-      if (response.data) {
-        setListing(response.data);
-        console.log("Retrieved listing via test endpoint successfully");
-      } else {
-        console.error("Invalid response format from test endpoint:", response.data);
-        throw new Error('Invalid data format from test endpoint');
-      }
-    } catch (error: any) {
-      console.error('Error in test endpoint fallback:', error);
-      throw error; // Rethrow to handle in the parent function
+    } finally {
+      setLoading(false);
     }
   };
   
   const fetchListing = async (listingId: string) => {
+    const token = await AsyncStorage.getItem('token');
+    
+    if (!token) {
+      Alert.alert('Authentication Error', 'Please log in again');
+      navigation.navigate('Login');
+      return;
+    }
+    
+    console.log(`Fetching listing with ID: ${listingId}`);
+    
     try {
-      setLoading(true);
-      const token = await AsyncStorage.getItem('token');
-      
-      if (!token) {
-        Alert.alert('Authentication Error', 'Please log in again');
-        navigation.navigate('Login');
-        return;
-      }
-      
-      console.log(`Fetching listing with ID: ${listingId}`);
-      
       const response = await axios.get(
         `${getBackendURL()}/listings/${listingId}`,
         {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 8000 // Add a reasonable timeout
         }
       );
       
-      console.log('Listing data received:', JSON.stringify(response.data, null, 2));
-      setListing(response.data);
-    } catch (error) {
-      console.error('Error fetching listing:', error);
+      if (response.data) {
+        console.log('Listing data received successfully');
+        setListing(response.data);
+      } else {
+        throw new Error('Empty response received from server');
+      }
+    } catch (error: any) {
+      console.error('Error fetching listing:', error.message);
+      
+      if (error.response?.status === 500) {
+        console.error('Server error (500) when fetching listing');
+      }
+      
       throw error; // Rethrow to trigger the fallback
-    } finally {
-      setLoading(false);
     }
   };
   
@@ -313,8 +357,8 @@ const ListingDetail: React.FC<Props> = ({ navigation, route }) => {
       </ThemedView>
     );
   }
-  
-  return (
+
+     return (
     <ResponsiveScreen navigation={navigation}>
       <ScrollView style={styles.scrollView}>
         <View style={styles.header}>
@@ -395,12 +439,12 @@ const ListingDetail: React.FC<Props> = ({ navigation, route }) => {
         </View>
       </ScrollView>
     </ResponsiveScreen>
-  );
+    );
 };
-
+          
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+    container: {
+        flex: 1,
   },
   scrollView: {
     flex: 1,
@@ -413,8 +457,8 @@ const styles = StyleSheet.create({
   },
   errorContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+        justifyContent: 'center',
+        alignItems: 'center',
     padding: 20,
   },
   header: {
@@ -487,7 +531,7 @@ const styles = StyleSheet.create({
   },
   editButton: {
     backgroundColor: '#2c6694',
-    padding: 16,
+        padding: 16,
     borderRadius: 8,
     alignItems: 'center',
     marginBottom: 12,
@@ -501,8 +545,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#555',
     padding: 16,
     borderRadius: 8,
-    alignItems: 'center',
-  },
+        alignItems: 'center',
+    }, 
   backButtonText: {
     color: '#fff',
     fontSize: 18,
@@ -519,8 +563,8 @@ const styles = StyleSheet.create({
   debugButtonText: {
     color: '#fff',
     fontSize: 18,
-    fontWeight: 'bold',
-  },
+        fontWeight: 'bold',
+    },           
 });
 
 export default ListingDetail;

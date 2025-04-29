@@ -264,6 +264,13 @@ const ListListings: React.FC<Props> = ({ navigation, route }) => {
         toggleExpanded(listing._id);
     };
 
+    const viewDetails = (listingId: string) => {
+        const listing = listings.find(l => l._id === listingId);
+        if (listing) {
+            toggleExpanded(listingId);
+        }
+    };
+
     const formatDuration = (duration: any) => {
         if (!duration) return 'Not specified';
         if (typeof duration === 'string') return duration;
@@ -396,8 +403,28 @@ const ListListings: React.FC<Props> = ({ navigation, route }) => {
                     <View style={styles.expandedContent}>
                         <View style={styles.divider} />
                         
+                        <Text style={styles.sectionTitle}>Description</Text>
+                        <Text style={styles.expandedText}>{listing.description}</Text>
+                        
                         <Text style={styles.sectionTitle}>Requirements</Text>
                         <Text style={styles.expandedText}>{listing.requirements}</Text>
+                        
+                        {!isFaculty && listing.facultyId && (
+                            <>
+                                <Text style={styles.sectionTitle}>Faculty Information</Text>
+                                <Text style={styles.expandedText}>
+                                    <Text style={{fontWeight: 'bold'}}>Name:</Text> {listing.facultyId.name || 'Not specified'}{'\n'}
+                                    <Text style={{fontWeight: 'bold'}}>Department:</Text> {listing.facultyId.department || 'Not specified'}{'\n'}
+                                    <Text style={{fontWeight: 'bold'}}>University:</Text> {listing.facultyId.university || 'Not specified'}
+                                </Text>
+                            </>
+                        )}
+                        
+                        <Text style={styles.sectionTitle}>Duration</Text>
+                        <Text style={styles.expandedText}>{formatDuration(listing.duration)}</Text>
+                        
+                        <Text style={styles.sectionTitle}>Compensation</Text>
+                        <Text style={styles.expandedText}>{formatWage(listing.wage)}</Text>
                         
                         <Text style={styles.sectionTitle}>Posted</Text>
                         <Text style={styles.expandedText}>{formatDate(listing.createdAt)}</Text>
@@ -813,25 +840,28 @@ const styles = StyleSheet.create({
         fontSize: 16,
     },
     expandedContent: {
-        marginTop: 10,
-        paddingTop: 5,
+        padding: 15,
+        backgroundColor: '#f7f7f7',
+        borderRadius: 8,
+        marginTop: 5,
     },
     divider: {
         height: 1,
-        backgroundColor: '#e0e0e0',
+        backgroundColor: '#ddd',
         marginVertical: 10,
     },
     sectionTitle: {
         fontSize: 16,
         fontWeight: 'bold',
-        color: '#555',
-        marginTop: 8,
-        marginBottom: 4,
+        marginTop: 10,
+        marginBottom: 5,
+        color: '#333',
     },
     expandedText: {
         fontSize: 14,
-        color: '#444',
         lineHeight: 20,
+        color: '#444',
+        marginBottom: 10,
     },
     expandPrompt: {
         fontSize: 12,
@@ -841,19 +871,17 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     collapseText: {
-        fontSize: 12,
-        color: '#888',
-        fontStyle: 'italic',
-        marginTop: 5,
         textAlign: 'center',
+        color: '#888',
+        fontSize: 13,
+        marginTop: 10,
     },
     applyButton: {
-        backgroundColor: '#893030',
+        backgroundColor: '#4e9af1',
         padding: 12,
         borderRadius: 8,
         alignItems: 'center',
         marginTop: 15,
-        marginBottom: 10,
     },
     applyButtonText: {
         color: '#fff',

@@ -1,6 +1,6 @@
 // Keep the imports as-is
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Alert, Platform, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Alert, Platform, Image, ActivityIndicator, TouchableOpacity, Linking } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -152,6 +152,14 @@ const StudentInfo = ({ navigation, route }: { navigation: any, route: any }) => 
     // Determine which fields to show based on whose profile we're viewing
     const fields = viewingOtherProfile ? studentFields : (isFaculty ? professorFields : studentFields);
 
+    const contactStudent = () => {
+        if (profileData.email) {
+            Linking.openURL(`mailto:${profileData.email}?subject=Research Opportunity Interest`);
+        } else {
+            Alert.alert('Error', 'No email address available for this student.');
+        }
+    };
+
     if (loading) {
         return (
             <ResponsiveScreen navigation={navigation}>
@@ -172,6 +180,18 @@ const StudentInfo = ({ navigation, route }: { navigation: any, route: any }) => 
                 <View style={styles.formContainer}>
                     {fields.map(renderField)}
                 </View>
+                
+                {/* Add contact button only when faculty is viewing student profile */}
+                {viewingOtherProfile && isFaculty && (
+                    <View style={styles.contactButtonContainer}>
+                        <TouchableOpacity 
+                            style={styles.contactButton}
+                            onPress={contactStudent}
+                        >
+                            <Text style={styles.contactButtonText}>Contact Student</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
             </View>
         </ResponsiveScreen>
     );
@@ -229,6 +249,23 @@ const styles = StyleSheet.create({
     imagePlaceholderText: {
         color: '#666',
         fontSize: 14,
+    },
+    contactButtonContainer: {
+        marginTop: 30,
+        alignItems: 'center',
+    },
+    contactButton: {
+        backgroundColor: '#893030',
+        paddingVertical: 12,
+        paddingHorizontal: 24,
+        borderRadius: 8,
+        width: '60%',
+        alignItems: 'center',
+    },
+    contactButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
     }
 });
 
