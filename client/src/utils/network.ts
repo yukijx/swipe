@@ -2,20 +2,23 @@
 import Constants from 'expo-constants';
 
 /**
- * Gets the backend URL dynamically based on whether the app is running in Expo Go or a production build.
- * @param backendPort The port your backend is running on (default: 5000)
+ * Gets the backend URL dynamically based on environment
  * @returns The correct backend URL
  */
-export const getBackendURL = (backendPort: number = 5000): string => {
-  const debuggerHost = Constants.expoConfig?.hostUri || Constants.manifest?.debuggerHost;
-  
-  if (debuggerHost) {
-    const host = debuggerHost.split(':')[0]; // Extract only the IP, ignoring the port
-    return `http://${host}:${backendPort}`;
+export const getBackendURL = (): string => {
+  // For development in Expo Go
+  if (__DEV__) {
+    const debuggerHost = Constants.expoConfig?.hostUri || Constants.manifest?.debuggerHost;
+    
+    if (debuggerHost) {
+      const host = debuggerHost.split(':')[0]; // Extract only the IP
+      return `http://${host}:8080`; // Use your local dev port
+    }
+    return 'http://localhost:8080';
   }
   
-  // Fallback to localhost if the host is not detected
-  return `http://localhost:${backendPort}`;
+  // For production builds - your Railway URL
+  return 'https://swipedeploy-production.up.railway.app';
 };
 
 //192.168.0.135

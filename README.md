@@ -50,10 +50,14 @@ SWIPE (name under development) is a swipe-based, cross-platform, mobile app that
 ### EXPO Set up 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
-0. make sure you are cd'd into swipe_exop
+0. make sure you are cd'd into swipe
 
 1. Install dependencies in both server and client directories
    ```bash
+   cd client
+   npm install
+   cd ..
+   cd server
    npm install
    ```
 2. Install ['Android Studio'](https://developer.android.com/studio)
@@ -63,7 +67,9 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    ```bash
     cd client
     npx expo -c
-    cd .. 
+   ```
+   create a new terminal window
+   ```bash
     cd server
     node server.js
    ```
