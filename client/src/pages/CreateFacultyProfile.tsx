@@ -7,13 +7,12 @@ import InputDescriptionBox from "../components/InputDescriptionBox";
 import ABouncyCheckbox from "../components/ABouncyCheckbox";  
 import Button from "../components/GenericButton";  
 import UploadFileButton from "../components/FileUploadButton";  
-import NavBar from "../components/NavBar";
 import ThemedView from "../components/ThemedView"; 
 
 const CreateFacultyProfile = ({ navigation }: { navigation: any }) => {  
     return (
         <ThemedView style={styles.container} lightColor="#fff7d5" darkColor="#893030">
-            <NavBar navigation={navigation} /> 
+           
             <Titles title="Create Faculty Profile" />
             <InputBar placeholder="University" />
             <InputBar placeholder="Credentials" />

@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform, 
 import { useTheme } from '../context/ThemeContext';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import NavBar from '../components/NavBar';
 import { ResponsiveScreen } from '../components/ResponsiveScreen';
 import { StackScreenProps } from '@react-navigation/stack';
 import { StackParamList } from '../navigation/types';
