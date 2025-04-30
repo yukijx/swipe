@@ -40,11 +40,7 @@ SWIPE (name under development) is a swipe-based, cross-platform, mobile app that
 ### Installation
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yukijx/swipe.git
-   ```
-2. Navigate to the project directory:
-   ```bash
-   cd src
+   git clone https://github.com/Swipe-EDRAY/swipe.git
    ```
 
 ### EXPO Set up 
@@ -156,7 +152,7 @@ Sprint Master 2: Ryan Williams - Ryan.T.Williams-1@ou.edu
 
 Sprint Master 3: Alex Tang - ytang@ou.edu
   
-Project Link: [https://github.com/yukijx/repo](https://github.com/yukijx/swipe.git)
+Project Link: [https://github.com/Swipe-EDRAY/swipe#](https://github.com/Swipe-EDRAY/swipe#)
 
 ---
 
