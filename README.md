@@ -52,7 +52,11 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 
 0. make sure you are cd'd into swipe_exop
 
+<<<<<<< HEAD
 1. Install dependencies
+=======
+1. Install dependencies in both server and client directories
+>>>>>>> 1057c0edc8cdfb260e2d7698d6cfd3531905dac8
    ```bash
    npm install
    ```
@@ -61,7 +65,15 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 4. Start the emulator
 5. Start the app
    ```bash
+<<<<<<< HEAD
     npm run start 
+=======
+    cd client
+    npx expo -c
+    cd .. 
+    cd server
+    node server.js
+>>>>>>> 1057c0edc8cdfb260e2d7698d6cfd3531905dac8
    ```
 
 In the output, you'll find options to open the app in a
@@ -71,6 +83,7 @@ In the output, you'll find options to open the app in a
 - [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
 - [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
 
+<<<<<<< HEAD
 Front-end development happens in the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
 ## Get a fresh project 
@@ -79,6 +92,9 @@ npm run reset-project
 ```
 
 This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+=======
+Front-end development happens in the **client** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+>>>>>>> 1057c0edc8cdfb260e2d7698d6cfd3531905dac8
 
 ## Learn more
 

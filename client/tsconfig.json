@@ -1,0 +1,14 @@
+{
+  
+  "compilerOptions": {
+    "jsx": "react-native",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "strict": true
+  },
+  "extends": "expo/tsconfig.base",
+  "include": [
+    "src",
+    "src/types/react-navigation-overrides.d.tsx"
+  ]
+}

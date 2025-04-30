@@ -1,0 +1,6 @@
+    
+    White #fff //used for input boxes in light mode
+    Cream #fff7d5 //used for background and navbar icons in light mode, and texts and navbar icons in dark mode 
+    Red #893030 //used for back ground in dark mode
+    Dark Red #4d231f //used for navbar and text in light mode, and navbar and input boxes in dark mode
+    Darker Red #2E1512 //used for boarders
