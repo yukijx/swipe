@@ -50,8 +50,9 @@ const ProfileSettings = ({ navigation }: { navigation: any }) => {
     const fetchProfile = async () => {
         try {
             const token = await AsyncStorage.getItem('token');
+            const backendURL = await getBackendURL();
             const response = await axios.get(
-                `${getBackendURL()}/user/profile`,
+                `${backendURL}/user/profile`,
                 { headers: { Authorization: token } }
             );
             setProfileData(response.data);
@@ -59,6 +60,7 @@ const ProfileSettings = ({ navigation }: { navigation: any }) => {
                 setProfileImage(response.data.profileImage.url);
             }
         } catch (error) {
+            console.error('Error fetching profile:', error);
             Alert.alert('Error', 'Failed to fetch profile');
         }
     };
@@ -66,8 +68,9 @@ const ProfileSettings = ({ navigation }: { navigation: any }) => {
     const handleSubmit = async () => {
         try {
             const token = await AsyncStorage.getItem('token');
+            const backendURL = await getBackendURL();
             await axios.put(
-                `${getBackendURL()}/user/profile`,
+                `${backendURL}/user/profile`,
                 profileData,
                 { headers: { Authorization: token } }
             );
@@ -81,6 +84,7 @@ const ProfileSettings = ({ navigation }: { navigation: any }) => {
                 }
             ]);
         } catch (error) {
+            console.error('Error updating profile:', error);
             Alert.alert('Error', 'Failed to update profile');
         }
     };
@@ -124,7 +128,9 @@ const ProfileSettings = ({ navigation }: { navigation: any }) => {
             name: 'profile.jpg',
           } as any);
       
-          const uploadRes = await fetch(`${getBackendURL()}/user/profile/image`, {
+          // Properly await the async getBackendURL call
+          const backendURL = await getBackendURL();
+          const uploadRes = await fetch(`${backendURL}/user/profile/image`, {
             method: 'POST',
             headers: {
               'Content-Type': 'multipart/form-data',
@@ -141,11 +147,12 @@ const ProfileSettings = ({ navigation }: { navigation: any }) => {
             Alert.alert('Upload failed', 'No image URL returned');
           }
         } catch (error) {
+          console.error('Error uploading image:', error);
           Alert.alert('Error', 'Failed to upload image');
         }
-      };
+    };
       
-      const handleWebImageUpload = async (event: any) => {
+    const handleWebImageUpload = async (event: any) => {
         const file = event.target.files?.[0];
         if (!file) return;
       
@@ -154,7 +161,9 @@ const ProfileSettings = ({ navigation }: { navigation: any }) => {
       
         try {
           const token = await AsyncStorage.getItem('token');
-          const res = await fetch(`${getBackendURL()}/user/profile/image`, {
+          // Properly await the async getBackendURL call
+          const backendURL = await getBackendURL();
+          const res = await fetch(`${backendURL}/user/profile/image`, {
             method: 'POST',
             headers: {
               Authorization: token || '', // Don't add Content-Type here; let fetch set it
@@ -169,13 +178,12 @@ const ProfileSettings = ({ navigation }: { navigation: any }) => {
             Alert.alert('Upload Error', 'No image URL returned from server');
           }
         } catch (error) {
+          console.error('Error uploading web image:', error);
           Alert.alert('Upload Failed', 'Something went wrong while uploading');
         }
-      };
+    };
       
-      
-
-      const renderProfileImage = () => (
+    const renderProfileImage = () => (
         <View style={styles.imageContainer}>
           <TouchableOpacity onPress={() => document.getElementById('fileInput')?.click()}>
             {profileImage ? (
@@ -198,9 +206,8 @@ const ProfileSettings = ({ navigation }: { navigation: any }) => {
             />
           )}
         </View>
-      );
+    );
       
-
     const renderField = ({ key, label, multiline }: ProfileField) => (
         <View key={key} style={styles.fieldContainer}>
             <Text style={[styles.label, { color: textColor }]}>{label}</Text>

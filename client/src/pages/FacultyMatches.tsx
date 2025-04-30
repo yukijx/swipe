@@ -63,7 +63,8 @@ const FacultyMatches: React.FC<{ navigation: any }> = ({ navigation }) => {
                 return;
             }
 
-            const response = await axios.get(`${getBackendURL()}/matches/faculty`, {
+            const backendURL = await getBackendURL();
+            const response = await axios.get(`${backendURL}/matches/faculty`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
@@ -115,8 +116,9 @@ const FacultyMatches: React.FC<{ navigation: any }> = ({ navigation }) => {
 
             console.log('Responding to swipe:', swipeId, accept);
             
+            const backendURL = await getBackendURL();
             const response = await axios.post(
-                `${getBackendURL()}/swipe/respond`, 
+                `${backendURL}/swipe/respond`, 
                 { swipeId, accept },
                 {
                     headers: {

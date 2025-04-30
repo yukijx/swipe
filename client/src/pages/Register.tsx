@@ -101,29 +101,25 @@ const Register = ({ navigation }: { navigation: any }) => {
     }
   
     try {
-      console.log('All validation passed, attempting registration...');
+      console.log('Starting registration...');
       setIsRegistering(true);
-      console.log('Registering new account...');
-      console.log('Backend URL:', getBackendURL());
-      console.log('Account type:', form.isFaculty ? 'Faculty' : 'Student');
-      console.log('Name:', form.name);
-      console.log('Email:', form.email);
       
-      // Step 1: Register the user
-      console.log('Sending registration request to server...');
-      const registerResponse = await axios.post(`${getBackendURL()}/register`, {
+      // Get the backend URL asynchronously
+      const backendURL = await getBackendURL();
+      console.log('Backend URL:', backendURL);
+      
+      // Register API call
+      const registerResponse = await axios.post(`${backendURL}/register`, {
         name: form.name,
         email: form.email,
         password: form.password,
         isFaculty: form.isFaculty
       });
-
-      console.log('Registration response received:', registerResponse.status);
-      console.log('Registration successful');
       
-      // Step 2: Automatically log in the user
-      console.log('Auto-logging in after registration...');
-      const loginResponse = await axios.post(`${getBackendURL()}/login`, {
+      console.log('Register response:', registerResponse.data);
+      
+      // Auto-login after registration
+      const loginResponse = await axios.post(`${backendURL}/login`, {
         email: form.email,
         password: form.password
       });

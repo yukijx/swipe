@@ -1505,3 +1505,84 @@ app.get('/swipes/history', verifyToken, async (req, res) => {
     }
 });
 
+// Add update swipe endpoint - allows students to change their mind
+app.post('/swipe/update', verifyToken, async (req, res) => {
+    try {
+        const { listingId, interested } = req.body;
+        const studentId = req.user.id;
+        
+        // Validate if user is a student
+        const user = await User.findById(studentId);
+        if (!user || user.isFaculty) {
+            return res.status(403).json({ error: 'Only students can update swipes' });
+        }
+
+        // Find the existing swipe
+        const existingSwipe = await Swipe.findOne({ studentId, listingId });
+        if (!existingSwipe) {
+            return res.status(404).json({ error: 'No swipe found for this listing' });
+        }
+        
+        // Update the swipe with new interest status
+        existingSwipe.interested = interested;
+        
+        // If faculty has already accepted, but student is now rejecting, set facultyAccepted to null
+        if (existingSwipe.facultyAccepted === true && !interested) {
+            existingSwipe.facultyAccepted = null;
+        }
+        
+        await existingSwipe.save();
+        
+        res.status(200).json({ 
+            message: 'Swipe updated successfully',
+            swipe: existingSwipe 
+        });
+        
+    } catch (error) {
+        console.error('Error in update swipe endpoint:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Add endpoint to get all swipes for a student (both interested and not interested)
+app.get('/swipes/all', verifyToken, async (req, res) => {
+    try {
+        const studentId = req.user.id;
+        
+        // Validate if user is a student
+        const user = await User.findById(studentId);
+        if (!user || user.isFaculty) {
+            return res.status(403).json({ error: 'Only students can view their swipes' });
+        }
+        
+        // Get all swipes by this student
+        const swipes = await Swipe.find({ studentId })
+            .sort({ createdAt: -1 });
+            
+        // Get the listing details for each swipe
+        const swipesWithListings = [];
+        for (const swipe of swipes) {
+            const listing = await Listing.findById(swipe.listingId)
+                .populate('facultyId', 'name email department');
+                
+            if (listing) {
+                swipesWithListings.push({
+                    swipe: {
+                        _id: swipe._id,
+                        interested: swipe.interested,
+                        facultyAccepted: swipe.facultyAccepted,
+                        createdAt: swipe.createdAt
+                    },
+                    listing
+                });
+            }
+        }
+        
+        res.json(swipesWithListings);
+        
+    } catch (error) {
+        console.error('Error retrieving all swipes:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+

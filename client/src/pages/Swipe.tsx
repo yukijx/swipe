@@ -54,34 +54,35 @@ const Swipe = ({ navigation }: { navigation: any }) => {
         fetchSwipeHistory();
     }, []);   
 
-        const fetchListings = async () => {
-            setLoading(true); 
-            try {  
-                const token = await AsyncStorage.getItem("token");
-                if (!token) {
-                    console.log('No token found');
+    const fetchListings = async () => {
+        setLoading(true); 
+        try {  
+            const token = await AsyncStorage.getItem("token");
+            if (!token) {
+                console.log('No token found');
                 console.error('Authentication Error: Please log in again');
                 navigation.navigate('Login');
-                    setLoading(false);
-                    return;
-                }
-                
+                setLoading(false);
+                return;
+            }
+            
             console.log('Fetching listings...');
             
             try {
                 // Use the listings endpoint with proper authentication
-                const response = await axios.get(`${getBackendURL()}/listings`, {
-                headers: {
-                    Authorization: `Bearer ${token}`, 
-                },
-                timeout: 10000, 
+                const backendURL = await getBackendURL();
+                const response = await axios.get(`${backendURL}/listings`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`, 
+                    },
+                    timeout: 10000, 
                 });
 
                 console.log("API Response:", response.status, response.statusText);
                 
                 if (response.data && Array.isArray(response.data)) {
                     console.log(`Retrieved ${response.data.length} listings`);
-                setListings(response.data);
+                    setListings(response.data);
                     setLoading(false);
                     return;
                 }
@@ -91,7 +92,8 @@ const Swipe = ({ navigation }: { navigation: any }) => {
             
             // Fallback to debug endpoint with proper token
             try {
-                const debugResponse = await axios.get(`${getBackendURL()}/debug/all-listings`, {
+                const backendURL = await getBackendURL();
+                const debugResponse = await axios.get(`${backendURL}/debug/all-listings`, {
                     headers: {
                         Authorization: `Bearer ${token}`
                     }
@@ -141,10 +143,10 @@ const Swipe = ({ navigation }: { navigation: any }) => {
                 "Failed to fetch listings. Please try again later.",
                 [{ text: "OK" }]
             );
-            } finally { 
-                setLoading(false); 
-            }
-        };
+        } finally { 
+            setLoading(false); 
+        }
+    };
 
     const fetchSwipeHistory = async () => {
         try {
@@ -156,8 +158,9 @@ const Swipe = ({ navigation }: { navigation: any }) => {
             
             console.log('Fetching user swipe history...');
             
-            // Call the API to get swipe history
-            const response = await axios.get(`${getBackendURL()}/swipes/history`, {
+            // Properly await the async getBackendURL call
+            const backendURL = await getBackendURL();
+            const response = await axios.get(`${backendURL}/swipes/history`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
@@ -222,9 +225,14 @@ const Swipe = ({ navigation }: { navigation: any }) => {
             const interested = direction === 'right';
             console.log(`Swiping ${interested ? 'right (interested)' : 'left (not interested)'} on listing ${listingId}`);
             
-            const response = await axios.post(`${getBackendURL()}/swipe`, 
+            // Immediately remove the listing from the UI
+            setListings(prev => prev.filter(listing => listing._id !== listingId));
+            
+            // Properly await the async getBackendURL call
+            const backendURL = await getBackendURL();
+            const response = await axios.post(`${backendURL}/swipe`, 
                 { 
-                    listingId, 
+                    listingId,
                     interested 
                 },
                 {
@@ -314,48 +322,46 @@ const Swipe = ({ navigation }: { navigation: any }) => {
     };
     
     const renderListView = () => {
+        // Filter out listings that have already been swiped on
+        const availableListings = listings.filter(listing => !swipedListings[listing._id]);
+        
         return (
             <ScrollView style={styles.scrollView}>
-                {listings.map((listing) => (
-                    <View key={listing._id} style={[
-                        styles.listingCard, 
-                        { backgroundColor: cardColor },
-                        swipedListings[listing._id] && (
-                            swipedListings[listing._id] === 'right' 
-                                ? styles.cardSwipedRight 
-                                : styles.cardSwipedLeft
-                        )
-                    ]}>
-                        <View style={styles.listingContent}>
-                            <Text style={[styles.listingTitle, { color: textColor }]}>{listing.title}</Text>
-                            
-                            {listing.facultyId && (
-                                <Text style={styles.facultyName}>
-                                    {typeof listing.facultyId === 'object' && listing.facultyId?.name 
-                                        ? `By: ${listing.facultyId.name}` 
-                                        : 'By: Faculty Member'}
-                                </Text>
-                            )}
-                            
-                            <View style={styles.listingDetails}>
-                                <Text style={styles.listingDetail}>
-                                    Duration: {formatDuration(listing.duration)}
-                                </Text>
-                                <Text style={styles.listingDetail}>
-                                    Compensation: {formatWage(listing.wage)}
-                                </Text>
-                                <Text style={styles.listingDetail}>
-                                    Posted: {formatDate(listing.createdAt)}
-                                </Text>
-                            </View>
-                            
-                            <Text style={styles.sectionTitle}>Description</Text>
-                            <Text style={styles.listingDescription}>{listing.description}</Text>
-                            
-                            <Text style={styles.sectionTitle}>Requirements</Text>
-                            <Text style={styles.listingDescription}>{listing.requirements}</Text>
-                            
-                            {!swipedListings[listing._id] ? (
+                {availableListings.length > 0 ? (
+                    availableListings.map((listing) => (
+                        <View key={listing._id} style={[
+                            styles.listingCard, 
+                            { backgroundColor: cardColor }
+                        ]}>
+                            <View style={styles.listingContent}>
+                                <Text style={[styles.listingTitle, { color: textColor }]}>{listing.title}</Text>
+                                
+                                {listing.facultyId && (
+                                    <Text style={styles.facultyName}>
+                                        {typeof listing.facultyId === 'object' && listing.facultyId?.name 
+                                            ? `By: ${listing.facultyId.name}` 
+                                            : 'By: Faculty Member'}
+                                    </Text>
+                                )}
+                                
+                                <View style={styles.listingDetails}>
+                                    <Text style={styles.listingDetail}>
+                                        Duration: {formatDuration(listing.duration)}
+                                    </Text>
+                                    <Text style={styles.listingDetail}>
+                                        Compensation: {formatWage(listing.wage)}
+                                    </Text>
+                                    <Text style={styles.listingDetail}>
+                                        Posted: {formatDate(listing.createdAt)}
+                                    </Text>
+                                </View>
+                                
+                                <Text style={styles.sectionTitle}>Description</Text>
+                                <Text style={styles.listingDescription}>{listing.description}</Text>
+                                
+                                <Text style={styles.sectionTitle}>Requirements</Text>
+                                <Text style={styles.listingDescription}>{listing.requirements}</Text>
+                                
                                 <View style={styles.buttonRow}>
                                     <TouchableOpacity 
                                         style={styles.swipeLeftButton}
@@ -376,20 +382,10 @@ const Swipe = ({ navigation }: { navigation: any }) => {
                                         </Text>
                                     </TouchableOpacity>
                                 </View>
-                            ) : (
-                                <View style={styles.swipedStatusContainer}>
-                                    <Text style={styles.swipedStatusText}>
-                                        {swipedListings[listing._id] === 'right' 
-                                            ? 'You marked this as interested' 
-                                            : 'You marked this as not interested'}
-                                    </Text>
-                                </View>
-                            )}
+                            </View>
                         </View>
-                    </View>
-                ))}
-                
-                {listings.length === 0 && (
+                    ))
+                ) : (
                     <View style={styles.noListingsContainer}>
                         <Text style={[styles.noListings, { color: textColor }]}>
                             No research opportunities available
@@ -407,32 +403,17 @@ const Swipe = ({ navigation }: { navigation: any }) => {
     };
     
     const renderSwipeView = () => {
-        // First check if there are any listings at all
-        if (!listings || listings.length === 0) {
-            return (
-                <View style={styles.noListingsContainer}>
-                    <Text style={[styles.noListings, { color: textColor }]}>
-                        No research opportunities available
-                    </Text>
-                    <TouchableOpacity 
-                        style={styles.refreshButton} 
-                        onPress={fetchListings}
-                    >
-                        <Text style={styles.refreshButtonText}>Refresh Listings</Text>
-                    </TouchableOpacity>
-                </View>
-            );
-        }
-        
         // Filter out listings that have already been swiped
         const availableListings = listings.filter(listing => !swipedListings[listing._id]);
         
-        // Check if all listings have been swiped
+        // Check if there are any listings at all
         if (!availableListings || availableListings.length === 0) {
             return (
                 <View style={styles.noListingsContainer}>
                     <Text style={[styles.noListings, { color: textColor }]}>
-                        You've swiped through all available listings
+                        {listings.length === 0 ? 
+                            "No research opportunities available" : 
+                            "You've swiped through all available listings"}
                     </Text>
                     <TouchableOpacity 
                         style={styles.refreshButton} 
@@ -448,7 +429,8 @@ const Swipe = ({ navigation }: { navigation: any }) => {
         if (availableListings.length > 0) {
             console.log("First available card:", availableListings[0].title);
         }
-        
+
+        // Continue with Swiper implementation using availableListings
         try {
             return (
                 <View style={styles.swiperContainer}>
@@ -466,42 +448,42 @@ const Swipe = ({ navigation }: { navigation: any }) => {
                                             This listing appears to be invalid or incomplete. Please swipe left to continue.
                                         </Text>
                                     </View>
-        );
-    }
-    
-    return (
-                            <View key={listing._id} style={[styles.card, { backgroundColor: cardColor }]}>
-                                <Text style={[styles.title, { color: textColor }]}>{listing.title}</Text>
-                                
-                                {listing.facultyId && (
-                                    <Text style={styles.facultyName}>
-                                        {typeof listing.facultyId === 'object' && listing.facultyId?.name 
-                                            ? `By: ${listing.facultyId.name}` 
-                                            : 'By: Faculty Member'}
-                                    </Text>
-                                )}
-                                
-                                <View style={styles.listingDetails}>
-                                    <Text style={styles.listingDetail}>
-                                        Duration: {formatDuration(listing.duration)}
-                                    </Text>
-                                    <Text style={styles.listingDetail}>
-                                        Compensation: {formatWage(listing.wage)}
-                                    </Text>
+                                );
+                            }
+                            
+                            return (
+                                <View key={listing._id} style={[styles.card, { backgroundColor: cardColor }]}>
+                                    <Text style={[styles.title, { color: textColor }]}>{listing.title}</Text>
+                                    
+                                    {listing.facultyId && (
+                                        <Text style={styles.facultyName}>
+                                            {typeof listing.facultyId === 'object' && listing.facultyId?.name 
+                                                ? `By: ${listing.facultyId.name}` 
+                                                : 'By: Faculty Member'}
+                                        </Text>
+                                    )}
+                                    
+                                    <View style={styles.listingDetails}>
+                                        <Text style={styles.listingDetail}>
+                                            Duration: {formatDuration(listing.duration)}
+                                        </Text>
+                                        <Text style={styles.listingDetail}>
+                                            Compensation: {formatWage(listing.wage)}
+                                        </Text>
+                                    </View>
+                                    
+                                    <Text style={styles.sectionTitle}>Description</Text>
+                                    <Text style={styles.description}>{listing.description}</Text>
+                                    
+                                    <Text style={styles.sectionTitle}>Requirements</Text>
+                                    <Text style={styles.description}>{listing.requirements}</Text>
+                                    
+                                    <View style={styles.swipeInstructions}>
+                                        <Text style={styles.swipeInstructionText}>
+                                            Swipe right if interested, left if not interested
+                                        </Text>
+                                    </View>
                                 </View>
-                                
-                                <Text style={styles.sectionTitle}>Description</Text>
-                                <Text style={styles.description}>{listing.description}</Text>
-                                
-                                <Text style={styles.sectionTitle}>Requirements</Text>
-                                <Text style={styles.description}>{listing.requirements}</Text>
-                                
-                                <View style={styles.swipeInstructions}>
-                                    <Text style={styles.swipeInstructionText}>
-                                        Swipe right if interested, left if not interested
-                                    </Text>
-                                </View>
-                        </View>
                             );
                         }}
                         onSwiped={(cardIndex) => {

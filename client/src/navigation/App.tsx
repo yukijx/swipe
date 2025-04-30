@@ -36,6 +36,8 @@ import SecuritySettings from '../pages/SecuritySettings';
 import StudentInfo from '../pages/StudentInfo';
 import StudentSetup from '../pages/StudentSetup';
 import Swipe from '../pages/Swipe';
+import StudentSwipeHistory from '../pages/StudentSwipeHistory';
+import DeveloperSettings from '../components/DeveloperSettings';
 
 //Import StackParamList 
 import { StackParamList } from '../navigation/types'
@@ -203,6 +205,23 @@ const RootNavigator = () => {
       {/* Unauthenticated screens */}
       <Stack.Screen name="Login" component={Login} />
       <Stack.Screen name="Register" component={Register} />
+      <Stack.Screen 
+        name="DeveloperSettings" 
+        component={DeveloperSettings} 
+        options={({ navigation }) => ({ 
+          ...commonHeaderStyle, 
+          headerShown: true,
+          headerTitle: "DEVELOPER SETTINGS",
+          headerLeft: () => (
+            <TouchableOpacity 
+              style={{ marginLeft: 15 }} 
+              onPress={() => navigation.goBack()}
+            >
+              <Text style={{ color: '#fff' }}>Back</Text>
+            </TouchableOpacity>
+          )
+        })} 
+      />
       
       {/* Setup screens */}
       <Stack.Screen name="ProfessorSetup" component={ProfessorSetup} />
@@ -296,6 +315,16 @@ const RootNavigator = () => {
       <Stack.Screen name="SecuritySettings" component={SecuritySettings} options={{ ...commonHeaderStyle, headerShown: true }} />
       <Stack.Screen name="Settings" component={Settings} options={{ ...commonHeaderStyle, headerShown: true }} />
       <Stack.Screen name="StudentInfo" component={StudentInfo} options={{ ...commonHeaderStyle, headerShown: true }} />
+      <Stack.Screen 
+        name="StudentSwipeHistory" 
+        component={StudentSwipeHistory} 
+        options={({ navigation }) => ({ 
+          ...commonHeaderStyle, 
+          headerShown: true,
+          headerTitle: "APPLICATION HISTORY",
+          headerRight: () => getCommonHeaderRight(navigation)
+        })} 
+      />
     </Stack.Navigator>
   );
 };

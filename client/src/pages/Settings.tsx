@@ -7,6 +7,7 @@ import { useAuthContext } from '../context/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ResponsiveScreen } from '../components/ResponsiveScreen';
 import WebAlert from '../components/WebAlert';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 const Settings = ({ navigation }: { navigation: any }) => {
     const { theme } = useTheme();
@@ -100,6 +101,17 @@ const Settings = ({ navigation }: { navigation: any }) => {
                 ))}
             </View>
 
+            <View style={styles.settingsSection}>
+                <Text style={[styles.sectionHeader, { color: textColor }]}>Developer</Text>
+                <TouchableOpacity 
+                    style={styles.settingOption} 
+                    onPress={() => navigation.navigate('DeveloperSettings')}
+                >
+                    <Text style={[styles.optionText, { color: textColor }]}>Developer Settings</Text>
+                    <Icon name="chevron-right" size={20} color={textColor} />
+                </TouchableOpacity>
+            </View>
+
             <WebAlert
                 visible={showAlert}
                 title="Confirm Logout"
@@ -141,7 +153,7 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginVertical: 20,
     },
-    optionsContainer: {
+    settingsSection: {
         padding: 20,
         gap: 15,
         ...(Platform.OS === 'web' ? {
@@ -150,6 +162,40 @@ const styles = StyleSheet.create({
         } : {
             display: 'flex'
         }),
+    },
+    sectionHeader: {
+        fontSize: 24,
+        fontWeight: 'bold',
+    },
+    settingOption: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 15,
+        borderRadius: 10,
+        elevation: 3,
+        ...(Platform.OS === 'web' ? {
+            cursor: 'pointer' as any,
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            transition: 'all 0.2s ease'
+        } : {}),
+    },
+    optionsContainer: {
+        flexDirection: 'column',
+        marginTop: 20,
+    },
+    optionContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: '#CCCCCC',
+    },
+    optionIcon: {
+        marginRight: 15,
+    },
+    optionText: {
+        fontSize: 18,
+        fontWeight: '500',
     },
     option: {
         flexDirection: 'row',
@@ -163,14 +209,6 @@ const styles = StyleSheet.create({
             transition: 'all 0.2s ease'
         } : {}),
     },
-    optionIcon: {
-        fontSize: 24,
-        marginRight: 15,
-    },
-    optionText: {
-        fontSize: 18,
-        fontWeight: '500',
-    }
 });
 
 export default Settings;

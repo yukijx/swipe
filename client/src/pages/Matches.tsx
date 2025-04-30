@@ -60,7 +60,8 @@ const Matches = ({ navigation }: { navigation: any }) => {
                 return;
             }
 
-            const response = await axios.get(`${getBackendURL()}/matches/student`, {
+            const backendURL = await getBackendURL();
+            const response = await axios.get(`${backendURL}/matches/student`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
