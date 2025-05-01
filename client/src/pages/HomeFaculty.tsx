@@ -16,7 +16,7 @@ const HomeFaculty = ({ navigation }: { navigation: any }) => {
       <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={styles.button}
-          onPress={() => navigation.navigate('ProfileManagement')}
+          onPress={() => navigation.navigate('ProfileView')}
         >
           <Text style={styles.buttonText}>Profile</Text>
         </TouchableOpacity>

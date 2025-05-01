@@ -1,22 +1,64 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  Platform
+} from 'react-native';
 import { ResponsiveScreen } from '../components/ResponsiveScreen';
 import { useTheme } from '../context/ThemeContext';
+import { useAuthContext } from '../context/AuthContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import WebAlert from '../components/WebAlert';
 
 const HomeStudent = ({ navigation }: { navigation: any }) => {
   const { theme } = useTheme();
+  const { logout } = useAuthContext();
+  const textColor = theme === 'light' ? '#893030' : '#ffffff';
+  const [showAlert, setShowAlert] = useState(false);
+
+  // Logout logic
+  const handleLogout = async () => {
+    try {
+      await AsyncStorage.removeItem('token');
+      await logout();
+      navigation.replace('AuthLogin');
+    } catch (error) {
+      console.error('Logout error:', error);
+      Alert.alert('Error', 'Failed to logout');
+    }
+  };
+
+  const confirmLogout = () => {
+    if (Platform.OS === 'web') {
+      setShowAlert(true);
+    } else {
+      Alert.alert(
+        'Confirm Logout',
+        'Are you sure you want to logout?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Logout',
+            onPress: handleLogout,
+            style: 'destructive'
+          }
+        ]
+      );
+    }
+  };
 
   return (
     <ResponsiveScreen navigation={navigation}>
       <View style={styles.container}>
-        {/* Updated Title */}
-        <Text style={styles.title}>MENU</Text>
+        <Text style={[styles.title, { color: textColor }]}>MENU</Text>
 
-        {/* Updated Button Order */}
         <View style={styles.buttonGroup}>
           <TouchableOpacity
             style={styles.button}
-            onPress={() => navigation.navigate('ProfileManagement')}
+            onPress={() => navigation.navigate('ProfileView')}
           >
             <Text style={styles.buttonText}>Profile</Text>
           </TouchableOpacity>
@@ -34,13 +76,13 @@ const HomeStudent = ({ navigation }: { navigation: any }) => {
           >
             <Text style={styles.buttonText}>View My Matches</Text>
           </TouchableOpacity>
-                    
-                    <TouchableOpacity
-                        style={styles.button}
-                        onPress={() => navigation.navigate('StudentSwipeHistory')}
-                    >
-                        <Text style={styles.buttonText}>Application History</Text>
-                    </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => navigation.navigate('StudentSwipeHistory')}
+          >
+            <Text style={styles.buttonText}>Application History</Text>
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.button}
@@ -48,9 +90,27 @@ const HomeStudent = ({ navigation }: { navigation: any }) => {
           >
             <Text style={styles.buttonText}>Settings</Text>
           </TouchableOpacity>
-          
+
+          {/* 🔴 Logout Button */}
+          <TouchableOpacity
+            style={[styles.button, styles.button]}
+            onPress={confirmLogout}
+          >
+            <Text style={styles.buttonText}>Logout</Text>
+          </TouchableOpacity>
         </View>
       </View>
+
+      <WebAlert
+        visible={showAlert}
+        title="Confirm Logout"
+        message="Are you sure you want to logout?"
+        buttons={[
+          { text: 'Cancel', onPress: () => {}, style: 'cancel' },
+          { text: 'Logout', onPress: handleLogout, style: 'destructive' }
+        ]}
+        onClose={() => setShowAlert(false)}
+      />
     </ResponsiveScreen>
   );
 };
@@ -65,7 +125,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#893030',
     marginBottom: 40,
   },
   buttonGroup: {
