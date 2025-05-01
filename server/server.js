@@ -15,8 +15,12 @@ app.use(express.json({ limit: '10mb' }));
 app.use(cors({
   origin: '*', // Allow all origins
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  credentials: true // Important for cookies/auth if we use them later
 }));
+
+// Add a pre-flight route to help with CORS issues on web
+app.options('*', cors());
 
 app.use('/uploads', express.static('uploads'));
 
@@ -232,25 +236,52 @@ app.post('/register', async (req, res) => {
 // Login User API
 app.post('/login', async (req, res) => {
     try {
+        console.log('Login attempt from:', req.get('user-agent'));
         const { email, password } = req.body;
+        
+        if (!email || !password) {
+            return res.status(400).json({ error: 'Email and password are required' });
+        }
+        
         const user = await User.findOne({ email });
         if (!user) return res.status(400).json({ error: 'User not found' });
 
         // Decrypt and compare passwords
         const decryptedPassword = decrypt(user.password);
-        if (decryptedPassword !== password) return res.status(400).json({ error: 'Invalid credentials' });
+        if (decryptedPassword !== password) return res.status(401).json({ error: 'Invalid credentials' });
 
         // Generate JWT Token with isFaculty claim
         const token = jwt.sign({ 
             id: user._id, 
             email: user.email,
             isFaculty: user.isFaculty 
-        }, JWT_SECRET, { expiresIn: '2h' });
-
-        res.json({ token, user: { ...user.toObject(), password: undefined } });
+        }, JWT_SECRET, { expiresIn: '7d' }); // Extended to 7 days for better UX
+        
+        // Set token as cookie for web clients
+        res.cookie('auth_token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+            sameSite: 'none'
+        });
+        
+        // Log successful login
+        console.log(`User logged in successfully: ${email} (${user._id})`);
+        
+        // Return token in response body for mobile clients
+        res.json({ 
+            token, 
+            user: { 
+                ...user.toObject(), 
+                password: undefined,
+                _id: user._id,
+                isFaculty: user.isFaculty
+            } 
+        });
 
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('Login error:', err);
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 

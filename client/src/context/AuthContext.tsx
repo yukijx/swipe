@@ -3,6 +3,7 @@ import { jwtDecode } from "jwt-decode";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StackParamList } from '../navigation/types';
 import axios from 'axios';
+import { Platform } from 'react-native';
 import { getBackendURL } from '../utils/network';
 
 interface DecodedToken {
@@ -32,6 +33,53 @@ const AuthContext = createContext<AuthContextType>({
   refreshAuth: async () => {}
 });
 
+// Helper function to get token - tries AsyncStorage first, falls back to localStorage on web
+const getToken = async (): Promise<string | null> => {
+  try {
+    // First try AsyncStorage (works on both mobile and web)
+    const token = await AsyncStorage.getItem('token');
+    if (token) return token;
+    
+    // On web, if AsyncStorage fails, try localStorage
+    if (Platform.OS === 'web') {
+      try {
+        const backupToken = localStorage.getItem('backup_token');
+        if (backupToken) {
+          console.log('[AuthContext] Retrieved token from localStorage fallback');
+          // Sync back to AsyncStorage for consistency
+          await AsyncStorage.setItem('token', backupToken);
+          return backupToken;
+        }
+      } catch (webStorageError) {
+        console.warn('[AuthContext] Web localStorage fallback failed:', webStorageError);
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('[AuthContext] Error getting token:', error);
+    return null;
+  }
+};
+
+// Helper function to remove token from all storage locations
+const removeToken = async (): Promise<void> => {
+  try {
+    await AsyncStorage.removeItem('token');
+    
+    // Also clear from localStorage on web
+    if (Platform.OS === 'web') {
+      try {
+        localStorage.removeItem('backup_token');
+      } catch (webStorageError) {
+        console.warn('[AuthContext] Failed to remove web backup token:', webStorageError);
+      }
+    }
+  } catch (error) {
+    console.error('[AuthContext] Error removing token:', error);
+  }
+};
+
 interface AuthProviderProps {
   children: ReactNode;
 }
@@ -53,7 +101,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsFaculty(false);
       setUserId(null);
       
-      const token = await AsyncStorage.getItem('token');
+      const token = await getToken();
       
       if (!token) {
         console.log('[AuthContext] No token found, not authenticated');
@@ -65,14 +113,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const decoded = jwtDecode(token) as DecodedToken;
         console.log('[AuthContext] Token decoded:', {
           id: decoded.id,
-          isFaculty: decoded.isFaculty
+          isFaculty: decoded.isFaculty,
+          platform: Platform.OS
         });
         
         // Verify token is not expired
         const currentTime = Date.now() / 1000;
         if (decoded.exp && decoded.exp < currentTime) {
           console.log('[AuthContext] Token expired, removing');
-          await AsyncStorage.removeItem('token');
+          await removeToken();
           return;
         }
         
@@ -90,7 +139,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } catch (decodeError) {
         console.error('[AuthContext] Error decoding token:', decodeError);
         // If token can't be decoded, it's invalid
-        await AsyncStorage.removeItem('token');
+        await removeToken();
       }
     } catch (error) {
       console.error('[AuthContext] Error checking auth:', error);
@@ -101,7 +150,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = useCallback(async () => {
     try {
-      await AsyncStorage.removeItem('token');
+      await removeToken();
       setIsAuthenticated(false);
       setIsFaculty(false);
       setUserId(null);
@@ -116,7 +165,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Clear any expired/invalid tokens on startup
     const initialCheck = async () => {
       try {
-        const token = await AsyncStorage.getItem('token');
+        const token = await getToken();
         
         if (token) {
           try {
@@ -126,12 +175,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             
             if (!decoded.exp || decoded.exp < currentTime) {
               console.log('[AuthContext] Clearing expired token on startup');
-              await AsyncStorage.removeItem('token');
+              await removeToken();
             }
           } catch (error) {
             // If token is invalid, remove it
             console.log('[AuthContext] Clearing invalid token on startup');
-            await AsyncStorage.removeItem('token');
+            await removeToken();
           }
         }
       } catch (error) {

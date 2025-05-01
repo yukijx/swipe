@@ -65,8 +65,26 @@ const AuthLogin = ({ navigation }: { navigation: any }) => {
       const loginUrl = `${backendURL}/login`;
       console.log("Login URL:", loginUrl);
 
+      // Configure axios request with platform-specific options
+      const config = {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        // Only include these options on web platform where CORS is a concern
+        ...(Platform.OS === 'web' ? {
+          withCredentials: true,
+        } : {})
+      };
+
+      console.log(`Login attempt using ${Platform.OS} platform configuration`);
+
       // Make a POST request with user credentials
-      const response = await axios.post(loginUrl, { email, password });
+      const response = await axios.post(loginUrl, { 
+        email, 
+        password 
+      }, config);
+      
       console.log("Login response received, status:", response.status);
 
       // Validate that token was returned
@@ -77,7 +95,17 @@ const AuthLogin = ({ navigation }: { navigation: any }) => {
 
       // Store the token securely in device storage
       await AsyncStorage.setItem('token', response.data.token);
-      console.log("Saved Token:", await AsyncStorage.getItem('token'));
+      console.log("Saved Token:", response.data.token.substring(0, 20) + '...');
+
+      // For web platform, also set a backup token in localStorage
+      if (Platform.OS === 'web') {
+        try {
+          console.log("Web platform detected, adding backup token storage");
+          localStorage.setItem('backup_token', response.data.token);
+        } catch (localStorageError) {
+          console.warn("Could not store backup token in localStorage:", localStorageError);
+        }
+      }
 
       // Trigger global auth refresh
       await refreshAuth();
@@ -103,13 +131,19 @@ const AuthLogin = ({ navigation }: { navigation: any }) => {
       if (error.response) {
         console.error("Error response data:", error.response.data);
         console.error("Error response status:", error.response.status);
+        
+        const errorMessage = error.response.data?.error || 
+          (error.response.status === 401 ? 'Invalid email or password' : 
+          'Server error. Please try again later.');
+          
+        Alert.alert('Login Failed', errorMessage);
       } else if (error.request) {
         console.error("No response received from server. Check network connection.");
+        Alert.alert('Connection Error', 'Could not connect to the server. Please check your internet connection and try again.');
       } else {
         console.error("Error in request setup:", error.message);
+        Alert.alert('Error', 'An unexpected error occurred. Please try again.');
       }
-
-      Alert.alert('Error', error.response?.data?.error || 'Login failed. Please check your credentials and try again.');
     } finally {
       console.log("Login process completed (success or error)");
       setIsLoggingIn(false);  // Hide loading spinner
