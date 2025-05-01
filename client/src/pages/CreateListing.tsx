@@ -6,7 +6,6 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ThemedView from "../components/ThemedView";
 import { ResponsiveContainer } from "../components/ResponsiveContainer";
-import NavBar from "../components/NavBar";
 import { webStyles } from "../utils/webStyles";
 import { ResponsiveScreen } from '../components/ResponsiveScreen';
 import { getBackendURL } from "../utils/network";

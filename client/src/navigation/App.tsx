@@ -1,20 +1,20 @@
 import * as React from 'react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
-import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
-import { Platform, View, TouchableOpacity, Text } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { Platform, View, Text } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-//Import Theme
+// Theme + Auth context
 import { ThemeProvider } from '../context/ThemeContext';
 import { AuthProvider, useAuthContext } from '../context/AuthContext';
 
-//Import Components
+// Components
 import NavBar from '../components/NavBar';
 
-//Import Screens
+// Pages
 import AppSettings from '../pages/AppSettings';
 import ChangePassword from '../pages/ChangePassword';
 import CreateFacultyProfile from '../pages/CreateFacultyProfile';
@@ -22,7 +22,6 @@ import CreateListing from '../pages/CreateListing';
 import FacultyHome from '../pages/FacultyHome';
 import FacultyMatches from '../pages/FacultyMatches';
 import Filter from '../pages/Filter';
-import Home from '../pages/Home';
 import Listing from '../pages/Listing';
 import ListListings from '../pages/ListListings';
 import Login from '../pages/Login';
@@ -30,7 +29,7 @@ import Matches from '../pages/Matches';
 import PrivacySettings from '../pages/PrivacySettings';
 import ProfessorSetup from '../pages/ProfessorSetup';
 import ProfileSettings from '../pages/ProfileSettings';
-import Register from '../pages/Register'; 
+import Register from '../pages/Register';
 import Settings from '../pages/Settings';
 import SecuritySettings from '../pages/SecuritySettings';
 import StudentInfo from '../pages/StudentInfo';
@@ -39,60 +38,13 @@ import Swipe from '../pages/Swipe';
 import StudentSwipeHistory from '../pages/StudentSwipeHistory';
 import DeveloperSettings from '../components/DeveloperSettings';
 
-//Import StackParamList 
-import { StackParamList } from '../navigation/types'
-
-//Import Navigation ref for external navigation actions
-import { navigationRef } from '../navigation/navigationRef'
-
-import { StackNavigationProp } from '@react-navigation/stack';
+// Navigation
+import { StackParamList } from '../navigation/types';
+import { navigationRef } from '../navigation/navigationRef';
 
 const Stack = createStackNavigator<StackParamList>();
 
-// Consistent header navigation options for main screens
-const getCommonHeaderRight = (navigation: any) => {
-  return (
-    <View style={{ flexDirection: 'row', marginRight: 15 }}>
-      <TouchableOpacity style={{ marginHorizontal: 8 }} onPress={() => navigation.navigate('Home')}>
-        <Text style={{ color: '#fff' }}>Home</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={{ marginHorizontal: 8 }} onPress={() => navigation.navigate('Swipe')}>
-        <Text style={{ color: '#fff' }}>Browse</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={{ marginHorizontal: 8 }} onPress={() => navigation.navigate('ProfileSettings')}>
-        <Text style={{ color: '#fff' }}>Profile</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={{ marginHorizontal: 8 }} onPress={() => navigation.navigate('Settings')}>
-        <Text style={{ color: '#fff' }}>Settings</Text>
-      </TouchableOpacity>
-    </View>
-  );
-};
-
-// Common header style for consistency
-const commonHeaderStyle = {
-  headerStyle: { backgroundColor: '#893030' },
-  headerTitleStyle: { 
-    color: '#fff', 
-    fontWeight: 'bold' as const, 
-    fontSize: 20 
-  },
-  headerTintColor: '#fff',
-};
-
-// Add a wrapper component for protected routes
-const ProtectedRoute = ({ component: Component, isAuthenticated, ...rest }: any) => {
-  if (!isAuthenticated) {
-    // Redirect to login screen
-    return <Login {...rest} />;
-  }
-  
-  return <Component {...rest} />;
-};
-
-// Main App component with correct provider hierarchy
 export default function App() {
-  // Clear token on app startup
   useEffect(() => {
     const clearToken = async () => {
       try {
@@ -102,29 +54,7 @@ export default function App() {
         console.error('[App] Error clearing token:', error);
       }
     };
-    
     clearToken();
-  }, []);
-
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development' && Platform.OS === 'web') {
-      const handleKeyPress = (event: KeyboardEvent) => {
-        switch (event.key) {
-          case 'h':
-            if (event.ctrlKey) navigationRef.current?.navigate('Home');
-            break;
-          case 'l':
-            if (event.ctrlKey) navigationRef.current?.navigate('Login');
-            break;
-          case 's':
-            if (event.ctrlKey) navigationRef.current?.navigate('Settings');
-            break;
-        }
-      };
-  
-      window.addEventListener('keydown', handleKeyPress);
-      return () => window.removeEventListener('keydown', handleKeyPress);
-    }
   }, []);
 
   return (
@@ -142,189 +72,74 @@ export default function App() {
   );
 }
 
-// A simpler approach with a single root navigator
 const RootNavigator = () => {
   const { isAuthenticated, isFaculty, loading } = useAuthContext();
-  
-  console.log('[RootNavigator] Auth state:', { isAuthenticated, isFaculty, loading });
-  
-  // Show loading screen while checking authentication
+  const [currentRoute, setCurrentRoute] = useState<string | undefined>(undefined);
+
+  // Track navigation changes and update currentRoute
+  useEffect(() => {
+    const updateRoute = () => {
+      const route = navigationRef.current?.getCurrentRoute();
+      if (route?.name) {
+        setCurrentRoute(route.name);
+      }
+    };
+
+    const unsubscribe = navigationRef.current?.addListener('state', updateRoute);
+    updateRoute(); // set on initial mount
+
+    return () => unsubscribe?.();
+  }, []);
+
   if (loading) {
     return (
-      <View style={{ 
-        flex: 1, 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        backgroundColor: '#893030' 
-      }}>
-        <Text style={{ 
-          color: '#fff', 
-          fontSize: 30, 
-          fontWeight: 'bold',
-          marginBottom: 20 
-        }}>
-          Swipe
-        </Text>
-        <Text style={{ 
-          color: '#fff', 
-          fontSize: 16 
-        }}>
-          Loading...
-        </Text>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#893030' }}>
+        <Text style={{ color: '#fff', fontSize: 30, fontWeight: 'bold', marginBottom: 20 }}>Swipe</Text>
+        <Text style={{ color: '#fff', fontSize: 16 }}>Loading...</Text>
       </View>
     );
   }
-  
-  // DETERMINE INITIAL ROUTE BASED ON AUTH STATE
-  // Use typed variables to ensure type safety
-  let initialRoute: keyof StackParamList = "Login";
-  
-  if (isAuthenticated) {
-    console.log("[RootNavigator] User is authenticated, setting initial route based on role");
-    if (isFaculty) {
-      initialRoute = "FacultyHome";
-      console.log("[RootNavigator] Setting initial route to FacultyHome");
-    } else {
-      initialRoute = "Home";
-      console.log("[RootNavigator] Setting initial route to Home");
-    }
-  } else {
-    console.log("[RootNavigator] User is not authenticated, setting initial route to Login");
-  }
-  
-  // TEMPORARILY DISABLE ROUTE PROTECTION FOR DEBUGGING
-  // This will let us see if the navigation works without protection logic interfering
-  const protect = (Component: any) => (props: any) => <Component {...props} />;
-  
+
+  const initialRoute: keyof StackParamList =
+    isAuthenticated ? (isFaculty ? 'FacultyHome' : 'Home') : 'Login';
+
+  // Define which routes should hide the NavBar
+  const hideNavBarRoutes = ['Login', 'Register', 'ProfessorSetup', 'StudentSetup'];
+
   return (
-    <Stack.Navigator 
-      initialRouteName={initialRoute}
-      screenOptions={{ headerShown: false }}
-    >
-      {/* Always define all screens */}
-      {/* Unauthenticated screens */}
-      <Stack.Screen name="Login" component={Login} />
-      <Stack.Screen name="Register" component={Register} />
-      <Stack.Screen 
-        name="DeveloperSettings" 
-        component={DeveloperSettings} 
-        options={({ navigation }) => ({ 
-          ...commonHeaderStyle, 
-          headerShown: true,
-          headerTitle: "DEVELOPER SETTINGS",
-          headerLeft: () => (
-            <TouchableOpacity 
-              style={{ marginLeft: 15 }} 
-              onPress={() => navigation.goBack()}
-            >
-              <Text style={{ color: '#fff' }}>Back</Text>
-            </TouchableOpacity>
-          )
-        })} 
-      />
-      
-      {/* Setup screens */}
-      <Stack.Screen name="ProfessorSetup" component={ProfessorSetup} />
-      <Stack.Screen name="StudentSetup" component={StudentSetup} />
-      
-      {/* Home screens - REMOVE PROTECTION FOR DEBUGGING */}
-      <Stack.Screen 
-        name="FacultyHome" 
-        component={FacultyHome} 
-        options={({ navigation }) => ({ 
-          ...commonHeaderStyle,
-          headerShown: true,
-          headerTitle: "FACULTY HOME",
-          headerRight: () => getCommonHeaderRight(navigation)
-        })} 
-      />
-      <Stack.Screen 
-        name="Home" 
-        component={Home} 
-        options={({ navigation }) => ({ 
-          ...commonHeaderStyle,
-          headerShown: true,
-          headerTitle: "HOME",
-          headerRight: () => getCommonHeaderRight(navigation)
-        })} 
-      />
-      
-      {/* Common screens for authenticated users - REMOVE PROTECTION FOR DEBUGGING */}
-      <Stack.Screen 
-        name="Swipe" 
-        component={Swipe} 
-        options={({ navigation }) => ({ 
-          ...commonHeaderStyle, 
-          headerShown: true,
-          headerTitle: "SWIPE",
-          headerRight: () => getCommonHeaderRight(navigation)
-        })} 
-      />
-      
-      <Stack.Screen 
-        name="Matches" 
-        component={Matches} 
-        options={({ navigation }) => ({ 
-          ...commonHeaderStyle, 
-          headerShown: true,
-          headerTitle: "MATCHES",
-          headerRight: () => getCommonHeaderRight(navigation)
-        })} 
-      />
-      
-      <Stack.Screen 
-        name="FacultyMatches" 
-        component={FacultyMatches} 
-        options={({ navigation }) => ({ 
-          ...commonHeaderStyle,
-          headerShown: true, 
-          headerTitle: "FACULTY MATCHES",
-          headerRight: () => getCommonHeaderRight(navigation)
-        })} 
-      />
-      
-      <Stack.Screen 
-        name="ListListings" 
-        component={ListListings} 
-        options={({ navigation }) => ({ 
-          ...commonHeaderStyle,
-          headerShown: true, 
-          headerTitle: "LISTINGS",
-          headerRight: () => getCommonHeaderRight(navigation)
-        })} 
-      />
-      
-      <Stack.Screen 
-        name="ProfileSettings" 
-        component={ProfileSettings} 
-        options={({ navigation }) => ({ 
-          ...commonHeaderStyle,
-          headerShown: true, 
-          headerTitle: "PROFILE",
-          headerRight: () => getCommonHeaderRight(navigation)
-        })} 
-      />
-      
-      <Stack.Screen name="AppSettings" component={AppSettings} options={{ ...commonHeaderStyle, headerShown: true }} />
-      <Stack.Screen name="ChangePassword" component={ChangePassword} options={{ ...commonHeaderStyle, headerShown: true }} />
-      <Stack.Screen name="CreateFacultyProfile" component={CreateFacultyProfile} options={{ ...commonHeaderStyle, headerShown: true }} />
-      <Stack.Screen name="CreateListing" component={CreateListing} options={{ ...commonHeaderStyle, headerShown: true }} />
-      <Stack.Screen name="Filter" component={Filter} options={{ ...commonHeaderStyle, headerShown: true }} />
-      <Stack.Screen name="Listing" component={Listing} options={{ ...commonHeaderStyle, headerShown: true }} />
-      <Stack.Screen name="PrivacySettings" component={PrivacySettings} options={{ ...commonHeaderStyle, headerShown: true }} />
-      <Stack.Screen name="SecuritySettings" component={SecuritySettings} options={{ ...commonHeaderStyle, headerShown: true }} />
-      <Stack.Screen name="Settings" component={Settings} options={{ ...commonHeaderStyle, headerShown: true }} />
-      <Stack.Screen name="StudentInfo" component={StudentInfo} options={{ ...commonHeaderStyle, headerShown: true }} />
-      <Stack.Screen 
-        name="StudentSwipeHistory" 
-        component={StudentSwipeHistory} 
-        options={({ navigation }) => ({ 
-          ...commonHeaderStyle, 
-          headerShown: true,
-          headerTitle: "APPLICATION HISTORY",
-          headerRight: () => getCommonHeaderRight(navigation)
-        })} 
-      />
-    </Stack.Navigator>
+    <View style={{ flex: 1 }}>
+      {/* Conditionally render NavBar */}
+      {!hideNavBarRoutes.includes(currentRoute ?? '') && (
+        <NavBar navigation={navigationRef.current} />
+      )}
+
+      <View style={{ flex: 1 }}>
+        <Stack.Navigator initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="Login" component={Login} />
+          <Stack.Screen name="Register" component={Register} />
+          <Stack.Screen name="ProfessorSetup" component={ProfessorSetup} />
+          <Stack.Screen name="StudentSetup" component={StudentSetup} />
+          <Stack.Screen name="FacultyHome" component={FacultyHome} />
+          <Stack.Screen name="Swipe" component={Swipe} />
+          <Stack.Screen name="Matches" component={Matches} />
+          <Stack.Screen name="FacultyMatches" component={FacultyMatches} />
+          <Stack.Screen name="ListListings" component={ListListings} />
+          <Stack.Screen name="ProfileSettings" component={ProfileSettings} />
+          <Stack.Screen name="AppSettings" component={AppSettings} />
+          <Stack.Screen name="ChangePassword" component={ChangePassword} />
+          <Stack.Screen name="CreateFacultyProfile" component={CreateFacultyProfile} />
+          <Stack.Screen name="CreateListing" component={CreateListing} />
+          <Stack.Screen name="Filter" component={Filter} />
+          <Stack.Screen name="Listing" component={Listing} />
+          <Stack.Screen name="PrivacySettings" component={PrivacySettings} />
+          <Stack.Screen name="SecuritySettings" component={SecuritySettings} />
+          <Stack.Screen name="Settings" component={Settings} />
+          <Stack.Screen name="StudentInfo" component={StudentInfo} />
+          <Stack.Screen name="Home" component={Swipe} />
+          <Stack.Screen name="StudentSwipeHistory" component={StudentSwipeHistory} />
+          <Stack.Screen name="DeveloperSettings" component={DeveloperSettings} />
+        </Stack.Navigator>
+      </View>
+    </View>
   );
 };

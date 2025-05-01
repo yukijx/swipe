@@ -1,8 +1,6 @@
 import React from 'react';
 import { ScrollView, StyleSheet, Platform } from 'react-native';
-import ThemedView from '../components/ThemedView'; // ✅ Correct import
-import NavBar from '../components/NavBar'; // ✅ Correct import
-
+import ThemedView from '../components/ThemedView';
 interface ResponsiveScreenProps {
     children: React.ReactNode;
     navigation: any;
@@ -18,7 +16,6 @@ export const ResponsiveScreen = ({
 }: ResponsiveScreenProps) => {
     return (
         <ThemedView style={styles.container}>
-            <NavBar navigation={navigation} />
             {scrollable ? (
                 <ScrollView 
                     style={styles.scroll}

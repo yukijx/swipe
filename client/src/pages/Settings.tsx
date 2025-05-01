@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import ThemedView from '../components/ThemedView';
-import NavBar from '../components/NavBar';
 import { useAuthContext } from '../context/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ResponsiveScreen } from '../components/ResponsiveScreen';
@@ -99,17 +98,6 @@ const Settings = ({ navigation }: { navigation: any }) => {
                         </Text>
                     </TouchableOpacity>
                 ))}
-            </View>
-
-            <View style={styles.settingsSection}>
-                <Text style={[styles.sectionHeader, { color: textColor }]}>Developer</Text>
-                <TouchableOpacity 
-                    style={styles.settingOption} 
-                    onPress={() => navigation.navigate('DeveloperSettings')}
-                >
-                    <Text style={[styles.optionText, { color: textColor }]}>Developer Settings</Text>
-                    <Icon name="chevron-right" size={20} color={textColor} />
-                </TouchableOpacity>
             </View>
 
             <WebAlert

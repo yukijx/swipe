@@ -159,15 +159,6 @@ const Login = ({ navigation }: { navigation: any }) => {
           </TouchableOpacity>
         </>
       )}
-      
-      <View style={styles.devContainer}>
-        <TouchableOpacity 
-          style={styles.devButton}
-          onPress={() => navigation.navigate('DeveloperSettings')}
-        >
-          <Text style={styles.devButtonText}>DEV</Text>
-        </TouchableOpacity>
-      </View>
     </View>
   );
 };
@@ -212,21 +203,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  devContainer: {
-    position: 'absolute',
-    bottom: 10,
-    right: 10,
-    opacity: 0.5,
-  },
-  devButton: {
-    padding: 8,
-    backgroundColor: 'rgba(0,0,0,0.2)',
-    borderRadius: 4,
-  },
-  devButtonText: {
-    fontSize: 10,
-    color: '#666',
-  }
 });
 
 export default Login;
