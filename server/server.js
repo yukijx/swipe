@@ -1505,6 +1505,23 @@ app.get('/swipes/history', verifyToken, async (req, res) => {
     }
 });
 
+
+app.delete('/user/delete', verifyToken, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const result = await User.findByIdAndDelete(userId);
+        
+        if (!result) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        res.json({ message: 'Account deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting account:', error);
+        res.status(500).json({ error: 'Failed to delete account' });
+    }
+});
+
 // Start Express Server (Only One `app.listen`)
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 

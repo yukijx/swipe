@@ -50,7 +50,7 @@ const NavBar = ({ navigation }: { navigation: any }) => {
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    paddingVertical: 12,
+    paddingVertical: 1,
     paddingHorizontal: 20,
     backgroundColor: '#893030',
     borderBottomWidth: 1,
@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
     gap: Platform.OS === 'web' ? 24 : 16,
   },
   navItem: {
-    paddingVertical: 8,
+    paddingVertical: 1,
     paddingHorizontal: 10,
     borderRadius: 5,
   },
@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
   },
   navText: {
     color: '#ffffff',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '500',
   },
 });

@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
-import ThemedView from '../components/ThemedView';
-import NavBar from '../components/NavBar';
 import { useAuthContext } from '../context/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ResponsiveScreen } from '../components/ResponsiveScreen';
 import WebAlert from '../components/WebAlert';
+import { deleteAccount } from '../utils/deleteAccount';
 
 const Settings = ({ navigation }: { navigation: any }) => {
     const { theme } = useTheme();
@@ -16,11 +15,8 @@ const Settings = ({ navigation }: { navigation: any }) => {
 
     const handleLogout = async () => {
         try {
-            // First remove the token
             await AsyncStorage.removeItem('token');
-            // Then call logout to update auth state
             await logout();
-            // Finally navigate to login using replace instead of reset
             navigation.replace('Login');
         } catch (error) {
             console.error('Logout error:', error);
@@ -37,13 +33,27 @@ const Settings = ({ navigation }: { navigation: any }) => {
                 'Are you sure you want to logout?',
                 [
                     { text: 'Cancel', style: 'cancel' },
-                    { 
-                        text: 'Logout', 
-                        onPress: handleLogout,
-                        style: 'destructive'
-                    }
+                    { text: 'Logout', onPress: handleLogout, style: 'destructive' }
                 ]
             );
+        }
+    };
+
+    const handleDeleteAccount = async () => {
+        const confirmed = Platform.OS === 'web'
+            ? window.confirm('Are you sure you want to delete your account? This cannot be undone.')
+            : true;
+
+        if (!confirmed) return;
+
+        const success = await deleteAccount();
+
+        if (success) {
+            await AsyncStorage.removeItem('token');
+            await logout();
+            navigation.replace('Login');
+        } else {
+            Alert.alert('Error', 'Failed to delete account. Please try again later.');
         }
     };
 
@@ -72,13 +82,31 @@ const Settings = ({ navigation }: { navigation: any }) => {
             title: 'Logout',
             onPress: confirmLogout,
             icon: '🚪'
-        }
+        },
+        {
+            title: 'Delete Account',
+            onPress: () => {
+              if (Platform.OS === 'web') {
+                setShowAlert(true);
+              } else {
+                Alert.alert(
+                  'Confirm Delete',
+                  'Are you sure you want to permanently delete your account?',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Delete', style: 'destructive', onPress: handleDeleteAccount }
+                  ]
+                );
+              }
+            },
+            icon: '🗑️'
+          }
     ];
 
     return (
         <ResponsiveScreen navigation={navigation}>
             <Text style={[styles.title, { color: textColor }]}>Settings</Text>
-            
+
             <View style={styles.optionsContainer}>
                 {settingsOptions.map((option, index) => (
                     <TouchableOpacity
@@ -105,16 +133,8 @@ const Settings = ({ navigation }: { navigation: any }) => {
                 title="Confirm Logout"
                 message="Are you sure you want to logout?"
                 buttons={[
-                    {
-                        text: 'Cancel',
-                        onPress: () => {},
-                        style: 'cancel'
-                    },
-                    {
-                        text: 'Logout',
-                        onPress: handleLogout,
-                        style: 'destructive'
-                    }
+                    { text: 'Cancel', onPress: () => {}, style: 'cancel' },
+                    { text: 'Logout', onPress: handleLogout, style: 'destructive' }
                 ]}
                 onClose={() => setShowAlert(false)}
             />
@@ -123,18 +143,6 @@ const Settings = ({ navigation }: { navigation: any }) => {
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        borderColor: "#2E1512",
-        borderWidth: Platform.OS === 'web' ? 0 : 10,
-        borderRadius: Platform.OS === 'web' ? 0 : 30,
-    },
-    contentWrapper: {
-        maxWidth: 800,
-        width: '100%',
-        alignSelf: 'center',
-        padding: 20,
-    },
     title: {
         fontSize: 28,
         fontWeight: 'bold',
@@ -144,12 +152,9 @@ const styles = StyleSheet.create({
     optionsContainer: {
         padding: 20,
         gap: 15,
-        ...(Platform.OS === 'web' ? {
-            display: 'grid' as any,
-            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-        } : {
-            display: 'flex'
-        }),
+        ...(Platform.OS === 'web'
+            ? { display: 'grid' as any, gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))' }
+            : { display: 'flex' }),
     },
     option: {
         flexDirection: 'row',
@@ -157,11 +162,13 @@ const styles = StyleSheet.create({
         padding: 15,
         borderRadius: 10,
         elevation: 3,
-        ...(Platform.OS === 'web' ? {
-            cursor: 'pointer' as any,
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-            transition: 'all 0.2s ease'
-        } : {}),
+        ...(Platform.OS === 'web'
+            ? {
+                cursor: 'pointer' as any,
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                transition: 'all 0.2s ease'
+            }
+            : {}),
     },
     optionIcon: {
         fontSize: 24,
