@@ -75,10 +75,11 @@ const FacultyInterestedStudents: React.FC<{ navigation: any }> = ({ navigation }
     const mutedTextColor = theme === 'light' ? '#777777' : '#aaaaaa';
     const disabledTextColor = theme === 'light' ? '#999999' : '#666666';
     const borderColor = theme === 'light' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
-    const sectionBackgroundColor = theme === 'light' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)';
+    const sectionBackgroundColor = theme === 'light' ? '#ffffff' : 'rgba(255,255,255,0.05)';
     const filterButtonColor = theme === 'light' ? '#f0f0f0' : '#444444';
     const filterButtonTextColor = theme === 'light' ? '#555555' : '#dddddd';
     const listingTitleRowColor = theme === 'light' ? 'rgba(137, 48, 48, 0.1)' : 'rgba(137, 48, 48, 0.3)';
+    const backgroundColor = theme === 'light' ? '#fff7d5' : '#222';
 
     useEffect(() => {
         if (!isFaculty) {
@@ -533,7 +534,7 @@ const FacultyInterestedStudents: React.FC<{ navigation: any }> = ({ navigation }
     }
 
     return (
-        <ThemedView style={styles.container}>
+        <ThemedView style={[styles.container, { backgroundColor }]}>
             <View style={styles.header}>
                 <Text style={[styles.title, { color: primaryColor }]}>Student Matches</Text>
             </View>
@@ -648,9 +649,12 @@ const styles = StyleSheet.create({
         backgroundColor: 'transparent',
     },
     filterButton: {
-        paddingVertical: 6,
+        paddingVertical: 8,
         paddingHorizontal: 15,
         width: 100,
+        height: 36,
+        alignItems: 'center',
+        justifyContent: 'center',
         marginHorizontal: 5,
         borderRadius: 6,
     },

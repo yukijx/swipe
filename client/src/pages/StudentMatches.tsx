@@ -40,7 +40,7 @@ const StudentMatches = ({ navigation }: { navigation: any }) => {
     const { isFaculty } = useAuthContext();
     
     // Theme colors
-    const backgroundColor = theme === 'light' ? '#fff' : '#1e1e1e';
+    const backgroundColor = theme === 'light' ? '#fff7d5' : '#1e1e1e';
     const cardBackgroundColor = theme === 'light' ? '#ffffff' : '#333333';
     const expandedBackgroundColor = theme === 'light' ? '#f7f7f7' : '#2a2a2a';
     const primaryColor = '#893030';
@@ -256,8 +256,8 @@ const StudentMatches = ({ navigation }: { navigation: any }) => {
     }
 
     return (
-        <ThemedView style={styles.container}>
-            <View style={styles.headerContainer}>
+        <ThemedView style={[styles.container, { backgroundColor }]}>
+            <View style={styles.header}>
                 <Text style={[styles.title, { color: primaryColor }]}>Your Accepted Matches</Text>
             </View>
             
@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
         marginTop: 10,
         fontSize: 16,
     },
-    headerContainer: {
+    header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
