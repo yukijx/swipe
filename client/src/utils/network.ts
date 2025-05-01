@@ -57,7 +57,7 @@ export const getBackendURL = async (): Promise<string> => {
   }
   
   // For production builds
-  return 'https://swipedeploy-production.up.railway.app';
+  return 'https://swipe-api.onrender.com';
 };
 
 /**
@@ -110,7 +110,7 @@ export const getBackendURLSync = (): string => {
   }
   
   // For production builds
-  return 'https://swipedeploy-production.up.railway.app';
+  return 'https://swipe-api.onrender.com';
 };
 
 //192.168.0.135
