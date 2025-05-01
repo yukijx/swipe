@@ -15,7 +15,7 @@ app.use('/uploads', express.static('uploads'));
 
 
 const IP = process.env.SERVER_IP || 'localhost';
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8080;
 const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey";
 const AES_SECRET = process.env.AES_SECRET || "your_aes_key_here";
 const SALT = process.env.SALT || "your_salt_here";
@@ -25,7 +25,7 @@ const PYTHON_API_HOST = process.env.PYTHON_API_HOST || "localhost";
 const PYTHON_API_PORT = process.env.PYTHON_API_PORT || 5000;
 const pythonApiUrl = `http://${PYTHON_API_HOST}:${PYTHON_API_PORT}/match`;
 
-app.listen(PORT, IP, () => console.log(`Server running on http://${IP}:${PORT}`));
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 // Connect to MongoDB (Single Connection)
 if (!process.env.MONGO_URI) {
@@ -1505,6 +1505,84 @@ app.get('/swipes/history', verifyToken, async (req, res) => {
     }
 });
 
-// Start Express Server (Only One `app.listen`)
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// Add update swipe endpoint - allows students to change their mind
+app.post('/swipe/update', verifyToken, async (req, res) => {
+    try {
+        const { listingId, interested } = req.body;
+        const studentId = req.user.id;
+        
+        // Validate if user is a student
+        const user = await User.findById(studentId);
+        if (!user || user.isFaculty) {
+            return res.status(403).json({ error: 'Only students can update swipes' });
+        }
+
+        // Find the existing swipe
+        const existingSwipe = await Swipe.findOne({ studentId, listingId });
+        if (!existingSwipe) {
+            return res.status(404).json({ error: 'No swipe found for this listing' });
+        }
+        
+        // Update the swipe with new interest status
+        existingSwipe.interested = interested;
+        
+        // If faculty has already accepted, but student is now rejecting, set facultyAccepted to null
+        if (existingSwipe.facultyAccepted === true && !interested) {
+            existingSwipe.facultyAccepted = null;
+        }
+        
+        await existingSwipe.save();
+        
+        res.status(200).json({ 
+            message: 'Swipe updated successfully',
+            swipe: existingSwipe 
+        });
+        
+    } catch (error) {
+        console.error('Error in update swipe endpoint:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Add endpoint to get all swipes for a student (both interested and not interested)
+app.get('/swipes/all', verifyToken, async (req, res) => {
+    try {
+        const studentId = req.user.id;
+        
+        // Validate if user is a student
+        const user = await User.findById(studentId);
+        if (!user || user.isFaculty) {
+            return res.status(403).json({ error: 'Only students can view their swipes' });
+        }
+        
+        // Get all swipes by this student
+        const swipes = await Swipe.find({ studentId })
+            .sort({ createdAt: -1 });
+            
+        // Get the listing details for each swipe
+        const swipesWithListings = [];
+        for (const swipe of swipes) {
+            const listing = await Listing.findById(swipe.listingId)
+                .populate('facultyId', 'name email department');
+                
+            if (listing) {
+                swipesWithListings.push({
+                    swipe: {
+                        _id: swipe._id,
+                        interested: swipe.interested,
+                        facultyAccepted: swipe.facultyAccepted,
+                        createdAt: swipe.createdAt
+                    },
+                    listing
+                });
+            }
+        }
+        
+        res.json(swipesWithListings);
+        
+    } catch (error) {
+        console.error('Error retrieving all swipes:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
 

@@ -2,6 +2,8 @@ import React, { createContext, ReactNode, useContext, useState, useEffect, useCa
 import { jwtDecode } from "jwt-decode";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StackParamList } from '../navigation/types';
+import axios from 'axios';
+import { getBackendURL } from '../utils/network';
 
 interface DecodedToken {
   id: string;

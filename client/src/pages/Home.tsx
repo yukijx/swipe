@@ -34,6 +34,13 @@ const Home = ({ navigation }: { navigation: any }) => {
           >
             <Text style={styles.buttonText}>View My Matches</Text>
           </TouchableOpacity>
+                    
+                    <TouchableOpacity
+                        style={styles.button}
+                        onPress={() => navigation.navigate('StudentSwipeHistory')}
+                    >
+                        <Text style={styles.buttonText}>Application History</Text>
+                    </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.button}

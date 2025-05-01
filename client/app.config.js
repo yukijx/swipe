@@ -20,13 +20,17 @@ module.exports = {
     "**/*"
   ],
   ios: {
-    supportsTablet: true
+    supportsTablet: true,
+    bundleIdentifier: "com.capstone.swipe",
+    buildNumber: "1.0.0"
   },
   android: {
     adaptiveIcon: {
       foregroundImage: "./assets/images/adaptive-icon.png",
       backgroundColor: "#FFFFFF"
-    }
+    },
+    package: "com.capstone.swipe",
+    versionCode: 1
   },
   web: {
     favicon: "./assets/images/favicon.png",
@@ -34,6 +38,9 @@ module.exports = {
   },
   extra: {
     // Any additional configuration can go here
+    eas: {
+      projectId: "7d9e06bb-831d-4cb5-886a-b86807de0422"
+    }
   }
 };
   

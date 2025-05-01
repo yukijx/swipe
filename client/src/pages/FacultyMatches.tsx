@@ -63,7 +63,8 @@ const FacultyMatches: React.FC<{ navigation: any }> = ({ navigation }) => {
                 return;
             }
 
-            const response = await axios.get(`${getBackendURL()}/matches/faculty`, {
+            const backendURL = await getBackendURL();
+            const response = await axios.get(`${backendURL}/matches/faculty`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
@@ -115,8 +116,9 @@ const FacultyMatches: React.FC<{ navigation: any }> = ({ navigation }) => {
 
             console.log('Responding to swipe:', swipeId, accept);
             
+            const backendURL = await getBackendURL();
             const response = await axios.post(
-                `${getBackendURL()}/swipe/respond`, 
+                `${backendURL}/swipe/respond`, 
                 { swipeId, accept },
                 {
                     headers: {
@@ -292,9 +294,6 @@ const FacultyMatches: React.FC<{ navigation: any }> = ({ navigation }) => {
             <View style={styles.container}>
                 <View style={styles.header}>
                     <Text style={styles.title}>Interested Students</Text>
-                    <TouchableOpacity style={styles.refreshButton} onPress={fetchMatches}>
-                        <Text style={styles.refreshButtonText}>Refresh</Text>
-                    </TouchableOpacity>
                 </View>
                 
                 <View style={styles.filterContainer}>
@@ -382,17 +381,6 @@ const styles = StyleSheet.create({
         fontSize: 24,
         fontWeight: 'bold',
         color: '#893030',
-    },
-    refreshButton: {
-        backgroundColor: '#893030',
-        paddingVertical: 6,
-        paddingHorizontal: 12,
-        borderRadius: 20,
-    },
-    refreshButtonText: {
-        color: '#fff',
-        fontSize: 14,
-        fontWeight: 'bold',
     },
     filterContainer: {
         flexDirection: 'row',

@@ -40,20 +40,20 @@ SWIPE (name under development) is a swipe-based, cross-platform, mobile app that
 ### Installation
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yukijx/swipe.git
-   ```
-2. Navigate to the project directory:
-   ```bash
-   cd src
+   git clone https://github.com/Swipe-EDRAY/swipe.git
    ```
 
 ### EXPO Set up 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
-0. make sure you are cd'd into swipe_exop
+0. make sure you are cd'd into swipe
 
 1. Install dependencies in both server and client directories
    ```bash
+   cd client
+   npm install
+   cd ..
+   cd server
    npm install
    ```
 2. Install ['Android Studio'](https://developer.android.com/studio)
@@ -63,7 +63,9 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    ```bash
     cd client
     npx expo -c
-    cd .. 
+   ```
+   create a new terminal window
+   ```bash
     cd server
     node server.js
    ```
@@ -150,7 +152,7 @@ Sprint Master 2: Ryan Williams - Ryan.T.Williams-1@ou.edu
 
 Sprint Master 3: Alex Tang - ytang@ou.edu
   
-Project Link: [https://github.com/yukijx/repo](https://github.com/yukijx/swipe.git)
+Project Link: [https://github.com/Swipe-EDRAY/swipe#](https://github.com/Swipe-EDRAY/swipe#)
 
 ---
 

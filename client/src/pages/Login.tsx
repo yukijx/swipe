@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { getBackendURL } from '../utils/network';
 import { useAuthContext } from '../context/AuthContext';
+import { TouchableWithoutFeedback } from 'react-native-gesture-handler';
 
 const Login = ({ navigation }: { navigation: any }) => {
   const { theme } = useTheme();
@@ -17,6 +18,7 @@ const Login = ({ navigation }: { navigation: any }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [devTapCount, setDevTapCount] = useState(0);
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -25,68 +27,86 @@ const Login = ({ navigation }: { navigation: any }) => {
     }
 
     try {
-        console.log("Starting login process...");
-        setIsLoggingIn(true);
-        const backendUrl = `${getBackendURL()}/login`; 
-        console.log("Login URL:", backendUrl);
-        
-        const response = await axios.post(backendUrl, { email, password });
+      console.log("Starting login process...");
+      setIsLoggingIn(true);
+      
+      // Use the asynchronous version
+      const backendURL = await getBackendURL();
+      const loginUrl = `${backendURL}/login`;
+      console.log("Login URL:", loginUrl);
+      
+      const response = await axios.post(loginUrl, { email, password });
 
-        console.log("Login response received, status:", response.status);
-        
-        if (!response.data || !response.data.token) {
-            console.log("No token in response");
-            throw new Error("No token received from the backend");
-        }
+      console.log("Login response received, status:", response.status);
+      
+      if (!response.data || !response.data.token) {
+        console.log("No token in response");
+        throw new Error("No token received from the backend");
+      }
 
-        // Store the token in AsyncStorage
-        await AsyncStorage.setItem('token', response.data.token);
-        console.log("Saved Token:", await AsyncStorage.getItem('token'));
+      // Store the token in AsyncStorage
+      await AsyncStorage.setItem('token', response.data.token);
+      console.log("Saved Token:", await AsyncStorage.getItem('token'));
 
-        // Refresh auth context to update authentication state
-        await refreshAuth();
-        
-        // Check if user needs to complete profile setup
-        const user = response.data.user;
-        const isFaculty = user && user.isFaculty;
-        
-        console.log("User type:", isFaculty ? "Faculty" : "Student");
-        
-        // Check if profile is incomplete
-        const needsProfileSetup = isFaculty 
-            ? (!user.university || !user.department)
-            : (!user.university || !user.major || !user.skills);
-            
-        console.log("Needs profile setup:", needsProfileSetup);
-        
-        // Simply show success alert - navigation will be handled by parent router
-        console.log("Login successful, auth context updated");
-        console.log("Let the router handle navigation based on auth state");
-        
-        // Show success alert
-        Alert.alert('Success', 'Logged in successfully');
+      // Refresh auth context to update authentication state
+      await refreshAuth();
+      
+      // Check if user needs to complete profile setup
+      const user = response.data.user;
+      const isFaculty = user && user.isFaculty;
+      
+      console.log("User type:", isFaculty ? "Faculty" : "Student");
+      
+      // Check if profile is incomplete
+      const needsProfileSetup = isFaculty 
+          ? (!user.university || !user.department)
+          : (!user.university || !user.major || !user.skills);
+          
+      console.log("Needs profile setup:", needsProfileSetup);
+      
+      // Simply show success alert - navigation will be handled by parent router
+      console.log("Login successful, auth context updated");
+      console.log("Let the router handle navigation based on auth state");
+      
+      // Show success alert
+      Alert.alert('Success', 'Logged in successfully');
     } catch (error: any) {
-        console.error("Login error:", error);
-        
-        if (error.response) {
-            console.error("Error response data:", error.response.data);
-            console.error("Error response status:", error.response.status);
-        } else if (error.request) {
-            console.error("No response received from server. Check network connection.");
-        } else {
-            console.error("Error in request setup:", error.message);
-        }
-        
-        Alert.alert('Error', error.response?.data?.error || 'Login failed. Please check your credentials and try again.');
+      console.error("Login error:", error);
+      
+      if (error.response) {
+        console.error("Error response data:", error.response.data);
+        console.error("Error response status:", error.response.status);
+      } else if (error.request) {
+        console.error("No response received from server. Check network connection.");
+      } else {
+        console.error("Error in request setup:", error.message);
+      }
+      
+      Alert.alert('Error', error.response?.data?.error || 'Login failed. Please check your credentials and try again.');
     } finally {
-        console.log("Login process completed (success or error)");
-        setIsLoggingIn(false);
+      console.log("Login process completed (success or error)");
+      setIsLoggingIn(false);
     }
   };
   
+  const handleTitlePress = () => {
+    setDevTapCount(prevCount => {
+      const newCount = prevCount + 1;
+      if (newCount >= 5) {
+        setTimeout(() => setDevTapCount(0), 300);
+        navigation.navigate('DeveloperSettings');
+        return 0;
+      }
+      setTimeout(() => setDevTapCount(0), 3000);
+      return newCount;
+    });
+  };
+
   return (
     <View style={[styles.container, { backgroundColor }]}>
-      <Text style={[styles.title, { color: textColor }]}>Login</Text>
+      <TouchableWithoutFeedback onPress={handleTitlePress}>
+        <Text style={[styles.title, { color: textColor }]}>Login</Text>
+      </TouchableWithoutFeedback>
       
       <TextInput
         style={[styles.input, { backgroundColor: inputBackground, color: inputTextColor }]}
@@ -182,7 +202,7 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 16,
     fontWeight: 'bold',
-  }
+  },
 });
 
 export default Login;

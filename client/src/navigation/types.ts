@@ -1,0 +1,25 @@
+export type StackParamList = {
+  AppSettings: undefined;
+  ChangePassword: undefined;
+  CreateFacultyProfile: undefined;
+  CreateListing: undefined;
+  DeveloperSettings: undefined;
+  FacultyHome: undefined;
+  FacultyMatches: undefined;
+  Filter: undefined;
+  Home: undefined;
+  Listing: { listingId: string };
+  ListListings: undefined;
+  Login: undefined;
+  Matches: undefined;
+  PrivacySettings: undefined;
+  ProfessorSetup: undefined;
+  ProfileSettings: undefined;
+  Register: undefined;
+  Settings: undefined;
+  SecuritySettings: undefined;
+  StudentInfo: { studentId: string };
+  StudentSetup: undefined;
+  StudentSwipeHistory: undefined;
+  Swipe: undefined;
+}; 
