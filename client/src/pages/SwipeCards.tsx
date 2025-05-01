@@ -109,7 +109,30 @@ const SwipeCards = ({ navigation }: { navigation: any }) => {
             console.log('Fetching listings...');
             const backendURL = await getBackendURL();
             
-            // Try the new test endpoint with full listing details
+            // Try the new optimized batch endpoint first
+            try {
+                console.log('Attempting to fetch listings with optimized batch endpoint...');
+                const response = await axios.get(`${backendURL}/listings/swipe-batch`, {
+                    headers: {
+                        Authorization: `Bearer ${token}` 
+                    },
+                    timeout: 15000,
+                });
+                
+                console.log(`Retrieved ${response?.data?.length || 0} listings from batch endpoint`);
+                
+                if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+                    // Log first listing to verify structure
+                    console.log('First listing from batch endpoint:', JSON.stringify(response.data[0], null, 2));
+                    setListings(response.data);
+                    setLoading(false);
+                    return;
+                }
+            } catch (error) {
+                console.log('Batch endpoint failed, trying fallback approaches...', error);
+            }
+            
+            // Original fallback logic for compatibility
             try {
                 console.log('Attempting to fetch listings with test endpoint...');
                 const response = await axios.get(`${backendURL}/test/listing/all`, {

@@ -473,6 +473,37 @@ app.get('/listings', verifyToken, async (req, res) => {
     }
 });
 
+// Get multiple listings by ID in a single request (must come before the /:id endpoint)
+app.get('/listings/batch', verifyToken, async (req, res) => {
+    try {
+        const listingIds = req.query.ids ? req.query.ids.split(',') : [];
+        
+        if (!listingIds.length) {
+            return res.status(400).json({ error: 'No listing IDs provided' });
+        }
+        
+        // Validate that all IDs are valid ObjectIDs
+        const validIds = listingIds.filter(id => mongoose.Types.ObjectId.isValid(id));
+        
+        if (validIds.length !== listingIds.length) {
+            console.warn(`Some provided listing IDs were invalid: ${listingIds.filter(id => !mongoose.Types.ObjectId.isValid(id))}`);
+        }
+        
+        // Find all requested listings that are active
+        const listings = await Listing.find({
+            _id: { $in: validIds },
+            active: true
+        }).populate('facultyId', 'name email university department -password');
+        
+        console.log(`Batch endpoint: Returned ${listings.length} listings out of ${validIds.length} requested`);
+        
+        res.json(listings);
+    } catch (error) {
+        console.error('Error fetching batch listings:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Get a single listing by ID
 app.get('/listings/:id', verifyToken, async (req, res) => {
     try {
@@ -1084,6 +1115,52 @@ app.get('/matches/student', verifyToken, async (req, res) => {
     }
 });
 
+// Optimized endpoint for student matches
+app.get('/matches/student-optimized', verifyToken, async (req, res) => {
+    try {
+        const studentId = req.user.id;
+        
+        // Get all listings the student has swiped right on AND faculty has accepted in a single query
+        const swipes = await Swipe.find({ 
+            studentId, 
+            interested: true,
+            facultyAccepted: true // Only return accepted matches
+        });
+        
+        if (swipes.length === 0) {
+            // No matches yet
+            return res.json([]);
+        }
+        
+        // Get all matched listing details in a single batch query with faculty information
+        const matchedListingIds = swipes.map(swipe => swipe.listingId);
+        const matchedListings = await Listing.find({
+            _id: { $in: matchedListingIds },
+            active: true // Only show active listings
+        }).populate('facultyId', 'name email department university');
+        
+        // Enhance the listing objects with the match date from swipes
+        const enhancedListings = matchedListings.map(listing => {
+            const matchingSwipe = swipes.find(swipe => 
+                swipe.listingId.toString() === listing._id.toString()
+            );
+            
+            return {
+                ...listing.toObject(),
+                matchDate: matchingSwipe ? matchingSwipe.createdAt : null,
+                swipeId: matchingSwipe ? matchingSwipe._id : null
+            };
+        });
+        
+        console.log(`Student matches (optimized): Found ${enhancedListings.length} matches`);
+        res.json(enhancedListings);
+        
+    } catch (error) {
+        console.error('Error getting student matches (optimized):', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Get all students who matched with a faculty's listings
 app.get('/matches/faculty', verifyToken, isFaculty, async (req, res) => {
     try {
@@ -1135,6 +1212,87 @@ app.get('/matches/faculty', verifyToken, isFaculty, async (req, res) => {
         
     } catch (error) {
         console.error('Error getting faculty matches:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get faculty matches - optimized version that reduces database calls
+app.get('/matches/faculty-optimized', verifyToken, isFaculty, async (req, res) => {
+    try {
+        const facultyId = req.user.id;
+        
+        // 1. Get all listings by this faculty in one query
+        const listings = await Listing.find({ facultyId });
+        const listingIds = listings.map(listing => listing._id);
+        
+        // Create a map of listings by ID for efficient lookup
+        const listingsMap = {};
+        listings.forEach(listing => {
+            listingsMap[listing._id.toString()] = listing;
+        });
+        
+        // 2. Get all swipes in a single query
+        const swipes = await Swipe.find({
+            listingId: { $in: listingIds },
+            interested: true
+        });
+        
+        // 3. Extract unique student IDs
+        const studentIds = [...new Set(swipes.map(swipe => swipe.studentId))];
+        
+        // 4. Get all student details in one query
+        const students = await User.find({
+            _id: { $in: studentIds }
+        }).select('name email university major skills');
+        
+        // Create a map of students by ID
+        const studentsMap = {};
+        students.forEach(student => {
+            studentsMap[student._id.toString()] = student;
+        });
+        
+        // 5. Group swipes by student
+        const studentSwipesMap = {};
+        swipes.forEach(swipe => {
+            const studentId = swipe.studentId.toString();
+            if (!studentSwipesMap[studentId]) {
+                studentSwipesMap[studentId] = [];
+            }
+            studentSwipesMap[studentId].push(swipe);
+        });
+        
+        // 6. Create the final match structure
+        const matchesWithListings = Object.keys(studentSwipesMap).map(studentId => {
+            const student = studentsMap[studentId];
+            const studentSwipes = studentSwipesMap[studentId];
+            
+            // Get the listings this student matched with
+            const studentListings = studentSwipes.map(swipe => {
+                const listingId = swipe.listingId.toString();
+                const listing = listingsMap[listingId];
+                return listing ? { _id: listing._id, title: listing.title } : null;
+            }).filter(listing => listing !== null);
+            
+            // Format the swipes with status
+            const formattedSwipes = studentSwipes.map(swipe => ({
+                _id: swipe._id,
+                listingId: swipe.listingId,
+                status: swipe.facultyAccepted === null ? 'pending' : 
+                        swipe.facultyAccepted ? 'accepted' : 'rejected'
+            }));
+            
+            return {
+                student,
+                listings: studentListings,
+                swipes: formattedSwipes
+            };
+        });
+        
+        console.log(`Optimized faculty matches: Retrieved ${matchesWithListings.length} student matches`);
+        res.json(matchesWithListings);
+        
+    } catch (error) {
+        console.error('Error getting faculty matches (optimized):', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1578,6 +1736,201 @@ app.get('/swipes/all', verifyToken, async (req, res) => {
         
     } catch (error) {
         console.error('Error retrieving all swipes:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// New optimized endpoint to get all swipes with batch listing retrieval
+app.get('/swipes/all-optimized', verifyToken, async (req, res) => {
+    try {
+        const studentId = req.user.id;
+        
+        // Validate if user is a student
+        const user = await User.findById(studentId);
+        if (!user || user.isFaculty) {
+            return res.status(403).json({ error: 'Only students can view their swipes' });
+        }
+        
+        // Get all swipes by this student
+        const swipes = await Swipe.find({ studentId })
+            .sort({ createdAt: -1 });
+            
+        // Extract all listing IDs
+        const listingIds = swipes.map(swipe => swipe.listingId);
+        
+        // Batch fetch all listings in a single query
+        const listings = await Listing.find({
+            _id: { $in: listingIds }
+        }).populate('facultyId', 'name email department university');
+        
+        // Create a map of listings by ID for efficient lookup
+        const listingsMap = {};
+        listings.forEach(listing => {
+            listingsMap[listing._id.toString()] = listing;
+        });
+        
+        // Map swipes to their listings
+        const swipesWithListings = swipes.map(swipe => {
+            const listingId = swipe.listingId.toString();
+            const listing = listingsMap[listingId] || null;
+            
+            if (listing) {
+                return {
+                    swipe: {
+                        _id: swipe._id,
+                        listingId: swipe.listingId,
+                        interested: swipe.interested,
+                        facultyAccepted: swipe.facultyAccepted,
+                        createdAt: swipe.createdAt
+                    },
+                    listing
+                };
+            }
+            return null;
+        }).filter(item => item !== null); // Remove any null entries
+        
+        res.json(swipesWithListings);
+        
+    } catch (error) {
+        console.error('Error retrieving all swipes (optimized):', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Add a new optimized endpoint for getting listings for the swipe interface
+app.get('/listings/swipe-batch', verifyToken, async (req, res) => {
+    try {
+        // Only for students
+        const userId = req.user.id;
+        const user = await User.findById(userId);
+        
+        if (user.isFaculty) {
+            return res.status(403).json({ error: 'Only students can access this endpoint' });
+        }
+        
+        // 1. Get the listings that the user has already swiped on in a single query
+        const swipedListings = await Swipe.find({ studentId: userId })
+            .select('listingId');
+        
+        // Extract just the listing IDs
+        const swipedListingIds = swipedListings.map(swipe => swipe.listingId);
+        
+        // 2. Find all active listings that haven't been swiped on in a single query
+        // Include full faculty information to avoid separate queries later
+        const listings = await Listing.find({ 
+            active: true,
+            _id: { $nin: swipedListingIds }
+        }).populate('facultyId', 'name email university department -password');
+        
+        console.log(`Swipe batch endpoint: Returned ${listings.length} listings`);
+        
+        res.json(listings);
+    } catch (error) {
+        console.error('Error fetching swipe batch listings:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Test endpoint for faculty listings that works with token as query parameter
+app.get('/test/faculty-listings', async (req, res) => {
+    try {
+        const token = req.query.token;
+        if (!token) {
+            return res.status(401).json({ error: 'No token provided' });
+        }
+        
+        // Verify the token
+        let decoded;
+        try {
+            decoded = jwt.verify(token, JWT_SECRET);
+        } catch (err) {
+            console.error('Token verification error:', err);
+            return res.status(401).json({ error: 'Invalid token' });
+        }
+        
+        // Check if user is faculty
+        if (!decoded.isFaculty) {
+            console.error('User is not faculty:', decoded.id);
+            return res.status(403).json({ error: 'Not authorized as faculty' });
+        }
+        
+        // Get user's faculty ID
+        const facultyId = decoded.id;
+        
+        // Find all active listings for this faculty
+        const listings = await Listing.find({ 
+            facultyId: facultyId,
+            active: true 
+        }).sort({ createdAt: -1 });
+        
+        res.json(listings);
+    } catch (error) {
+        console.error('Error in test faculty-listings endpoint:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Add test endpoint for creating listings that works with token as query parameter
+app.post('/test/faculty-listings/create', async (req, res) => {
+    try {
+        const token = req.query.token || req.headers['authorization'];
+        if (!token) {
+            return res.status(401).json({ error: 'No token provided' });
+        }
+        
+        // Clean token if it has Bearer prefix
+        const cleanToken = token.startsWith('Bearer ') ? token.substring(7) : token;
+        
+        // Verify the token
+        let decoded;
+        try {
+            decoded = jwt.verify(cleanToken, JWT_SECRET);
+        } catch (err) {
+            console.error('Token verification error:', err);
+            return res.status(401).json({ error: 'Invalid token' });
+        }
+        
+        // Check if user is faculty
+        if (!decoded.isFaculty) {
+            console.error('User is not faculty:', decoded.id);
+            return res.status(403).json({ error: 'Not authorized as faculty' });
+        }
+        
+        // Process the request
+        console.log('Request body in test create endpoint:', JSON.stringify(req.body, null, 2));
+        
+        const { 
+            title, 
+            description, 
+            requirements, 
+            duration,
+            wage
+        } = req.body;
+
+        // Validate required fields
+        if (!title || !description || !requirements) {
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
+        
+        // Create new listing
+        const listing = new Listing({
+            facultyId: mongoose.Types.ObjectId.isValid(decoded.id) ? 
+                new mongoose.Types.ObjectId(decoded.id) : decoded.id,
+            title,
+            description,
+            requirements,
+            duration,
+            wage
+        });
+        
+        // Save to database
+        console.log('Test endpoint: Saving listing with faculty ID:', decoded.id);
+        await listing.save();
+        console.log('Test endpoint: Listing saved successfully with ID:', listing._id);
+        
+        res.status(201).json(listing);
+    } catch (error) {
+        console.error('Error in test create listing endpoint:', error);
         res.status(500).json({ error: error.message });
     }
 });

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, Alert, StyleSheet, TouchableOpacity, Platform, ScrollView } from 'react-native';
+import { View, Text, TextInput, Alert, StyleSheet, TouchableOpacity, Platform, ScrollView, Modal } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useAuthContext } from '../context/AuthContext';
 import axios from 'axios';
@@ -20,6 +20,10 @@ const ListingCreate = ({ navigation, route }: { navigation: any, route: any }) =
     const inputTextColor = theme === 'light' ? '#000' : '#ffffff';
     const placeholderTextColor = theme === 'light' ? '#666' : '#bbb';
     const borderColor = theme === 'light' ? '#ddd' : '#000';
+    const modalBackgroundColor = theme === 'light' ? 'rgba(255, 255, 255, 0.95)' : 'rgba(30, 30, 30, 0.95)';
+    const dropdownItemBgColor = theme === 'light' ? '#ffffff' : '#333333';
+    const dropdownItemTextColor = theme === 'light' ? '#333333' : '#ffffff';
+    const dropdownBorderColor = theme === 'light' ? '#dddddd' : '#555555';
     const buttonColor = '#893030';
     const buttonTextColor = '#ffffff';
 
@@ -37,6 +41,10 @@ const ListingCreate = ({ navigation, route }: { navigation: any, route: any }) =
             isPaid: existingListing?.wage?.isPaid ?? true
         }
     });
+
+    // Dropdown state
+    const [showDurationDropdown, setShowDurationDropdown] = useState(false);
+    const [showWageTypeDropdown, setShowWageTypeDropdown] = useState(false);
 
     const durationOptions = ['days', 'weeks', 'months', 'years'];
     const wageTypeOptions = ['hourly', 'weekly', 'monthly', 'total'];
@@ -129,8 +137,9 @@ const ListingCreate = ({ navigation, route }: { navigation: any, route: any }) =
                     console.log('Primary endpoint failed, trying test endpoint');
                     
                     try {
+                        // Try the test endpoint with token in both query and header
                         const testResponse = await axios.post(
-                            `${backendURL}/test/faculty-listings/create`,
+                            `${backendURL}/test/faculty-listings/create?token=${encodeURIComponent(token)}`,
                             formData,
                             { 
                                 headers: { 
@@ -160,6 +169,112 @@ const ListingCreate = ({ navigation, route }: { navigation: any, route: any }) =
             console.error('Error saving listing:', error);
             Alert.alert('Error', 'Failed to save listing. Please try again.');
         }
+    };
+
+    // Render the dropdown UI for duration unit
+    const renderDurationDropdown = () => {
+        return (
+            <Modal
+                transparent={true}
+                visible={showDurationDropdown}
+                animationType="fade"
+                onRequestClose={() => setShowDurationDropdown(false)}
+            >
+                <TouchableOpacity 
+                    style={styles.dropdownOverlay} 
+                    activeOpacity={1} 
+                    onPress={() => setShowDurationDropdown(false)}
+                >
+                    <View style={[
+                        styles.dropdownContent, 
+                        { backgroundColor: modalBackgroundColor, borderColor: dropdownBorderColor }
+                    ]}>
+                        <Text style={[styles.dropdownTitle, { color: textColor }]}>
+                            Select Duration Unit
+                        </Text>
+                        
+                        {durationOptions.map((option) => (
+                            <TouchableOpacity
+                                key={option}
+                                style={[
+                                    styles.dropdownItem,
+                                    listing.duration.unit === option && styles.dropdownItemSelected,
+                                    { backgroundColor: dropdownItemBgColor }
+                                ]}
+                                onPress={() => {
+                                    setListing({
+                                        ...listing,
+                                        duration: { ...listing.duration, unit: option }
+                                    });
+                                    setShowDurationDropdown(false);
+                                }}
+                            >
+                                <Text style={[
+                                    styles.dropdownItemText, 
+                                    { color: dropdownItemTextColor },
+                                    listing.duration.unit === option && styles.dropdownItemTextSelected
+                                ]}>
+                                    {option}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </TouchableOpacity>
+            </Modal>
+        );
+    };
+
+    // Render the dropdown UI for wage type
+    const renderWageTypeDropdown = () => {
+        return (
+            <Modal
+                transparent={true}
+                visible={showWageTypeDropdown}
+                animationType="fade"
+                onRequestClose={() => setShowWageTypeDropdown(false)}
+            >
+                <TouchableOpacity 
+                    style={styles.dropdownOverlay} 
+                    activeOpacity={1} 
+                    onPress={() => setShowWageTypeDropdown(false)}
+                >
+                    <View style={[
+                        styles.dropdownContent, 
+                        { backgroundColor: modalBackgroundColor, borderColor: dropdownBorderColor }
+                    ]}>
+                        <Text style={[styles.dropdownTitle, { color: textColor }]}>
+                            Select Wage Type
+                        </Text>
+                        
+                        {wageTypeOptions.map((option) => (
+                            <TouchableOpacity
+                                key={option}
+                                style={[
+                                    styles.dropdownItem,
+                                    listing.wage.type === option && styles.dropdownItemSelected,
+                                    { backgroundColor: dropdownItemBgColor }
+                                ]}
+                                onPress={() => {
+                                    setListing({
+                                        ...listing,
+                                        wage: { ...listing.wage, type: option }
+                                    });
+                                    setShowWageTypeDropdown(false);
+                                }}
+                            >
+                                <Text style={[
+                                    styles.dropdownItemText, 
+                                    { color: dropdownItemTextColor },
+                                    listing.wage.type === option && styles.dropdownItemTextSelected
+                                ]}>
+                                    {option}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </TouchableOpacity>
+            </Modal>
+        );
     };
 
     return (
@@ -216,33 +331,18 @@ const ListingCreate = ({ navigation, route }: { navigation: any, route: any }) =
                             duration: { ...listing.duration, value: text }
                         })}
                     />
-                    <View style={[styles.pickerContainer, { backgroundColor: inputBackground, borderColor, width: 120 }]}> 
-                        <TextInput
-                            style={{
-                                height: 50,
-                                paddingHorizontal: 10,
-                                color: inputTextColor,
-                                borderWidth: 0,
-                                width: '100%',
-                                textAlignVertical: 'center',
-                                includeFontPadding: false,
-                            }}
-                            value={listing.duration.unit}
-                            onFocus={() =>
-                                Alert.alert('Select Duration Unit', '', [
-                                    ...durationOptions.map(option => ({
-                                        text: option,
-                                        onPress: () =>
-                                            setListing({
-                                                ...listing,
-                                                duration: { ...listing.duration, unit: option },
-                                            }),
-                                    })),
-                                    { text: 'Cancel', style: 'cancel' },
-                                ])
-                            }
-                        />
-                    </View>
+                    <TouchableOpacity 
+                        style={[
+                            styles.dropdownButton, 
+                            { backgroundColor: inputBackground, borderColor }
+                        ]}
+                        onPress={() => setShowDurationDropdown(true)}
+                    >
+                        <Text style={{ color: inputTextColor }}>
+                            {listing.duration.unit}
+                        </Text>
+                        <Text style={{ marginLeft: 5, color: inputTextColor }}>▼</Text>
+                    </TouchableOpacity>
                 </View>
 
                 <Text style={[styles.sectionLabel, { color: textColor }]}>Compensation</Text>
@@ -258,30 +358,18 @@ const ListingCreate = ({ navigation, route }: { navigation: any, route: any }) =
                             wage: { ...listing.wage, amount: text }
                         })}
                     />
-                    <View style={[styles.pickerContainer, { backgroundColor: inputBackground, borderColor, width: 120 }]}> 
-                        <TextInput
-                            style={{
-                                height: 50,
-                                paddingHorizontal: 10,
-                                color: inputTextColor,
-                                borderWidth: 0,
-                                width: '100%',
-                                textAlignVertical: 'center',
-                                includeFontPadding: false,
-                            }}
-                            value={listing.wage.type}
-                            onFocus={() => Alert.alert('Select Wage Type', '', [
-                                ...wageTypeOptions.map(option => ({
-                                    text: option,
-                                    onPress: () => setListing({
-                                        ...listing,
-                                        wage: { ...listing.wage, type: option }
-                                    })
-                                })),
-                                { text: 'Cancel', style: 'cancel' }
-                            ])}
-                        />
-                    </View>
+                    <TouchableOpacity 
+                        style={[
+                            styles.dropdownButton, 
+                            { backgroundColor: inputBackground, borderColor }
+                        ]}
+                        onPress={() => setShowWageTypeDropdown(true)}
+                    >
+                        <Text style={{ color: inputTextColor }}>
+                            {listing.wage.type}
+                        </Text>
+                        <Text style={{ marginLeft: 5, color: inputTextColor }}>▼</Text>
+                    </TouchableOpacity>
                     <TouchableOpacity
                         style={[styles.isPaidButton, { backgroundColor: listing.wage.isPaid ? '#4CAF50' : '#f44336' }]}
                         onPress={() => setListing({
@@ -304,6 +392,10 @@ const ListingCreate = ({ navigation, route }: { navigation: any, route: any }) =
                     </Text>
                 </TouchableOpacity>
             </ScrollView>
+            
+            {/* Render dropdowns */}
+            {renderDurationDropdown()}
+            {renderWageTypeDropdown()}
         </ResponsiveScreen>
     );
 };
@@ -380,14 +472,59 @@ const styles = StyleSheet.create({
         marginBottom: 8,
         marginTop: 5
     },
-    pickerContainer: {
-        borderRadius: 5,
+    dropdownButton: {
         height: 50,
+        borderRadius: 5,
         justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 10,
         borderWidth: 1,
-        overflow: 'hidden',
-        marginRight: 10,
+        flexDirection: 'row',
+        width: 120,
+        marginRight: 10
+    },
+    dropdownOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    dropdownContent: {
         width: 250,
+        backgroundColor: 'white',
+        borderRadius: 10,
+        padding: 10,
+        borderWidth: 1,
+        elevation: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+    },
+    dropdownTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        marginBottom: 10,
+        paddingBottom: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(0,0,0,0.1)'
+    },
+    dropdownItem: {
+        paddingVertical: 12,
+        paddingHorizontal: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(0,0,0,0.05)'
+    },
+    dropdownItemSelected: {
+        backgroundColor: 'rgba(137, 48, 48, 0.1)'
+    },
+    dropdownItemText: {
+        fontSize: 16
+    },
+    dropdownItemTextSelected: {
+        fontWeight: 'bold',
+        color: '#893030'
     }
 });
 

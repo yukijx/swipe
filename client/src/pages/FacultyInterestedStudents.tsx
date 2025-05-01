@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, FlatList, TouchableOpacity, Alert, Platform } from 'react-native';
 import axios from 'axios';
 import { useTheme } from '../context/ThemeContext';
@@ -62,24 +62,23 @@ const FacultyInterestedStudents: React.FC<{ navigation: any }> = ({ navigation }
     const [expandedListings, setExpandedListings] = useState<{[key: string]: boolean}>({});
     // Store detailed listings data
     const [listingDetails, setListingDetails] = useState<{[key: string]: FullListing}>({});
-    // Track if a specific listing is being loaded
-    const [loadingListings, setLoadingListings] = useState<{[key: string]: boolean}>({});
+    // Track if listings are being loaded
+    const [loadingListings, setLoadingListings] = useState(false);
     const { theme } = useTheme();
     const { isFaculty } = useAuthContext();
     
-    // Themed variables
-    const inputBackground = theme === 'light' ? '#ffffff' : '#333';
-    const inputTextColor = theme === 'light' ? '#000' : '#ffffff';
-    const placeholderTextColor = theme === 'light' ? '#666' : '#bbb';
-    const borderColor = theme === 'light' ? '#ddd' : '#000';
-    const buttonColor = '#893030';
-    const buttonTextColor = '#ffffff';
-    const backgroundColor = theme === 'light' ? '#fff' : '#333';
-    const subtextColor = theme === 'light' ? '#333' : '#ddd';
-    const mutedTextColor = theme === 'light' ? '#666' : '#bbb';
-    const cardBackgroundColor = theme === 'light' ? '#fff' : '#444';
-    const sectionBackgroundColor = theme === 'light' ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.1)';
-    const textColor = theme === 'light' ? '#000' : '#fff';
+    // Theme colors
+    const primaryColor = '#893030';
+    const cardBackgroundColor = theme === 'light' ? '#ffffff' : '#333333';
+    const textColor = theme === 'light' ? '#333333' : '#ffffff';
+    const subtextColor = theme === 'light' ? '#555555' : '#dddddd';
+    const mutedTextColor = theme === 'light' ? '#777777' : '#aaaaaa';
+    const disabledTextColor = theme === 'light' ? '#999999' : '#666666';
+    const borderColor = theme === 'light' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
+    const sectionBackgroundColor = theme === 'light' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)';
+    const filterButtonColor = theme === 'light' ? '#f0f0f0' : '#444444';
+    const filterButtonTextColor = theme === 'light' ? '#555555' : '#dddddd';
+    const listingTitleRowColor = theme === 'light' ? 'rgba(137, 48, 48, 0.1)' : 'rgba(137, 48, 48, 0.3)';
 
     useEffect(() => {
         if (!isFaculty) {
@@ -90,6 +89,77 @@ const FacultyInterestedStudents: React.FC<{ navigation: any }> = ({ navigation }
         
         fetchMatches();
     }, []);
+
+    // New function to prefetch all listing details in a single batch request
+    const prefetchListingDetails = useCallback(async (listingIds: string[]) => {
+        if (!listingIds.length) return;
+        
+        // Filter out IDs we already have cached
+        const idsToFetch = listingIds.filter(id => !listingDetails[id]);
+        if (!idsToFetch.length) return;
+        
+        try {
+            setLoadingListings(true);
+            const token = await AsyncStorage.getItem('token');
+            if (!token) {
+                throw new Error('No authentication token found');
+            }
+            
+            const backendURL = await getBackendURL();
+            
+            // Make a single API call to fetch multiple listings
+            const response = await axios.get(
+                `${backendURL}/listings/batch?ids=${idsToFetch.join(',')}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
+            
+            if (response.data && Array.isArray(response.data)) {
+                // Update our cache with all fetched listings
+                const newDetails = { ...listingDetails };
+                response.data.forEach((listing: FullListing) => {
+                    newDetails[listing._id] = listing;
+                });
+                setListingDetails(newDetails);
+            } else {
+                throw new Error('Invalid response format from batch listings endpoint');
+            }
+        } catch (error) {
+            console.error('Error batch fetching listing details:', error);
+            
+            // Fallback: Use existing minimal data from matches
+            const minimalListings: {[key: string]: FullListing} = {};
+            
+            // Create minimal listing objects from what we know
+            for (const id of idsToFetch) {
+                for (const match of matches as Match[]) {
+                    const matchingListing = match.listings.find(l => l._id === id);
+                    if (matchingListing) {
+                        minimalListings[id] = {
+                            _id: matchingListing._id,
+                            title: matchingListing.title,
+                            description: matchingListing.description || 'Description not available',
+                            requirements: matchingListing.requirements || 'Requirements not available',
+                            duration: { value: 0, unit: 'Not specified' },
+                            wage: { type: 'Not specified', amount: 0, isPaid: false },
+                            facultyId: '',
+                            createdAt: new Date().toISOString()
+                        };
+                    }
+                }
+            }
+            
+            setListingDetails(prev => ({
+                ...prev,
+                ...minimalListings
+            }));
+        } finally {
+            setLoadingListings(false);
+        }
+    }, [matches, listingDetails]);
 
     const fetchMatches = async () => {
         setLoading(true);
@@ -102,7 +172,8 @@ const FacultyInterestedStudents: React.FC<{ navigation: any }> = ({ navigation }
             }
 
             const backendURL = await getBackendURL();
-            const response = await axios.get(`${backendURL}/matches/faculty`, {
+            // Use the new optimized endpoint that reduces database calls
+            const response = await axios.get(`${backendURL}/matches/faculty-optimized`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
@@ -111,7 +182,7 @@ const FacultyInterestedStudents: React.FC<{ navigation: any }> = ({ navigation }
             console.log('Faculty matches data:', JSON.stringify(response.data));
             
             // Ensure proper data structure - defensive programming
-            const cleanedMatches = response.data.map((match: any) => ({
+            const cleanedMatches = response.data.map((match: Match) => ({
                 student: match.student || {},
                 listings: match.listings || [],
                 swipes: match.swipes || []
@@ -120,6 +191,13 @@ const FacultyInterestedStudents: React.FC<{ navigation: any }> = ({ navigation }
             setMatches(cleanedMatches);
             // Reset expanded listings state when refreshing
             setExpandedListings({});
+            
+            // Prefetch all listing details when matches load
+            const allListingIds = cleanedMatches.flatMap((match: Match) => 
+                match.listings.map((listing: ListingTitle) => listing._id)
+            );
+            prefetchListingDetails(allListingIds);
+            
         } catch (error) {
             console.error('Error fetching matches:', error);
             Alert.alert('Error', 'Failed to fetch student matches. Please try again.');
@@ -193,150 +271,14 @@ const FacultyInterestedStudents: React.FC<{ navigation: any }> = ({ navigation }
         }
     };
 
-    const toggleListingExpanded = async (listingId: string) => {
-        // Toggle expanded state
+    const toggleListingExpanded = (listingId: string) => {
+        // Toggle expanded state only
         setExpandedListings(prev => ({
             ...prev,
             [listingId]: !prev[listingId]
         }));
         
-        // If we're expanding and don't have the full details yet, fetch them
-        if (!expandedListings[listingId] && !listingDetails[listingId]) {
-            try {
-                setLoadingListings(prev => ({
-                    ...prev,
-                    [listingId]: true
-                }));
-                
-                const token = await AsyncStorage.getItem('token');
-                if (!token) {
-                    throw new Error('No authentication token found');
-                }
-                
-                const backendURL = await getBackendURL();
-                
-                // First try the standard endpoint
-                try {
-                    const response = await axios.get(
-                        `${backendURL}/listings/${listingId}`,
-                        {
-                            headers: {
-                                Authorization: `Bearer ${token}`
-                            }
-                        }
-                    );
-                    
-                    if (response.data) {
-                        setListingDetails(prev => ({
-                            ...prev,
-                            [listingId]: response.data
-                        }));
-                    }
-                } catch (error) {
-                    console.log('Standard endpoint failed, trying alternative approaches...');
-                    
-                    // Try completely different endpoint patterns
-                    try {
-                        // Try the faculty-listings endpoint that works in ListingManagement
-                        const facultyResponse = await axios.get(
-                            `${backendURL}/test/faculty-listings?token=${token}`
-                        );
-                        
-                        if (facultyResponse.data && Array.isArray(facultyResponse.data)) {
-                            // Find the specific listing in the array
-                            const foundListing = facultyResponse.data.find(listing => listing._id === listingId);
-                            if (foundListing) {
-                                console.log('Found listing in faculty-listings array');
-                                setListingDetails(prev => ({
-                                    ...prev,
-                                    [listingId]: foundListing
-                                }));
-                                return; // Exit early if successful
-                            }
-                        }
-                        
-                        // If we didn't find the specific listing, throw an error to try next approach
-                        throw new Error('Listing not found in faculty-listings response');
-                    } catch (firstFallbackError) {
-                        console.log('First fallback failed, trying debug endpoint...');
-                        
-                        try {
-                            // Try a direct debug endpoint for a specific listing
-                            const debugResponse = await axios.get(
-                                `${backendURL}/debug/listing/${listingId}?token=${token}`
-                            );
-                            
-                            if (debugResponse.data) {
-                                setListingDetails(prev => ({
-                                    ...prev,
-                                    [listingId]: debugResponse.data
-                                }));
-                                return; // Exit early if successful
-                            }
-                            
-                            throw new Error('Debug endpoint returned no data');
-                        } catch (secondFallbackError) {
-                            // As a last resort, construct a minimal listing object from what we already know
-                            console.log('All API attempts failed, using minimal data');
-                            
-                            // Find the listing title info from our existing matches data
-                            let minimalListing = null;
-                            for (const match of matches) {
-                                const matchingListing = match.listings.find(l => l._id === listingId);
-                                if (matchingListing) {
-                                    minimalListing = {
-                                        _id: matchingListing._id,
-                                        title: matchingListing.title,
-                                        description: matchingListing.description || 'Description not available',
-                                        requirements: matchingListing.requirements || 'Requirements not available',
-                                        duration: { value: 0, unit: 'Not specified' },
-                                        wage: { type: 'Not specified', amount: 0, isPaid: false },
-                                        facultyId: '',
-                                        createdAt: new Date().toISOString()
-                                    };
-                                    break;
-                                }
-                            }
-                            
-                            if (minimalListing) {
-                                setListingDetails(prev => ({
-                                    ...prev,
-                                    [listingId]: minimalListing
-                                }));
-                                console.log('Using limited listing data available from matches');
-                            } else {
-                                throw new Error('Failed to retrieve or construct listing details');
-                            }
-                        }
-                    }
-                }
-            } catch (error) {
-                console.error(`Error fetching full listing details for ${listingId}:`, error);
-                
-                // More detailed error logging
-                if (axios.isAxiosError(error) && error.response) {
-                    console.error('Response status:', error.response.status);
-                    console.error('Response data:', error.response.data);
-                }
-                
-                Alert.alert(
-                    'Error', 
-                    'Failed to load full listing details. Please try again later.',
-                    [
-                        { 
-                            text: 'Debug Info', 
-                            onPress: () => Alert.alert('Listing ID', listingId)
-                        },
-                        { text: 'OK' }
-                    ]
-                );
-            } finally {
-                setLoadingListings(prev => ({
-                    ...prev,
-                    [listingId]: false
-                }));
-            }
-        }
+        // We don't need to fetch individual listings anymore as we prefetch all of them
     };
 
     const viewStudentProfile = (student: Student) => {
@@ -404,14 +346,14 @@ const FacultyInterestedStudents: React.FC<{ navigation: any }> = ({ navigation }
         const hasSwipes = item.swipes && item.swipes.length > 0;
 
         return (
-            <View style={[styles.matchCard, { backgroundColor: cardBackgroundColor }]}>
+            <View style={[styles.matchCard, { backgroundColor: cardBackgroundColor, borderColor: borderColor }]}>
                 <View style={styles.cardContent}>
                     <View style={styles.studentHeader}>
                         <Text style={[styles.studentName, { color: textColor }]}>
                             {item.student?.name || 'Unknown Student'}
                         </Text>
                         <TouchableOpacity 
-                            style={styles.headerProfileButton}
+                            style={[styles.headerProfileButton, { backgroundColor: primaryColor }]}
                             onPress={() => item.student ? viewStudentProfile(item.student) : null}
                         >
                             <Text style={styles.headerProfileButtonText}>View Profile</Text>
@@ -434,12 +376,12 @@ const FacultyInterestedStudents: React.FC<{ navigation: any }> = ({ navigation }
                                         swipe.status === 'pending' ? '⌛' : 
                                         swipe.status === 'accepted' ? '✓' : '✗';
                                     
-                                    const isExpanded = expandedListings[listing._id];
+                                    const isExpanded = Boolean(expandedListings[listing._id]);
                                     
                                     return (
-                                        <View key={listing._id} style={styles.listingRow}>
+                                        <View key={listing._id} style={[styles.listingRow, { borderColor: borderColor }]}>
                                             <TouchableOpacity 
-                                                style={styles.listingTitleRow}
+                                                style={[styles.listingTitleRow, { backgroundColor: listingTitleRowColor }]}
                                                 onPress={() => toggleListingExpanded(listing._id)}
                                             >
                                                 <Text style={[styles.listingItem, { color: textColor }]} numberOfLines={1}>
@@ -447,7 +389,7 @@ const FacultyInterestedStudents: React.FC<{ navigation: any }> = ({ navigation }
                                                     {listing.title}
                                                 </Text>
                                                 {swipe && (
-                                                    <Text style={[styles.statusBadge, { backgroundColor: statusColor, color:textColor }]}>
+                                                    <Text style={[styles.statusBadge, { backgroundColor: statusColor }]}>
                                                         {swipe.status.toUpperCase()}
                                                     </Text>
                                                 )}
@@ -458,9 +400,9 @@ const FacultyInterestedStudents: React.FC<{ navigation: any }> = ({ navigation }
                                             
                                             {isExpanded && (
                                                 <View style={[styles.expandedListingDetails, { backgroundColor: sectionBackgroundColor }]}>
-                                                    {loadingListings[listing._id] ? (
+                                                    {loadingListings ? (
                                                         <View style={styles.loadingListingDetails}>
-                                                            <ActivityIndicator size="small" color="#893030" />
+                                                            <ActivityIndicator size="small" color={primaryColor} />
                                                             <Text style={[styles.loadingListingText, { color: mutedTextColor }]}>Loading details...</Text>
                                                         </View>
                                                     ) : listingDetails[listing._id] ? (
@@ -503,45 +445,15 @@ const FacultyInterestedStudents: React.FC<{ navigation: any }> = ({ navigation }
                                                                         style={[styles.actionButton, styles.rejectButton]}
                                                                         onPress={() => respondToSwipe(swipe._id, false)}
                                                                     >
-                                                                        <Text style={styles.actionButtonText}>Decline</Text>
+                                                                        <Text style={styles.actionButtonText}>Reject</Text>
                                                                     </TouchableOpacity>
                                                                 </View>
                                                             )}
                                                         </>
                                                     ) : (
-                                                        // Fallback to basic details if full details not available
-                                                        <>
-                                                            {listing.description && (
-                                                                <>
-                                                                    <Text style={[styles.expandedSectionTitle, { color: subtextColor }]}>Description:</Text>
-                                                                    <Text style={[styles.expandedText, { color: textColor }]}>{listing.description}</Text>
-                                                                </>
-                                                            )}
-                                                            
-                                                            {listing.requirements && (
-                                                                <>
-                                                                    <Text style={[styles.expandedSectionTitle, { color: subtextColor }]}>Requirements:</Text>
-                                                                    <Text style={[styles.expandedText, { color: textColor }]}>{listing.requirements}</Text>
-                                                                </>
-                                                            )}
-                                                            
-                                                            {swipe && swipe.status === 'pending' && (
-                                                                <View style={styles.actionButtonRow}>
-                                                                    <TouchableOpacity 
-                                                                        style={[styles.actionButton, styles.acceptButton]}
-                                                                        onPress={() => respondToSwipe(swipe._id, true)}
-                                                                    >
-                                                                        <Text style={styles.actionButtonText}>Accept</Text>
-                                                                    </TouchableOpacity>
-                                                                    <TouchableOpacity 
-                                                                        style={[styles.actionButton, styles.rejectButton]}
-                                                                        onPress={() => respondToSwipe(swipe._id, false)}
-                                                                    >
-                                                                        <Text style={styles.actionButtonText}>Decline</Text>
-                                                                    </TouchableOpacity>
-                                                                </View>
-                                                            )}
-                                                        </>
+                                                        <Text style={[styles.expandedText, { color: textColor }]}>
+                                                            Could not load detailed information for this listing.
+                                                        </Text>
                                                     )}
                                                 </View>
                                             )}
@@ -550,24 +462,20 @@ const FacultyInterestedStudents: React.FC<{ navigation: any }> = ({ navigation }
                                 })}
                             </View>
                         ) : (
-                            <Text style={[styles.noDataText, { color: mutedTextColor }]}>No listing interest data available</Text>
+                            <Text style={[styles.noListingsText, { color: mutedTextColor }]}>
+                                No listing information available.
+                            </Text>
                         )}
                     </View>
                     
-                    <View style={styles.studentDetails}>
-                        <Text style={[styles.studentInfo, { color: textColor }]}>University: {item.student?.university || 'Not specified'}</Text>
-                        <Text style={[styles.studentInfo, { color: textColor }]}>Major: {item.student?.major || 'Not specified'}</Text>
-                        <Text style={[styles.studentInfo, { color: textColor }]}>Skills: {item.student?.skills || 'Not specified'}</Text>
+                    <View style={styles.contactRow}>
+                        <TouchableOpacity 
+                            style={[styles.contactButton, { backgroundColor: primaryColor }]}
+                            onPress={() => contactStudent(item.student)}
+                        >
+                            <Text style={styles.contactButtonText}>Contact Student</Text>
+                        </TouchableOpacity>
                     </View>
-                </View>
-                
-                <View style={styles.contactRow}>
-                    <TouchableOpacity 
-                        style={styles.contactButton}
-                        onPress={() => item.student ? contactStudent(item.student) : null}
-                    >
-                        <Text style={styles.contactButtonText}>Contact Student</Text>
-                    </TouchableOpacity>
                 </View>
             </View>
         );
@@ -575,79 +483,92 @@ const FacultyInterestedStudents: React.FC<{ navigation: any }> = ({ navigation }
 
     if (loading) {
         return (
-            <ResponsiveScreen navigation={navigation}>
+            <ThemedView style={styles.container}>
                 <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color="#893030" />
-                    <Text style={styles.loadingText}>Loading student matches...</Text>
+                    <ActivityIndicator size="large" color={primaryColor} />
+                    <Text style={[styles.loadingText, { color: mutedTextColor }]}>
+                        Loading student matches...
+                    </Text>
                 </View>
-            </ResponsiveScreen>
+            </ThemedView>
         );
     }
 
     return (
-        <ResponsiveScreen navigation={navigation} scrollable={false}>
-            <View style={[styles.container, { backgroundColor }]}>
-                <View style={styles.header}>
-                    <Text style={[styles.title, { color: textColor }]}>Interested Students</Text>
-                </View>
+        <ThemedView style={styles.container}>
+            <View style={styles.header}>
+                <Text style={[styles.title, { color: primaryColor }]}>Student Matches</Text>
+            </View>
+            
+            <View style={styles.filterContainer}>
+                <TouchableOpacity 
+                    style={[
+                        styles.filterButton, 
+                        activeFilter === 'all' && [styles.activeFilterButton, { backgroundColor: primaryColor }],
+                        { backgroundColor: activeFilter === 'all' ? primaryColor : filterButtonColor }
+                    ]}
+                    onPress={() => setActiveFilter('all')}
+                >
+                    <Text style={[
+                        styles.filterButtonText, 
+                        activeFilter === 'all' && styles.activeFilterText,
+                        { color: activeFilter === 'all' ? '#fff' : filterButtonTextColor }
+                    ]}>
+                        All
+                    </Text>
+                </TouchableOpacity>
                 
-                <View style={[styles.filterContainer, { backgroundColor: 'transparent' }]}>
-                    <TouchableOpacity 
-                        style={[
-                            styles.filterButton, 
-                            { backgroundColor: theme === 'light' ? '#f0f0f0' : '#444' },
-                            activeFilter === 'all' && [styles.activeFilterButton, { backgroundColor: buttonColor }]
-                        ]}
-                        onPress={() => setActiveFilter('all')}
-                    >
-                        <Text style={[
-                            styles.filterButtonText,
-                            { color: theme === 'light' ? '#555' : '#ddd' },
-                            activeFilter === 'all' && styles.activeFilterText
-                        ]}>All</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                        style={[
-                            styles.filterButton, 
-                            { backgroundColor: theme === 'light' ? '#f0f0f0' : '#444' },
-                            activeFilter === 'pending' && [styles.activeFilterButton, { backgroundColor: buttonColor }]
-                        ]}
-                        onPress={() => setActiveFilter('pending')}
-                    >
-                        <Text style={[
-                            styles.filterButtonText,
-                            { color: theme === 'light' ? '#555' : '#ddd' },
-                            activeFilter === 'pending' && styles.activeFilterText
-                        ]}>Pending</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                        style={[
-                            styles.filterButton, 
-                            { backgroundColor: theme === 'light' ? '#f0f0f0' : '#444' },
-                            activeFilter === 'accepted' && [styles.activeFilterButton, { backgroundColor: buttonColor }]
-                        ]}
-                        onPress={() => setActiveFilter('accepted')}
-                    >
-                        <Text style={[
-                            styles.filterButtonText,
-                            { color: theme === 'light' ? '#555' : '#ddd' },
-                            activeFilter === 'accepted' && styles.activeFilterText
-                        ]}>Accepted</Text>
-                    </TouchableOpacity>
-                </View>
+                <TouchableOpacity 
+                    style={[
+                        styles.filterButton, 
+                        activeFilter === 'pending' && [styles.activeFilterButton, { backgroundColor: primaryColor }],
+                        { backgroundColor: activeFilter === 'pending' ? primaryColor : filterButtonColor }
+                    ]}
+                    onPress={() => setActiveFilter('pending')}
+                >
+                    <Text style={[
+                        styles.filterButtonText, 
+                        activeFilter === 'pending' && styles.activeFilterText,
+                        { color: activeFilter === 'pending' ? '#fff' : filterButtonTextColor }
+                    ]}>
+                        Pending
+                    </Text>
+                </TouchableOpacity>
                 
-                {filteredMatches().length === 0 ? (
+                <TouchableOpacity 
+                    style={[
+                        styles.filterButton, 
+                        activeFilter === 'accepted' && [styles.activeFilterButton, { backgroundColor: primaryColor }],
+                        { backgroundColor: activeFilter === 'accepted' ? primaryColor : filterButtonColor }
+                    ]}
+                    onPress={() => setActiveFilter('accepted')}
+                >
+                    <Text style={[
+                        styles.filterButtonText, 
+                        activeFilter === 'accepted' && styles.activeFilterText,
+                        { color: activeFilter === 'accepted' ? '#fff' : filterButtonTextColor }
+                    ]}>
+                        Accepted
+                    </Text>
+                </TouchableOpacity>
+            </View>
+            
+            <View style={styles.container}>
+                {(!matches || matches.length === 0 || filteredMatches().length === 0) ? (
                     <View style={styles.emptyContainer}>
-                        <Text style={[styles.emptyText, { color: '#893030' }]}>No student matches found</Text>
+                        <Text style={[styles.emptyText, { color: textColor }]}>
+                            No {activeFilter === 'all' ? '' : activeFilter} student matches found
+                        </Text>
                         <Text style={[styles.emptySubtext, { color: mutedTextColor }]}>
                             {activeFilter === 'all' 
-                                ? 'Students will appear here when they swipe right on your listings' 
+                                ? 'Students will appear here after they express interest in your listings'
                                 : activeFilter === 'pending'
-                                    ? 'No pending student requests at the moment'
-                                    : 'You haven\'t accepted any student requests yet'}
+                                    ? 'No students currently waiting for your response'
+                                    : 'You have not accepted any student interests yet'
+                            }
                         </Text>
-                        <TouchableOpacity
-                            style={styles.createButton}
+                        <TouchableOpacity 
+                            style={[styles.createButton, { backgroundColor: primaryColor }]}
                             onPress={() => navigation.navigate('ListingCreate')}
                         >
                             <Text style={styles.createButtonText}>Create New Listing</Text>
@@ -663,7 +584,7 @@ const FacultyInterestedStudents: React.FC<{ navigation: any }> = ({ navigation }
                     />
                 )}
             </View>
-        </ResponsiveScreen>
+        </ThemedView>
     );
 };
 
@@ -679,7 +600,6 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 24,
         fontWeight: 'bold',
-        color: '#893030',
         textAlign: 'center',
         marginVertical: 20,
     },
@@ -688,26 +608,22 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         paddingVertical: 15,
         backgroundColor: 'transparent',
-   
     },
     filterButton: {
         paddingVertical: 6,
         paddingHorizontal: 15,
         width: 100,
         marginHorizontal: 5,
-        backgroundColor: '#f0f0f0',
         borderRadius: 6,
     },
     activeFilterButton: {
-        backgroundColor: '#893030',
+        // Dynamic color applied inline
     },
     filterButtonText: {
         fontSize: 14,
-        color: '#555',
         textAlign: 'center',
     },
     activeFilterText: {
-        color: '#fff',
         fontWeight: 'bold',
     },
     loadingContainer: {
@@ -718,7 +634,6 @@ const styles = StyleSheet.create({
     loadingText: {
         marginTop: 10,
         fontSize: 16,
-        color: '#666',
     },
     listContainer: {
         padding: 15,
@@ -728,6 +643,7 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         padding: 8,
         marginBottom: 12,
+        borderWidth: 1,
         ...Platform.select({
             ios: {
                 shadowColor: '#000',
@@ -761,7 +677,6 @@ const styles = StyleSheet.create({
         paddingVertical: 6,
         paddingHorizontal: 12,
         borderRadius: 6,
-        backgroundColor: '#893030',
     },
     headerProfileButtonText: {
         color: '#fff',
@@ -784,7 +699,6 @@ const styles = StyleSheet.create({
     listingsTitle: {
         fontSize: 15,
         fontWeight: 'bold',
-        color: '#333',
         marginBottom: 5,
     },
     listingsContainer: {
@@ -795,7 +709,6 @@ const styles = StyleSheet.create({
         borderRadius: 4,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: 'rgba(0,0,0,0.25)',
     },
     listingTitleRow: {
         flexDirection: 'row',
@@ -803,11 +716,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: 8,
         paddingVertical: 6,
-        backgroundColor: 'rgba(59, 56, 56, 0.96)',
     },
     expandCollapseIcon: {
         fontSize: 12,
-        color: '#555',
         marginLeft: 4,
     },
     expandedListingDetails: {
@@ -875,7 +786,6 @@ const styles = StyleSheet.create({
         justifyContent: 'flex-end',
     },
     contactButton: {
-        backgroundColor: '#893030',
         paddingVertical: 8,
         paddingHorizontal: 16,
         borderRadius: 8,
@@ -901,9 +811,8 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     createButton: {
-        backgroundColor: '#893030',
         paddingVertical: 12,
-        paddingHorizontal: 24,
+        paddingHorizontal: 20,
         borderRadius: 8,
     },
     createButtonText: {
@@ -911,9 +820,11 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
     },
-    noDataText: {
+    noListingsText: {
         fontSize: 14,
+        fontStyle: 'italic',
         textAlign: 'center',
+        padding: 10,
     }
 });
 

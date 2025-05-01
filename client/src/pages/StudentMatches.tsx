@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getBackendURL } from '../utils/network';
 import { useAuthContext } from '../context/AuthContext';
 import { ResponsiveScreen } from '../components/ResponsiveScreen';
+import ThemedView from '../components/ThemedView';
 
 type MatchedListing = {
     _id: string;
@@ -37,8 +38,16 @@ const StudentMatches = ({ navigation }: { navigation: any }) => {
     const [loading, setLoading] = useState(true);
     const { theme } = useTheme();
     const { isFaculty } = useAuthContext();
-    const backgroundColor = theme === 'light' ? '#fff' : '#333';
-    const textColor = theme === 'light' ? '#893030' : '#fff';
+    
+    // Theme colors
+    const backgroundColor = theme === 'light' ? '#fff' : '#1e1e1e';
+    const cardBackgroundColor = theme === 'light' ? '#ffffff' : '#333333';
+    const expandedBackgroundColor = theme === 'light' ? '#f7f7f7' : '#2a2a2a';
+    const primaryColor = '#893030';
+    const textColor = theme === 'light' ? '#333333' : '#ffffff';
+    const secondaryTextColor = theme === 'light' ? '#666666' : '#cccccc';
+    const tertiaryTextColor = theme === 'light' ? '#888888' : '#aaaaaa';
+    const dividerColor = theme === 'light' ? '#dddddd' : '#444444';
 
     useEffect(() => {
         if (isFaculty) {
@@ -61,13 +70,14 @@ const StudentMatches = ({ navigation }: { navigation: any }) => {
             }
 
             const backendURL = await getBackendURL();
-            const response = await axios.get(`${backendURL}/matches/student`, {
+            // Use the new optimized endpoint that reduces database calls
+            const response = await axios.get(`${backendURL}/matches/student-optimized`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
             });
 
-            console.log('Matches data:', JSON.stringify(response.data));
+            console.log(`Retrieved ${response.data.length} matches from optimized endpoint`);
             
             // Add expanded property to each listing
             const matchesWithExpandedProp = response.data.map((listing: any) => ({
@@ -136,51 +146,58 @@ const StudentMatches = ({ navigation }: { navigation: any }) => {
     };
 
     const renderMatchItem = (item: MatchedListing) => (
-        <View key={item._id} style={styles.matchCard}>
+        <View key={item._id} style={[styles.matchCard, { backgroundColor: cardBackgroundColor }]}>
             <TouchableOpacity 
                 style={styles.matchContent}
                 onPress={() => toggleExpanded(item._id)}
             >
-                <Text style={styles.matchTitle}>{item.title || 'Untitled Research Opportunity'}</Text>
+                <Text style={[styles.matchTitle, { color: primaryColor }]}>
+                    {item.title || 'Untitled Research Opportunity'}
+                </Text>
                 
                 {item.facultyId && (
-                    <Text style={styles.facultyNameSmall}>
+                    <Text style={[styles.facultyNameSmall, { color: secondaryTextColor }]}>
                         By: {item.facultyId.name || 'Faculty Member'}
                     </Text>
                 )}
                 
                 <View style={styles.matchDetails}>
-                    <Text style={styles.matchDetail}>
+                    <Text style={[styles.matchDetail, { color: secondaryTextColor }]}>
                         Duration: {formatDuration(item.duration)}
                     </Text>
-                    <Text style={styles.matchDetail}>
+                    <Text style={[styles.matchDetail, { color: secondaryTextColor }]}>
                         Compensation: {formatWage(item.wage)}
                     </Text>
                 </View>
                 
-                <Text style={styles.matchDescription} numberOfLines={item.expanded ? undefined : 2}>
+                <Text 
+                    style={[styles.matchDescription, { color: textColor }]} 
+                    numberOfLines={item.expanded ? undefined : 2}
+                >
                     {item.description || 'No description provided'}
                 </Text>
                 
                 {/* Expanded content */}
                 {item.expanded && (
-                    <View style={styles.expandedContent}>
-                        <View style={styles.divider} />
+                    <View style={[styles.expandedContent, { backgroundColor: expandedBackgroundColor }]}>
+                        <View style={[styles.divider, { backgroundColor: dividerColor }]} />
                         
-                        <Text style={styles.sectionTitle}>Description</Text>
-                        <Text style={styles.expandedText}>{item.description || 'No description provided'}</Text>
+                        <Text style={[styles.sectionTitle, { color: textColor }]}>Description</Text>
+                        <Text style={[styles.expandedText, { color: textColor }]}>
+                            {item.description || 'No description provided'}
+                        </Text>
                         
                         {item.requirements && (
                             <>
-                                <Text style={styles.sectionTitle}>Requirements</Text>
-                                <Text style={styles.expandedText}>{item.requirements}</Text>
+                                <Text style={[styles.sectionTitle, { color: textColor }]}>Requirements</Text>
+                                <Text style={[styles.expandedText, { color: textColor }]}>{item.requirements}</Text>
                             </>
                         )}
                         
                         {item.facultyId && (
                             <>
-                                <Text style={styles.sectionTitle}>Faculty Information</Text>
-                                <Text style={styles.expandedText}>
+                                <Text style={[styles.sectionTitle, { color: textColor }]}>Faculty Information</Text>
+                                <Text style={[styles.expandedText, { color: textColor }]}>
                                     <Text style={{fontWeight: 'bold'}}>Name:</Text> {item.facultyId.name || 'Not specified'}{'\n'}
                                     <Text style={{fontWeight: 'bold'}}>Department:</Text> {item.facultyId.department || 'Not specified'}{'\n'}
                                     {item.facultyId.university && (
@@ -190,14 +207,14 @@ const StudentMatches = ({ navigation }: { navigation: any }) => {
                             </>
                         )}
                         
-                        <Text style={styles.sectionTitle}>Duration</Text>
-                        <Text style={styles.expandedText}>{formatDuration(item.duration)}</Text>
+                        <Text style={[styles.sectionTitle, { color: textColor }]}>Duration</Text>
+                        <Text style={[styles.expandedText, { color: textColor }]}>{formatDuration(item.duration)}</Text>
                         
-                        <Text style={styles.sectionTitle}>Compensation</Text>
-                        <Text style={styles.expandedText}>{formatWage(item.wage)}</Text>
+                        <Text style={[styles.sectionTitle, { color: textColor }]}>Compensation</Text>
+                        <Text style={[styles.expandedText, { color: textColor }]}>{formatWage(item.wage)}</Text>
                         
-                        <Text style={styles.sectionTitle}>Posted</Text>
-                        <Text style={styles.expandedText}>{formatDate(item.createdAt)}</Text>
+                        <Text style={[styles.sectionTitle, { color: textColor }]}>Posted</Text>
+                        <Text style={[styles.expandedText, { color: textColor }]}>{formatDate(item.createdAt)}</Text>
                         
                         <View style={styles.expandedButtons}>
                             <TouchableOpacity 
@@ -208,16 +225,16 @@ const StudentMatches = ({ navigation }: { navigation: any }) => {
                             </TouchableOpacity>
                         </View>
                         
-                        <View style={styles.divider} />
+                        <View style={[styles.divider, { backgroundColor: dividerColor }]} />
                         
-                        <Text style={styles.collapseText}>
+                        <Text style={[styles.collapseText, { color: tertiaryTextColor }]}>
                             Tap to collapse
                         </Text>
                     </View>
                 )}
                 
                 {!item.expanded && (
-                    <Text style={styles.expandPrompt}>
+                    <Text style={[styles.expandPrompt, { color: tertiaryTextColor }]}>
                         Tap to see more details
                     </Text>
                 )}
@@ -227,42 +244,42 @@ const StudentMatches = ({ navigation }: { navigation: any }) => {
 
     if (loading) {
         return (
-            <ResponsiveScreen navigation={navigation}>
+            <ThemedView style={styles.container}>
                 <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color="#893030" />
-                    <Text style={styles.loadingText}>Loading your matches...</Text>
+                    <ActivityIndicator size="large" color={primaryColor} />
+                    <Text style={[styles.loadingText, { color: secondaryTextColor }]}>
+                        Loading your matches...
+                    </Text>
                 </View>
-            </ResponsiveScreen>
+            </ThemedView>
         );
     }
 
     return (
-        <ResponsiveScreen navigation={navigation} scrollable={false}>
-            <View style={styles.container}>
-                <View style={styles.headerContainer}>
-                    <Text style={styles.title}>Your Accepted Matches</Text>
-                </View>
-                
-                {matches.length === 0 ? (
-                    <View style={styles.emptyContainer}>
-                        <Text style={styles.emptyText}>No matches yet!</Text>
-                        <Text style={styles.emptySubtext}>
-                            Matches will appear here after you express interest and faculty members accept your application
-                        </Text>
-                        <TouchableOpacity
-                            style={styles.swipeButton}
-                            onPress={() => navigation.navigate('SwipeCards')}
-                        >
-                            <Text style={styles.swipeButtonText}>Go to Swipe</Text>
-                        </TouchableOpacity>
-                    </View>
-                ) : (
-                    <ScrollView style={styles.list} contentContainerStyle={styles.listContainer}>
-                        {matches.map(renderMatchItem)}
-                    </ScrollView>
-                )}
+        <ThemedView style={styles.container}>
+            <View style={styles.headerContainer}>
+                <Text style={[styles.title, { color: primaryColor }]}>Your Accepted Matches</Text>
             </View>
-        </ResponsiveScreen>
+            
+            {matches.length === 0 ? (
+                <View style={styles.emptyContainer}>
+                    <Text style={[styles.emptyText, { color: primaryColor }]}>No matches yet!</Text>
+                    <Text style={[styles.emptySubtext, { color: secondaryTextColor }]}>
+                        Matches will appear here after you express interest and faculty members accept your application
+                    </Text>
+                    <TouchableOpacity
+                        style={styles.swipeButton}
+                        onPress={() => navigation.navigate('SwipeCards')}
+                    >
+                        <Text style={styles.swipeButtonText}>Go to Swipe</Text>
+                    </TouchableOpacity>
+                </View>
+            ) : (
+                <ScrollView style={styles.list} contentContainerStyle={styles.listContainer}>
+                    {matches.map(renderMatchItem)}
+                </ScrollView>
+            )}
+        </ThemedView>
     );
 };
 
@@ -279,7 +296,6 @@ const styles = StyleSheet.create({
     loadingText: {
         marginTop: 10,
         fontSize: 16,
-        color: '#666',
     },
     headerContainer: {
         flexDirection: 'row',
@@ -292,14 +308,12 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 24,
         fontWeight: 'bold',
-        color: '#893030',
     },
     listContainer: {
         padding: 15,
         paddingBottom: 30,
     },
     matchCard: {
-        backgroundColor: '#ffffff',
         borderRadius: 10,
         marginBottom: 15,
         ...Platform.select({
@@ -323,12 +337,10 @@ const styles = StyleSheet.create({
     matchTitle: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#893030',
         marginBottom: 5,
     },
     facultyNameSmall: {
         fontSize: 14,
-        color: '#666',
         fontStyle: 'italic',
         marginBottom: 5,
     },
@@ -337,29 +349,24 @@ const styles = StyleSheet.create({
     },
     matchDetail: {
         fontSize: 14,
-        color: '#666',
         marginBottom: 3,
     },
     matchDescription: {
         fontSize: 14,
-        color: '#444',
     },
     expandPrompt: {
         fontSize: 12,
-        color: '#888',
         fontStyle: 'italic',
         marginTop: 5,
         textAlign: 'center',
     },
     expandedContent: {
         padding: 15,
-        backgroundColor: '#f7f7f7',
         borderRadius: 8,
         marginTop: 5,
     },
     divider: {
         height: 1,
-        backgroundColor: '#ddd',
         marginVertical: 10,
     },
     sectionTitle: {
@@ -367,12 +374,10 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         marginTop: 10,
         marginBottom: 5,
-        color: '#333',
     },
     expandedText: {
         fontSize: 14,
         lineHeight: 20,
-        color: '#444',
         marginBottom: 10,
     },
     expandedButtons: {
@@ -394,7 +399,6 @@ const styles = StyleSheet.create({
     },
     collapseText: {
         textAlign: 'center',
-        color: '#888',
         fontSize: 13,
         marginTop: 10,
     },
@@ -407,12 +411,10 @@ const styles = StyleSheet.create({
     emptyText: {
         fontSize: 22,
         fontWeight: 'bold',
-        color: '#893030',
         marginBottom: 10,
     },
     emptySubtext: {
         fontSize: 16,
-        color: '#666',
         textAlign: 'center',
         marginBottom: 20,
         lineHeight: 22,
@@ -440,11 +442,9 @@ const styles = StyleSheet.create({
     facultyName: {
         fontSize: 14,
         fontWeight: 'bold',
-        color: '#333',
     },
     facultyDepartment: {
         fontSize: 14,
-        color: '#555',
         marginTop: 4,
     },
     viewButtonContainer: {

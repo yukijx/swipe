@@ -82,8 +82,9 @@ const StudentSwipeHistory = ({ navigation }: { navigation: any }) => {
       const backendURL = await getBackendURL();
       
       try {
-        console.log('Fetching swipe history from:', `${backendURL}/swipes/all`);
-        const response = await axios.get(`${backendURL}/swipes/all`, {
+        // Use the new optimized endpoint that fetches listings in a single batch
+        console.log('Fetching swipe history from optimized endpoint');
+        const response = await axios.get(`${backendURL}/swipes/all-optimized`, {
           headers: {
             Authorization: `Bearer ${token}`
           },
