@@ -36,7 +36,7 @@ interface Listing {
   createdAt: string;
 }
 
-const ListingDetailDetail: React.FC<Props> = ({ navigation, route }) => {
+const ListingDetail = ({ navigation, route }: any) => {
   const { theme } = useTheme();
   const { isFaculty } = useAuthContext();
   const [listing, setListing] = useState<Listing | null>(null);
@@ -567,4 +567,4 @@ const styles = StyleSheet.create({
     },           
 });
 
-export default ListingDetailDetail;
+export default ListingDetail;

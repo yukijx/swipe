@@ -243,18 +243,6 @@ const AuthRegister = ({ navigation }: { navigation: any }) => {
       />
       {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
       
-      <TouchableOpacity
-        style={[styles.roleButton, form.isFaculty && styles.roleButtonSelected]}
-        onPress={() => {
-          console.log('Toggling account type...');
-          setForm({ ...form, isFaculty: !form.isFaculty });
-        }}
-      >
-        <Text style={styles.roleButtonText}>
-          Register as: {form.isFaculty ? 'Professor' : 'Student'}
-        </Text>
-      </TouchableOpacity>
-      
       <View style={styles.roleButtonContainer}>
         <TouchableOpacity
           style={[
@@ -293,12 +281,12 @@ const AuthRegister = ({ navigation }: { navigation: any }) => {
             <Text style={styles.buttonText}>Register</Text>
           </TouchableOpacity>
           
-          <View style={styles.loginContainer}>
-            <Text style={{ color: textColor }}>Already have an account? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('AuthLogin')}>
-              <Text style={styles.loginText}>Log In</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity 
+            style={[styles.backButton, { marginTop: 10 }]}
+            onPress={() => navigation.navigate('AuthLogin')}
+          >
+            <Text style={styles.buttonText}>Back to Login</Text>
+          </TouchableOpacity>
         </>
       )}
     </View>
@@ -320,15 +308,17 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 5,
     borderRadius: 5,
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
   inputError: {
-    borderWidth: 1,
     borderColor: 'red',
   },
   errorText: {
     color: 'red',
     fontSize: 12,
     marginBottom: 10,
+    marginLeft: 5,
   },
   roleButtonContainer: {
     flexDirection: 'row',
@@ -337,14 +327,13 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   roleButton: {
-    backgroundColor: '#893030',
     flex: 1,
     padding: 15,
     borderWidth: 1,
     borderColor: '#893030',
     borderRadius: 5,
-    marginBottom: 20,
     alignItems: 'center',
+    backgroundColor: '#893030', 
   },
   roleButtonSelected: {
     backgroundColor: '#621010',
@@ -360,24 +349,20 @@ const styles = StyleSheet.create({
   registerButton: {
     backgroundColor: '#893030',
     padding: 15,
+    borderRadius: 5, 
+    alignItems: 'center',
+  },
+  backButton: {
+    backgroundColor: '#893030',
+    padding: 15,
     borderRadius: 5,
     alignItems: 'center',
-    marginTop: 10,
   },
   buttonText: {
     color: '#ffffff',
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  loginContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 20,
-  },
-  loginText: {
-    color: '#893030',
-    textDecorationLine: 'underline',
-  },
+  }
 });
 
 export default AuthRegister; 

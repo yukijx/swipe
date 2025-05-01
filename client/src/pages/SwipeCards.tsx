@@ -678,11 +678,12 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
     },
     card: {
-        width: '100%',
+        width: '90%',
         maxWidth: 350,
         height: 450,
         padding: 20,
         borderRadius: 15,
+        
         ...Platform.select({
             ios: {
         shadowColor: "#000",

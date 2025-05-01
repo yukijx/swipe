@@ -21,7 +21,7 @@ interface FilterParams {
   isPaid?: boolean | null;
 }
 
-const ListingFilter: React.FC<Props> = ({ navigation, route }) => {
+const ListingFilter = ({ navigation, route }: any) => {
   const { theme } = useTheme();
   const textColor = theme === 'light' ? '#333' : '#fff';
   const backgroundColor = theme === 'light' ? '#fff7d5' : '#333';

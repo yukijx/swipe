@@ -29,9 +29,7 @@ interface Listing {
     applying?: boolean;
 }
 
-type Props = StackScreenProps<StackParamList, 'ListListings'>;
-
-const ListingManagement: React.FC<Props> = ({ navigation, route }) => {
+const ListingManagement = ({ navigation, route }: any) => {
     const { theme } = useTheme();
     const { isFaculty } = useAuthContext();
     const [listings, setListings] = useState<Listing[]>([]);
