@@ -243,17 +243,33 @@ const Register = ({ navigation }: { navigation: any }) => {
       />
       {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
 
-      <TouchableOpacity
-        style={[styles.roleButton, form.isFaculty && styles.roleButtonActive]}
-        onPress={() => {
-          console.log('Toggling account type...');
-          setForm({ ...form, isFaculty: !form.isFaculty });
-        }}
-      >
-        <Text style={styles.roleButtonText}>
-          Register as: {form.isFaculty ? 'Professor' : 'Student'}
-        </Text>
-      </TouchableOpacity>
+      <View style={styles.roleButtonContainer}>
+        <TouchableOpacity
+          style={[
+            styles.roleButton,
+            {marginRight:10},
+            form.isFaculty && styles.roleButtonSelected
+          ]}
+          onPress={() => setForm({ ...form, isFaculty: true })}
+        >
+          <Text style={styles.roleButtonText}>
+            Register as a Faculty
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.roleButton,
+            !form.isFaculty && styles.roleButtonSelected
+          ]}
+          onPress={() => setForm({ ...form, isFaculty: false })}
+        >
+          <Text style={styles.roleButtonText}>
+            Register as a Student
+          </Text>
+        </TouchableOpacity>
+      </View>
+
 
       {isRegistering ? (
         <ActivityIndicator size="large" color="#893030" style={styles.loader} />
@@ -311,19 +327,28 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginLeft: 5,
   },
-  roleButton: {
-    backgroundColor: '#893030',
-    padding: 15,
-    borderRadius: 5,
-    marginBottom: 20,
-    alignItems: 'center',
+  roleButtonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+    marginTop: 5,
   },
-  roleButtonActive: {
+  roleButton: {
+    flex: 1,
+    padding: 15,
+    borderWidth: 1,
+    borderColor: '#893030',
+    borderRadius: 5,
+    alignItems: 'center',
+    backgroundColor: '#893030', 
+  },
+  roleButtonSelected: {
     backgroundColor: '#621010',
   },
   roleButtonText: {
     color: '#ffffff',
     fontSize: 16,
+    textAlign:'center',
   },
   loader: {
     marginVertical: 20,
