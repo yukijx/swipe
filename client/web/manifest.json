@@ -1,0 +1,15 @@
+{
+  "short_name": "Swipe",
+  "name": "Swipe Research Matching",
+  "icons": [
+    {
+      "src": "favicon.png",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/png"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#893030",
+  "background_color": "#fff7d5"
+} 
