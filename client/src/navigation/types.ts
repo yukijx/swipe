@@ -1,15 +1,41 @@
 export type StackParamList = {
   AppSettings: undefined;
   ChangePassword: undefined;
-  CreateFacultyProfile: undefined;
-  CreateListing: undefined;
+  CreateFacultyProfile: { facultyId?: string } | undefined;
+  CreateListing: {
+    isEditing?: boolean;
+    listing?: any;
+  } | undefined;
   DeveloperSettings: undefined;
   FacultyHome: undefined;
   FacultyMatches: undefined;
-  Filter: undefined;
+  Filter: { 
+    filterType?: string;
+    filters?: {
+      searchTerm?: string;
+      minWage?: string;
+      maxWage?: string;
+      wageType?: string;
+      durationMin?: string;
+      durationUnit?: string;
+      isPaid?: boolean | null;
+    }
+  } | undefined;
   Home: undefined;
-  Listing: { listingId: string };
-  ListListings: undefined;
+  Listing: { listingId: string } | undefined;
+  ListListings: { 
+    filter?: string;
+    filteredListings?: any[];
+    filters?: {
+      searchTerm?: string;
+      minWage?: string;
+      maxWage?: string;
+      wageType?: string;
+      durationMin?: string;
+      durationUnit?: string;
+      isPaid?: boolean | null;
+    }
+  } | undefined;
   Login: undefined;
   Matches: undefined;
   PrivacySettings: undefined;
@@ -18,7 +44,7 @@ export type StackParamList = {
   Register: undefined;
   Settings: undefined;
   SecuritySettings: undefined;
-  StudentInfo: { studentId: string };
+  StudentInfo: { studentId?: string } | undefined;
   StudentSetup: undefined;
   StudentSwipeHistory: undefined;
   Swipe: undefined;

@@ -37,6 +37,7 @@ import StudentSetup from '../pages/StudentSetup';
 import Swipe from '../pages/Swipe';
 import StudentSwipeHistory from '../pages/StudentSwipeHistory';
 import DeveloperSettings from '../components/DeveloperSettings';
+import Home from '../pages/Home';
 
 // Navigation
 import { StackParamList } from '../navigation/types';
@@ -135,7 +136,7 @@ const RootNavigator = () => {
           <Stack.Screen name="SecuritySettings" component={SecuritySettings} />
           <Stack.Screen name="Settings" component={Settings} />
           <Stack.Screen name="StudentInfo" component={StudentInfo} />
-          <Stack.Screen name="Home" component={Swipe} />
+          <Stack.Screen name="Home" component={Home} />
           <Stack.Screen name="StudentSwipeHistory" component={StudentSwipeHistory} />
           <Stack.Screen name="DeveloperSettings" component={DeveloperSettings} />
         </Stack.Navigator>

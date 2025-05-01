@@ -66,16 +66,19 @@ const StudentInfo = ({ navigation, route }: { navigation: any, route: any }) => 
                 return;
             }
             
+            // First get the backend URL
+            const backendURL = await getBackendURL();
+            
             // If faculty is viewing a student profile, fetch that specific student
             const endpoint = viewingOtherProfile 
-                ? `${getBackendURL()}/user/${viewingStudentId}` 
-                : `${getBackendURL()}/user/profile`;
+                ? `${backendURL}/user/${viewingStudentId}` 
+                : `${backendURL}/user/profile`;
                 
             console.log('Fetching profile from:', endpoint);
             
             const response = await axios.get(
                 endpoint,
-                { headers: { Authorization: token } }
+                { headers: { Authorization: `Bearer ${token}` } }
             );
             
             console.log('Profile data received, fields:', Object.keys(response.data));

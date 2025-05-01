@@ -85,8 +85,10 @@ const ListListings: React.FC<Props> = ({ navigation, route }) => {
             }
             
             console.log('Fetching via test endpoint as fallback');
+            // Properly await the getBackendURL call
+            const backendURL = await getBackendURL();
             const response = await axios.get(
-                `${getBackendURL()}/test/faculty-listings?token=${token}`
+                `${backendURL}/test/faculty-listings?token=${token}`
             );
             
             console.log('Test endpoint response:', response.status, response.statusText);
@@ -149,9 +151,12 @@ const ListListings: React.FC<Props> = ({ navigation, route }) => {
             
             // Different endpoints for faculty vs students - use the test endpoint for faculty that we know works
             let endpoint;
+            // Properly await the getBackendURL call
+            const backendURL = await getBackendURL();
+            
             if (isFaculty) {
                 // Use the test endpoint that we know works for faculty
-                endpoint = `${getBackendURL()}/test/faculty-listings?token=${token}`;
+                endpoint = `${backendURL}/test/faculty-listings?token=${token}`;
                 console.log(`Using test endpoint that works: ${endpoint}`);
                 
                 // Simple GET request with the token as a query parameter
@@ -167,7 +172,7 @@ const ListListings: React.FC<Props> = ({ navigation, route }) => {
                 }
             } else {
                 // For students, use the regular endpoint with Bearer token
-                endpoint = `${getBackendURL()}/listings`;
+                endpoint = `${backendURL}/listings`;
                 console.log(`Fetching listings from: ${endpoint}, as student`);
                 
                 const response = await axios.get(endpoint, {
@@ -221,7 +226,9 @@ const ListListings: React.FC<Props> = ({ navigation, route }) => {
             
             console.log(`Deleting listing: ${listingId}`);
             
-            await axios.delete(`${getBackendURL()}/listings/${listingId}`, {
+            // Properly await the getBackendURL call
+            const backendURL = await getBackendURL();
+            await axios.delete(`${backendURL}/listings/${listingId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             Alert.alert('Success', 'Listing deleted successfully');
@@ -314,8 +321,10 @@ const ListListings: React.FC<Props> = ({ navigation, route }) => {
             }
             
             // Record the user's interest by making a swipe right via the API
+            // Properly await the getBackendURL call
+            const backendURL = await getBackendURL();
             const response = await axios.post(
-                `${getBackendURL()}/swipe`,
+                `${backendURL}/swipe`,
                 { 
                     listingId: listingId, 
                     interested: true 
@@ -555,8 +564,10 @@ const ListListings: React.FC<Props> = ({ navigation, route }) => {
                                         }
                                         
                                         console.log('Checking debug endpoint for user ID:', userId);
+                                        // Properly await the getBackendURL call
+                                        const backendURL = await getBackendURL();
                                         const response = await axios.get(
-                                            `${getBackendURL()}/debug/faculty-listings/${userId}`
+                                            `${backendURL}/debug/faculty-listings/${userId}`
                                         );
                                         
                                         console.log('Debug endpoint response:', response.data);
@@ -591,8 +602,10 @@ const ListListings: React.FC<Props> = ({ navigation, route }) => {
                                         }
                                         
                                         console.log('Testing alternative endpoint with token');
+                                        // Properly await the getBackendURL call
+                                        const backendURL = await getBackendURL();
                                         const response = await axios.get(
-                                            `${getBackendURL()}/test/faculty-listings?token=${token}`
+                                            `${backendURL}/test/faculty-listings?token=${token}`
                                         );
                                         
                                         console.log('Test endpoint response:', response.data);
@@ -628,8 +641,10 @@ const ListListings: React.FC<Props> = ({ navigation, route }) => {
                                         
                                         // Validate the token
                                         console.log('Validating token...');
+                                        // Properly await the getBackendURL call
+                                        const validateBackendURL = await getBackendURL();
                                         const validateResponse = await axios.get(
-                                            `${getBackendURL()}/debug/validate-token?token=${token}`
+                                            `${validateBackendURL}/debug/validate-token?token=${token}`
                                         );
                                         
                                         console.log('Token validation response:', validateResponse.data);
@@ -655,8 +670,10 @@ const ListListings: React.FC<Props> = ({ navigation, route }) => {
                                                                 }
                                                                 
                                                                 // Call the refresh endpoint
+                                                                // Properly await the getBackendURL call
+                                                                const refreshBackendURL = await getBackendURL();
                                                                 const refreshResponse = await axios.post(
-                                                                    `${getBackendURL()}/refresh-token`,
+                                                                    `${refreshBackendURL}/refresh-token`,
                                                                     {
                                                                         userId: decodedPayload.id,
                                                                         email: decodedPayload.email,

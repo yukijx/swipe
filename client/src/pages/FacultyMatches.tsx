@@ -20,6 +20,8 @@ type Student = {
 type ListingTitle = {
     _id: string;
     title: string;
+    description?: string;
+    requirements?: string;
 };
 
 type SwipeStatus = {
@@ -38,6 +40,8 @@ const FacultyMatches: React.FC<{ navigation: any }> = ({ navigation }) => {
     const [matches, setMatches] = useState<Match[]>([]);
     const [activeFilter, setActiveFilter] = useState<'all' | 'pending' | 'accepted'>('all');
     const [loading, setLoading] = useState(true);
+    // Track which listings are expanded
+    const [expandedListings, setExpandedListings] = useState<{[key: string]: boolean}>({});
     const { theme } = useTheme();
     const { isFaculty } = useAuthContext();
     const textColor = theme === 'light' ? '#000' : '#fff';
@@ -80,6 +84,8 @@ const FacultyMatches: React.FC<{ navigation: any }> = ({ navigation }) => {
             }));
             
             setMatches(cleanedMatches);
+            // Reset expanded listings state when refreshing
+            setExpandedListings({});
         } catch (error) {
             console.error('Error fetching matches:', error);
             Alert.alert('Error', 'Failed to fetch student matches. Please try again.');
@@ -153,6 +159,13 @@ const FacultyMatches: React.FC<{ navigation: any }> = ({ navigation }) => {
         }
     };
 
+    const toggleListingExpanded = (listingId: string) => {
+        setExpandedListings(prev => ({
+            ...prev,
+            [listingId]: !prev[listingId]
+        }));
+    };
+
     const viewStudentProfile = (student: Student) => {
         // Navigate to StudentInfo with studentId
         navigation.navigate('StudentInfo', { studentId: student._id });
@@ -163,11 +176,32 @@ const FacultyMatches: React.FC<{ navigation: any }> = ({ navigation }) => {
         
         if (activeFilter === 'all') return matches;
         
-        return matches.filter(match => 
-            match.swipes && match.swipes.some(swipe => 
+        // First, filter out matches based on their swipe status
+        const filteredMatchesByStatus = matches.map(match => {
+            // For the 'pending' tab, only include swipes with pending status
+            // For the 'accepted' tab, only include swipes with accepted status
+            const filteredSwipes = match.swipes.filter(swipe => 
                 activeFilter === 'pending' ? swipe.status === 'pending' : swipe.status === 'accepted'
-            )
-        );
+            );
+            
+            // If there are no swipes that match the filter, don't include this student
+            if (filteredSwipes.length === 0) return null;
+            
+            // Only include listings that correspond to the filtered swipes
+            const filteredListingIds = filteredSwipes.map(swipe => swipe.listingId);
+            const filteredListings = match.listings.filter(listing => 
+                filteredListingIds.includes(listing._id)
+            );
+            
+            return {
+                ...match,
+                swipes: filteredSwipes,
+                listings: filteredListings
+            };
+        });
+        
+        // Remove null entries (students with no matching swipes)
+        return filteredMatchesByStatus.filter(match => match !== null) as Match[];
     };
 
     const renderMatchItem = ({ item }: { item: Match }) => {
@@ -206,16 +240,61 @@ const FacultyMatches: React.FC<{ navigation: any }> = ({ navigation }) => {
                                         swipe.status === 'pending' ? '⌛' : 
                                         swipe.status === 'accepted' ? '✓' : '✗';
                                     
+                                    const isExpanded = expandedListings[listing._id];
+                                    
                                     return (
                                         <View key={listing._id} style={styles.listingRow}>
-                                            <Text style={styles.listingItem} numberOfLines={1}>
-                                                <Text style={{fontWeight: 'bold'}}>{statusIcon} </Text>
-                                                {listing.title}
-                                            </Text>
-                                            {swipe && (
-                                                <Text style={[styles.statusBadge, { backgroundColor: statusColor }]}>
-                                                    {swipe.status.toUpperCase()}
+                                            <TouchableOpacity 
+                                                style={styles.listingTitleRow}
+                                                onPress={() => toggleListingExpanded(listing._id)}
+                                            >
+                                                <Text style={styles.listingItem} numberOfLines={1}>
+                                                    <Text style={{fontWeight: 'bold'}}>{statusIcon} </Text>
+                                                    {listing.title}
                                                 </Text>
+                                                {swipe && (
+                                                    <Text style={[styles.statusBadge, { backgroundColor: statusColor }]}>
+                                                        {swipe.status.toUpperCase()}
+                                                    </Text>
+                                                )}
+                                                <Text style={styles.expandCollapseIcon}>
+                                                    {isExpanded ? '▼' : '▶'}
+                                                </Text>
+                                            </TouchableOpacity>
+                                            
+                                            {isExpanded && listing && (
+                                                <View style={styles.expandedListingDetails}>
+                                                    {listing.description && (
+                                                        <>
+                                                            <Text style={styles.expandedSectionTitle}>Description:</Text>
+                                                            <Text style={styles.expandedText}>{listing.description}</Text>
+                                                        </>
+                                                    )}
+                                                    
+                                                    {listing.requirements && (
+                                                        <>
+                                                            <Text style={styles.expandedSectionTitle}>Requirements:</Text>
+                                                            <Text style={styles.expandedText}>{listing.requirements}</Text>
+                                                        </>
+                                                    )}
+                                                    
+                                                    {swipe && swipe.status === 'pending' && (
+                                                        <View style={styles.actionButtonRow}>
+                                                            <TouchableOpacity 
+                                                                style={[styles.actionButton, styles.acceptButton]}
+                                                                onPress={() => respondToSwipe(swipe._id, true)}
+                                                            >
+                                                                <Text style={styles.actionButtonText}>Accept</Text>
+                                                            </TouchableOpacity>
+                                                            <TouchableOpacity 
+                                                                style={[styles.actionButton, styles.rejectButton]}
+                                                                onPress={() => respondToSwipe(swipe._id, false)}
+                                                            >
+                                                                <Text style={styles.actionButtonText}>Decline</Text>
+                                                            </TouchableOpacity>
+                                                        </View>
+                                                    )}
+                                                </View>
                                             )}
                                         </View>
                                     );
@@ -232,39 +311,6 @@ const FacultyMatches: React.FC<{ navigation: any }> = ({ navigation }) => {
                         <Text style={styles.studentInfo}>Skills: {item.student?.skills || 'Not specified'}</Text>
                     </View>
                 </View>
-                
-                {hasSwipes && item.swipes.some(swipe => swipe.status === 'pending') && (
-                    <View style={styles.actionButtons}>
-                        {item.swipes
-                            .filter(swipe => swipe.status === 'pending')
-                            .map(swipe => {
-                                // Find the listing title for this swipe
-                                const listing = hasListings ? item.listings.find(l => l._id === swipe.listingId) : null;
-                                return (
-                                    <View key={swipe._id} style={styles.swipeAction}>
-                                        <Text style={styles.pendingText}>
-                                            Pending for: {listing?.title || 'Unknown listing'}
-                                        </Text>
-                                        <View style={styles.actionButtonRow}>
-                                            <TouchableOpacity 
-                                                style={[styles.actionButton, styles.acceptButton]}
-                                                onPress={() => respondToSwipe(swipe._id, true)}
-                                            >
-                                                <Text style={styles.actionButtonText}>Accept</Text>
-                                            </TouchableOpacity>
-                                            <TouchableOpacity 
-                                                style={[styles.actionButton, styles.rejectButton]}
-                                                onPress={() => respondToSwipe(swipe._id, false)}
-                                            >
-                                                <Text style={styles.actionButtonText}>Decline</Text>
-                                            </TouchableOpacity>
-                                        </View>
-                                    </View>
-                                );
-                            })
-                        }
-                    </View>
-                )}
                 
                 <View style={styles.contactRow}>
                     <TouchableOpacity 
@@ -503,11 +549,39 @@ const styles = StyleSheet.create({
         marginTop: 2,
     },
     listingRow: {
+        marginBottom: 5,
+        borderRadius: 4,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(0,0,0,0.1)',
+    },
+    listingTitleRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 3,
-        paddingRight: 2,
+        paddingHorizontal: 8,
+        paddingVertical: 6,
+        backgroundColor: 'rgba(0,0,0,0.02)',
+    },
+    expandCollapseIcon: {
+        fontSize: 12,
+        color: '#555',
+        marginLeft: 4,
+    },
+    expandedListingDetails: {
+        padding: 8,
+        backgroundColor: 'rgba(0,0,0,0.02)',
+    },
+    expandedSectionTitle: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: '#555',
+        marginBottom: 2,
+    },
+    expandedText: {
+        fontSize: 12,
+        color: '#333',
+        marginBottom: 8,
     },
     listingItem: {
         fontSize: 13,
@@ -542,6 +616,7 @@ const styles = StyleSheet.create({
     actionButtonRow: {
         flexDirection: 'row',
         justifyContent: 'flex-end',
+        marginTop: 6,
     },
     actionButton: {
         paddingVertical: 6,

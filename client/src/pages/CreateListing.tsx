@@ -9,6 +9,7 @@ import { ResponsiveContainer } from "../components/ResponsiveContainer";
 import { webStyles } from "../utils/webStyles";
 import { ResponsiveScreen } from '../components/ResponsiveScreen';
 import { getBackendURL } from "../utils/network";
+import { Picker } from '@react-native-picker/picker';
 
 const CreateListing = ({ navigation, route }: { navigation: any, route: any }) => {
     const { theme } = useTheme();
@@ -30,6 +31,9 @@ const CreateListing = ({ navigation, route }: { navigation: any, route: any }) =
             isPaid: existingListing?.wage?.isPaid ?? true
         }
     });
+
+    const durationOptions = ['days', 'weeks', 'months', 'years'];
+    const wageTypeOptions = ['hourly', 'weekly', 'monthly', 'total'];
 
     const handleSubmit = async () => {
         try {
@@ -69,8 +73,10 @@ const CreateListing = ({ navigation, route }: { navigation: any, route: any }) =
             
             if (isEditing) {
                 console.log(`Updating listing ${existingListing._id}`);
+                // Properly await the getBackendURL call
+                const backendURL = await getBackendURL();
                 await axios.put(
-                    `${getBackendURL()}/listings/${existingListing._id}`,
+                    `${backendURL}/listings/${existingListing._id}`,
                     formData,
                     { headers: { Authorization: `Bearer ${token}` } }
                 );
@@ -88,8 +94,10 @@ const CreateListing = ({ navigation, route }: { navigation: any, route: any }) =
                 console.log('Authorization header:', `Bearer ${token}`);
                 
                 try {
+                    // Properly await the getBackendURL call
+                    const backendURL = await getBackendURL();
                     const response = await axios.post(
-                        `${getBackendURL()}/listings/create`,
+                        `${backendURL}/listings/create`,
                         formData,
                         { 
                             headers: { 
@@ -147,6 +155,9 @@ const CreateListing = ({ navigation, route }: { navigation: any, route: any }) =
         OTransition: 'all 0.2s ease',
         msTransition: 'all 0.2s ease'
     } : {};
+    
+    const pickerBackgroundColor = theme === 'light' ? '#fff' : '#333';
+    const pickerTextColor = theme === 'light' ? '#000' : '#fff';
 
     return (
         <ResponsiveScreen 
@@ -185,6 +196,7 @@ const CreateListing = ({ navigation, route }: { navigation: any, route: any }) =
                 onChangeText={(text) => setListing({...listing, requirements: text})}
             />
             
+            <Text style={styles.sectionLabel}>Duration</Text>
             <View style={styles.durationContainer}>
                 <TextInput
                     style={[styles.input, styles.durationInput, webInputStyle]}
@@ -197,17 +209,46 @@ const CreateListing = ({ navigation, route }: { navigation: any, route: any }) =
                         duration: { ...listing.duration, value: text }
                     })}
                 />
-                <TextInput
-                    style={[styles.input, styles.durationInput, webInputStyle]}
-                    placeholder="Duration Unit (days/weeks/months/years)"
-                    value={listing.duration.unit}
-                    onChangeText={(text) => setListing({
-                        ...listing,
-                        duration: { ...listing.duration, unit: text }
-                    })}
-                />
+                <View style={[styles.pickerContainer, { backgroundColor: pickerBackgroundColor }]}>
+                    {Platform.OS === 'web' ? (
+                        <select
+                            value={listing.duration.unit}
+                            onChange={(e) => setListing({
+                                ...listing,
+                                duration: { ...listing.duration, unit: e.target.value }
+                            })}
+                            style={{
+                                height: 50,
+                                width: '100%',
+                                padding: 10,
+                                borderColor: '#893030',
+                                borderWidth: 1,
+                                backgroundColor: pickerBackgroundColor,
+                                color: pickerTextColor
+                            }}
+                        >
+                            {durationOptions.map(option => (
+                                <option key={option} value={option}>{option}</option>
+                            ))}
+                        </select>
+                    ) : (
+                        <Picker
+                            selectedValue={listing.duration.unit}
+                            onValueChange={(itemValue: string) => setListing({
+                                ...listing,
+                                duration: { ...listing.duration, unit: itemValue }
+                            })}
+                            style={{ height: 50, width: '100%', color: pickerTextColor }}
+                        >
+                            {durationOptions.map(option => (
+                                <Picker.Item key={option} label={option} value={option} />
+                            ))}
+                        </Picker>
+                    )}
+                </View>
             </View>
             
+            <Text style={styles.sectionLabel}>Compensation</Text>
             <View style={styles.wageContainer}>
                 <TextInput
                     style={[styles.input, styles.wageInput, webInputStyle]}
@@ -219,15 +260,43 @@ const CreateListing = ({ navigation, route }: { navigation: any, route: any }) =
                         wage: { ...listing.wage, amount: text }
                     })}
                 />
-                <TextInput
-                    style={[styles.input, styles.wageInput, webInputStyle]}
-                    placeholder="Wage Type (hourly/monthly/total)"
-                    value={listing.wage.type}
-                    onChangeText={(text) => setListing({
-                        ...listing,
-                        wage: { ...listing.wage, type: text }
-                    })}
-                />
+                <View style={[styles.pickerContainer, { backgroundColor: pickerBackgroundColor }]}>
+                    {Platform.OS === 'web' ? (
+                        <select
+                            value={listing.wage.type}
+                            onChange={(e) => setListing({
+                                ...listing,
+                                wage: { ...listing.wage, type: e.target.value }
+                            })}
+                            style={{
+                                height: 50,
+                                width: '100%',
+                                padding: 10,
+                                borderColor: '#893030',
+                                borderWidth: 1,
+                                backgroundColor: pickerBackgroundColor,
+                                color: pickerTextColor
+                            }}
+                        >
+                            {wageTypeOptions.map(option => (
+                                <option key={option} value={option}>{option}</option>
+                            ))}
+                        </select>
+                    ) : (
+                        <Picker
+                            selectedValue={listing.wage.type}
+                            onValueChange={(itemValue: string) => setListing({
+                                ...listing,
+                                wage: { ...listing.wage, type: itemValue }
+                            })}
+                            style={{ height: 50, width: '100%', color: pickerTextColor }}
+                        >
+                            {wageTypeOptions.map(option => (
+                                <Picker.Item key={option} label={option} value={option} />
+                            ))}
+                        </Picker>
+                    )}
+                </View>
                 <TouchableOpacity
                     style={[styles.isPaidButton, { backgroundColor: listing.wage.isPaid ? '#4CAF50' : '#f44336' }]}
                     onPress={() => setListing({
@@ -258,80 +327,92 @@ const CreateListing = ({ navigation, route }: { navigation: any, route: any }) =
 
 const styles = StyleSheet.create({
     contentContainer: {
-        alignItems: 'center',
-        minHeight: Platform.OS === 'web' ? '100%' : undefined,
-    },
-    scrollView: {
-        flex: 1,
-    },
-    container: {
         padding: 20,
-        alignItems: 'center' as const,
+        flex: 1
     },
     title: {
         fontSize: 24,
-        fontWeight: 'bold' as const,
+        fontWeight: 'bold',
         marginBottom: 20,
-        textAlign: 'center' as const,
+        textAlign: 'center'
     },
     input: {
-        backgroundColor: '#ffffff',
-        padding: 15,
-        borderRadius: 8,
+        height: 50,
+        borderRadius: 5,
+        paddingHorizontal: 10,
         marginBottom: 15,
-        width: '100%',
-        maxWidth: 500,
-        fontSize: 16,
+        backgroundColor: '#ffffff',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.2,
+        shadowRadius: 1,
+        color: '#000',
+        ...(Platform.OS === 'android' ? { elevation: 1 } : {})
     },
     multiline: {
         height: 120,
-        textAlignVertical: 'top' as const,
+        textAlignVertical: 'top',
+        paddingTop: 10
     },
     durationContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        width: '100%',
-        maxWidth: 500,
-        marginBottom: 15,
+        marginBottom: 15
     },
     durationInput: {
         flex: 1,
-        marginHorizontal: 5,
+        marginRight: 10
     },
     wageContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
-        width: '100%',
-        maxWidth: 500,
         marginBottom: 15,
+        flexWrap: 'wrap'
     },
     wageInput: {
         flex: 1,
-        marginHorizontal: 5,
+        marginRight: 10
     },
     isPaidButton: {
-        padding: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
         borderRadius: 5,
-        marginHorizontal: 5,
+        paddingHorizontal: 15,
+        height: 50
     },
     isPaidButtonText: {
         color: '#ffffff',
-        fontWeight: 'bold',
+        fontWeight: 'bold'
     },
     button: {
         backgroundColor: '#893030',
-        padding: 15,
-        borderRadius: 8,
-        width: '100%',
-        maxWidth: 500,
-        alignItems: 'center' as const,
-        marginTop: 10,
+        height: 50,
+        borderRadius: 5,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 20
     },
     buttonText: {
         color: '#ffffff',
-        fontSize: 18,
-        fontWeight: 'bold' as const,
+        fontSize: 16,
+        fontWeight: 'bold'
+    },
+    sectionLabel: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginBottom: 8,
+        marginTop: 5
+    },
+    pickerContainer: {
+        flex: 1.5,
+        borderRadius: 5,
+        height: 50,
+        justifyContent: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.2,
+        shadowRadius: 1,
+        ...(Platform.OS === 'android' ? { elevation: 1 } : {})
     }
 });
 
