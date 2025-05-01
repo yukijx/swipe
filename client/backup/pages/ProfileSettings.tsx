@@ -56,9 +56,9 @@ const ProfileSettings = ({ navigation }: { navigation: any }) => {
                 { headers: { Authorization: token } }
             );
             setProfileData(response.data);
-            if (response.data.profileImage?.url) {
-                setProfileImage(response.data.profileImage.url);
-            }
+            if (response.data.profileImage?.data && response.data.profileImage?.contentType) {
+                setProfileImage(`data:${response.data.profileImage.contentType};base64,${response.data.profileImage.data}`);
+            }              
         } catch (error) {
             console.error('Error fetching profile:', error);
             Alert.alert('Error', 'Failed to fetch profile');
@@ -102,55 +102,62 @@ const ProfileSettings = ({ navigation }: { navigation: any }) => {
       
         fetchProfile();
       }, []);      
-
-    const pickImage = async () => {
+      
+      const pickImage = async () => {
         const result = await ImagePicker.launchImageLibraryAsync({
           mediaTypes: ImagePicker.MediaTypeOptions.Images,
           allowsEditing: true,
           aspect: [1, 1],
           quality: 1,
+          base64: true,
         });
       
-        // This check ensures we actually picked an image
-        if (result.canceled || !result.assets || !result.assets[0]?.uri) {
+        if (result.canceled || !result.assets || !result.assets[0]?.base64) {
           Alert.alert('No image selected');
           return;
         }
       
-        const imageUri = result.assets[0].uri;
-      
         try {
           const token = await AsyncStorage.getItem('token');
-          const formData = new FormData();
-          formData.append('profileImage', {
-            uri: imageUri,
-            type: 'image/jpeg',
-            name: 'profile.jpg',
-          } as any);
       
           // Properly await the async getBackendURL call
           const backendURL = await getBackendURL();
           const uploadRes = await fetch(`${backendURL}/user/profile/image`, {
             method: 'POST',
             headers: {
-              'Content-Type': 'multipart/form-data',
+              'Content-Type': 'application/json',
               Authorization: token || '',
             },
-            body: formData,
+            body: JSON.stringify({
+              base64Image: result.assets[0].base64,
+              contentType: 'image/jpeg',
+            }),
           });
       
-          const data = await uploadRes.json();
+          const resText = await res.text();
       
-          if (data?.profileImage?.url) {
-            setProfileImage(data.profileImage.url); // show image on screen
-          } else {
-            Alert.alert('Upload failed', 'No image URL returned');
+          try {
+            const data = JSON.parse(resText);
+      
+            if (data?.profileImage?.data) {
+              setProfileImage(`data:${data.profileImage.contentType};base64,${data.profileImage.data}`);
+            } else {
+              Alert.alert('Upload failed', 'No image returned');
+            }
+          } catch (parseError) {
+            console.error('Failed to parse image upload response:', resText);
+            Alert.alert('Upload failed', 'Server error or invalid response');
           }
         } catch (error) {
+          console.error('Upload error:', error);
           console.error('Error uploading image:', error);
-          Alert.alert('Error', 'Failed to upload image');
+          Alert.alert('Upload Error', 'Failed to upload image');
         }
     };
+      
+      
+      
+      
       
     const handleWebImageUpload = async (event: any) => {
         const file = event.target.files?.[0];
@@ -185,7 +192,15 @@ const ProfileSettings = ({ navigation }: { navigation: any }) => {
       
     const renderProfileImage = () => (
         <View style={styles.imageContainer}>
-          <TouchableOpacity onPress={() => document.getElementById('fileInput')?.click()}>
+          <TouchableOpacity
+            onPress={() => {
+              if (Platform.OS === 'web') {
+                document.getElementById('fileInput')?.click();
+              } else {
+                pickImage();  // Use native picker
+              }
+            }}
+          >
             {profileImage ? (
               <Image source={{ uri: profileImage }} style={styles.profileImage} />
             ) : (
@@ -195,7 +210,6 @@ const ProfileSettings = ({ navigation }: { navigation: any }) => {
             )}
           </TouchableOpacity>
       
-          {/* Hidden input for web uploads */}
           {Platform.OS === 'web' && (
             <input
               type="file"

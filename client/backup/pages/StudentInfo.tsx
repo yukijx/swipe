@@ -96,8 +96,8 @@ const StudentInfo = ({ navigation, route }: { navigation: any, route: any }) => 
             }
             
             setProfileData(response.data);
-            if (response.data.profileImage?.url) {
-                setProfileImage(response.data.profileImage.url);
+            if (response.data.profileImage?.data && response.data.profileImage?.contentType) {
+                setProfileImage(`data:${response.data.profileImage.contentType};base64,${response.data.profileImage.data}`);
             }
         } catch (error: any) {
             console.error('Error fetching profile:', error);

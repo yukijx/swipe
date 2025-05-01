@@ -14,34 +14,45 @@ import { AuthProvider, useAuthContext } from '../context/AuthContext';
 // Components
 import NavBar from '../components/NavBar';
 
-// Pages
-import AppSettings from '../pages/AppSettings';
-import ChangePassword from '../pages/ChangePassword';
-import CreateFacultyProfile from '../pages/CreateFacultyProfile';
-import CreateListing from '../pages/CreateListing';
-import FacultyHome from '../pages/FacultyHome';
-import FacultyMatches from '../pages/FacultyMatches';
-import Filter from '../pages/Filter';
-import Listing from '../pages/Listing';
-import ListListings from '../pages/ListListings';
-import Login from '../pages/Login';
-import Matches from '../pages/Matches';
-import PrivacySettings from '../pages/PrivacySettings';
-import ProfessorSetup from '../pages/ProfessorSetup';
-import ProfileSettings from '../pages/ProfileSettings';
-import Register from '../pages/Register';
-import Settings from '../pages/Settings';
-import SecuritySettings from '../pages/SecuritySettings';
-import StudentInfo from '../pages/StudentInfo';
-import StudentSetup from '../pages/StudentSetup';
-import Swipe from '../pages/Swipe';
+// Auth pages
+import AuthLogin from '../pages/AuthLogin';
+import AuthRegister from '../pages/AuthRegister';
+import AuthChangePassword from '../pages/AuthChangePassword';
+
+// Profile pages
+import ProfileSetupStudent from '../pages/ProfileSetupStudent';
+import ProfileSetupFaculty from '../pages/ProfileSetupFaculty';
+import ProfileManagement from '../pages/ProfileManagement';
+import ProfileView from '../pages/ProfileView';
+
+// Home pages
+import HomeStudent from '../pages/HomeStudent';
+import HomeFaculty from '../pages/HomeFaculty';
+
+// Listing pages
+import ListingCreate from '../pages/ListingCreate';
+import ListingManagement from '../pages/ListingManagement';
+import ListingDetail from '../pages/ListingDetail';
+import ListingFilter from '../pages/ListingFilter';
+
+// Match & Swipe pages
+import SwipeCards from '../pages/SwipeCards';
+import StudentMatches from '../pages/StudentMatches';
+import FacultyInterestedStudents from '../pages/FacultyInterestedStudents';
 import StudentSwipeHistory from '../pages/StudentSwipeHistory';
+
+// Settings pages
+import SettingsMain from '../pages/SettingsMain';
+import SettingsApplication from '../pages/SettingsApplication';
+import SettingsSecurity from '../pages/SettingsSecurity';
+import SettingsPrivacy from '../pages/SettingsPrivacy';
+
+// Developer tools
 import DeveloperSettings from '../components/DeveloperSettings';
-import Home from '../pages/Home';
 
 // Navigation
-import { StackParamList } from '../navigation/types';
-import { navigationRef } from '../navigation/navigationRef';
+import { StackParamList } from './types';
+import { navigationRef } from './navigationRef';
 
 const Stack = createStackNavigator<StackParamList>();
 
@@ -102,10 +113,10 @@ const RootNavigator = () => {
   }
 
   const initialRoute: keyof StackParamList =
-    isAuthenticated ? (isFaculty ? 'FacultyHome' : 'Home') : 'Login';
+    isAuthenticated ? (isFaculty ? 'HomeFaculty' : 'HomeStudent') : 'AuthLogin';
 
   // Define which routes should hide the NavBar
-  const hideNavBarRoutes = ['Login', 'Register', 'ProfessorSetup', 'StudentSetup'];
+  const hideNavBarRoutes = ['AuthLogin', 'AuthRegister', 'ProfileSetupFaculty', 'ProfileSetupStudent'];
 
   return (
     <View style={{ flex: 1 }}>
@@ -116,31 +127,43 @@ const RootNavigator = () => {
 
       <View style={{ flex: 1 }}>
         <Stack.Navigator initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="Login" component={Login} />
-          <Stack.Screen name="Register" component={Register} />
-          <Stack.Screen name="ProfessorSetup" component={ProfessorSetup} />
-          <Stack.Screen name="StudentSetup" component={StudentSetup} />
-          <Stack.Screen name="FacultyHome" component={FacultyHome} />
-          <Stack.Screen name="Swipe" component={Swipe} />
-          <Stack.Screen name="Matches" component={Matches} />
-          <Stack.Screen name="FacultyMatches" component={FacultyMatches} />
-          <Stack.Screen name="ListListings" component={ListListings} />
-          <Stack.Screen name="ProfileSettings" component={ProfileSettings} />
-          <Stack.Screen name="AppSettings" component={AppSettings} />
-          <Stack.Screen name="ChangePassword" component={ChangePassword} />
-          <Stack.Screen name="CreateFacultyProfile" component={CreateFacultyProfile} />
-          <Stack.Screen name="CreateListing" component={CreateListing} />
-          <Stack.Screen name="Filter" component={Filter} />
-          <Stack.Screen name="Listing" component={Listing} />
-          <Stack.Screen name="PrivacySettings" component={PrivacySettings} />
-          <Stack.Screen name="SecuritySettings" component={SecuritySettings} />
-          <Stack.Screen name="Settings" component={Settings} />
-          <Stack.Screen name="StudentInfo" component={StudentInfo} />
-          <Stack.Screen name="Home" component={Home} />
+          {/* Auth Screens */}
+          <Stack.Screen name="AuthLogin" component={AuthLogin} />
+          <Stack.Screen name="AuthRegister" component={AuthRegister} />
+          <Stack.Screen name="AuthChangePassword" component={AuthChangePassword} />
+          
+          {/* Profile Setup & Management */}
+          <Stack.Screen name="ProfileSetupStudent" component={ProfileSetupStudent} />
+          <Stack.Screen name="ProfileSetupFaculty" component={ProfileSetupFaculty} />
+          <Stack.Screen name="ProfileManagement" component={ProfileManagement} />
+          <Stack.Screen name="ProfileView" component={ProfileView} />
+          
+          {/* Home Screens */}
+          <Stack.Screen name="HomeStudent" component={HomeStudent} />
+          <Stack.Screen name="HomeFaculty" component={HomeFaculty} />
+          
+          {/* Listing Management */}
+          <Stack.Screen name="ListingCreate" component={ListingCreate} />
+          <Stack.Screen name="ListingManagement" component={ListingManagement} />
+          <Stack.Screen name="ListingDetail" component={ListingDetail} />
+          <Stack.Screen name="ListingFilter" component={ListingFilter} />
+          
+          {/* Match & Swipe Related */}
+          <Stack.Screen name="SwipeCards" component={SwipeCards} />
+          <Stack.Screen name="StudentMatches" component={StudentMatches} />
+          <Stack.Screen name="FacultyInterestedStudents" component={FacultyInterestedStudents} />
           <Stack.Screen name="StudentSwipeHistory" component={StudentSwipeHistory} />
+          
+          {/* Settings Pages */}
+          <Stack.Screen name="SettingsMain" component={SettingsMain} />
+          <Stack.Screen name="SettingsApplication" component={SettingsApplication} />
+          <Stack.Screen name="SettingsSecurity" component={SettingsSecurity} />
+          <Stack.Screen name="SettingsPrivacy" component={SettingsPrivacy} />
+          
+          {/* Developer Tools */}
           <Stack.Screen name="DeveloperSettings" component={DeveloperSettings} />
         </Stack.Navigator>
       </View>
     </View>
   );
-};
+}; 

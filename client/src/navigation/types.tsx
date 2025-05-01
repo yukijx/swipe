@@ -1,32 +1,26 @@
 // In App.tsx or a separate types file
 export type StackParamList = {
-    // Screens with no params
-    Login: undefined;
-    Register: undefined;
-    Settings: undefined;
-    ProfileSettings: undefined;
-    SecuritySettings: undefined;
-    AppSettings: undefined;
-    Home: undefined;
-    FacultyHome: undefined;
-    StudentSetup: undefined;
-    ProfessorSetup: undefined;
-    Swipe: undefined;
-    Matches: undefined;
-    FacultyMatches: undefined;
-    PrivacySettings: undefined;
-    ChangePassword: undefined;
-  
-    // Screens with parameters
-    // (Adjust these as needed for your app)
-    StudentInfo: { studentId: string } | undefined;
-    CreateFacultyProfile: { facultyId?: string } | undefined;
-    CreateListing: {
+    // Auth Screens
+    AuthLogin: undefined;
+    AuthRegister: undefined;
+    AuthChangePassword: undefined;
+    
+    // Profile Setup & Management
+    ProfileSetupStudent: undefined;
+    ProfileSetupFaculty: undefined;
+    ProfileManagement: undefined;
+    ProfileView: { studentId: string } | undefined;
+    
+    // Home Screens
+    HomeStudent: undefined;
+    HomeFaculty: undefined;
+    
+    // Listing Management
+    ListingCreate: {
       isEditing?: boolean;
       listing?: any;
     };
-    Listing: { listingId: string } | undefined;
-    ListListings: { 
+    ListingManagement: { 
       filter?: string;
       filteredListings?: any[];
       filters?: {
@@ -39,7 +33,8 @@ export type StackParamList = {
         isPaid?: boolean | null;
       }
     } | undefined;
-    Filter: { 
+    ListingDetail: { listingId: string } | undefined;
+    ListingFilter: { 
       filterType?: string;
       filters?: {
         searchTerm?: string;
@@ -51,5 +46,19 @@ export type StackParamList = {
         isPaid?: boolean | null;
       }
     } | undefined;
-};
-  
+    
+    // Match & Swipe Related
+    SwipeCards: undefined;
+    StudentMatches: undefined;
+    FacultyInterestedStudents: undefined;
+    StudentSwipeHistory: undefined;
+    
+    // Settings Pages
+    SettingsMain: undefined;
+    SettingsApplication: undefined;
+    SettingsSecurity: undefined;
+    SettingsPrivacy: undefined;
+    
+    // Developer Tools
+    DeveloperSettings: undefined;
+}; 
