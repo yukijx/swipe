@@ -241,11 +241,7 @@ const Matches = ({ navigation }: { navigation: any }) => {
             <View style={styles.container}>
                 <View style={styles.headerContainer}>
                     <Text style={styles.title}>Your Accepted Matches</Text>
-                    <TouchableOpacity style={styles.refreshButton} onPress={fetchMatches}>
-                        <Text style={styles.refreshButtonText}>Refresh</Text>
-                    </TouchableOpacity>
                 </View>
-                
                 {matches.length === 0 ? (
                     <View style={styles.emptyContainer}>
                         <Text style={styles.emptyText}>No matches yet!</Text>
