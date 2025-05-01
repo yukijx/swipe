@@ -1,3 +1,5 @@
+//This page allows a user to change their password. 
+
 // Import React and useState hook for state management
 import React, { useState } from 'react';
 
