@@ -508,14 +508,25 @@ const ListingManagement = ({ navigation, route }: any) => {
                     {isFaculty ? 'My Listings' : 'Research Opportunities'}
                 </Text>
                 
-                <TouchableOpacity 
-                    style={styles.filterButton} 
-                    onPress={handleFilter}
-                >
-                    <Text style={styles.filterButtonText}>
-                        {isFiltered ? 'Modify Filters' : 'Filter'}
-                    </Text>
-                </TouchableOpacity>
+                <View style={styles.headerButtons}>
+                    {isFaculty && (
+                        <TouchableOpacity 
+                            style={styles.createHeaderButton} 
+                            onPress={() => navigation.navigate('ListingCreate', {})}
+                        >
+                            <Text style={styles.filterButtonText}>Create New</Text>
+                        </TouchableOpacity>
+                    )}
+                    
+                    <TouchableOpacity 
+                        style={styles.filterButton} 
+                        onPress={handleFilter}
+                    >
+                        <Text style={styles.filterButtonText}>
+                            {isFiltered ? 'Modify Filters' : 'Filter'}
+                        </Text>
+                    </TouchableOpacity>
+                </View>
             </View>
             
             {isFiltered && (
@@ -734,6 +745,17 @@ const styles = StyleSheet.create({
         fontSize: 24,
         fontWeight: 'bold',
         flex: 1,
+    },
+    headerButtons: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    createHeaderButton: {
+        backgroundColor: '#4CAF50',
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 20,
+        marginRight: 8,
     },
     filterButton: {
         backgroundColor: '#893030',

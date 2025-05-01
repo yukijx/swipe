@@ -68,6 +68,28 @@ const ListingCreate = ({ navigation, route }: { navigation: any, route: any }) =
                 return;
             }
             
+            // Verify token before proceeding
+            try {
+                console.log('Verifying token before creating listing...');
+                const backendURL = await getBackendURL();
+                const verifyResponse = await axios.get(
+                    `${backendURL}/test/verify-token`,
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+                
+                if (!verifyResponse.data.valid) {
+                    console.error('Token verification failed');
+                    Alert.alert('Authentication Error', 'Your session has expired. Please log in again.');
+                    navigation.navigate('AuthLogin');
+                    return;
+                }
+                
+                console.log('Token verified successfully. User role:', 
+                    verifyResponse.data.isFaculty ? 'Faculty' : 'Student');
+            } catch (verifyError) {
+                console.warn('Token verification endpoint not available, proceeding anyway');
+            }
+            
             console.log(`Creating/updating listing with token: ${token.substring(0, 10)}...`);
             console.log('Form data:', JSON.stringify(formData, null, 2));
             
@@ -96,48 +118,83 @@ const ListingCreate = ({ navigation, route }: { navigation: any, route: any }) =
                 try {
                     // Properly await the getBackendURL call
                     const backendURL = await getBackendURL();
-                    const response = await axios.post(
-                        `${backendURL}/listings/create`,
-                        formData,
-                        { 
-                            headers: { 
-                                Authorization: `Bearer ${token}`,
-                                'Content-Type': 'application/json'
+                    console.log(`Attempting to create listing at: ${backendURL}/listings/create`);
+                    console.log('Request payload:', JSON.stringify(formData));
+                    
+                    try {
+                        // First try the /listings/create endpoint
+                        const response = await axios.post(
+                            `${backendURL}/listings/create`,
+                            formData,
+                            { 
+                                headers: { 
+                                    Authorization: `Bearer ${token}`,
+                                    'Content-Type': 'application/json'
+                                }
                             }
-                        }
-                    );
-                    
-                    console.log('Server response:', response.status, response.statusText);
-                    console.log('Response data:', JSON.stringify(response.data, null, 2));
-                    
-                    // Navigate immediately to ListListings
-                    navigation.navigate('ListingManagement');
-                    
-                    // Then show the success alert
-                    Alert.alert(
-                        'Success', 
-                        'Listing created successfully'
-                    );
+                        );
+                        
+                        console.log('Server response:', response.status, response.statusText);
+                        console.log('Response data:', JSON.stringify(response.data, null, 2));
+                        
+                        // Navigate immediately to ListingManagement
+                        navigation.navigate('ListingManagement');
+                        
+                        // Then show the success alert
+                        Alert.alert(
+                            'Success', 
+                            'Listing created successfully'
+                        );
+                    } catch (error: any) {
+                        // If primary endpoint fails, try the test endpoint
+                        console.log('Primary endpoint failed, trying test endpoint');
+                        
+                        const testResponse = await axios.post(
+                            `${backendURL}/test/faculty-listings/create`,
+                            formData,
+                            { 
+                                headers: { 
+                                    Authorization: `Bearer ${token}`,
+                                    'Content-Type': 'application/json'
+                                }
+                            }
+                        );
+                        
+                        console.log('Test endpoint response:', testResponse.status, testResponse.statusText);
+                        console.log('Test response data:', JSON.stringify(testResponse.data, null, 2));
+                        
+                        // Navigate immediately to ListingManagement
+                        navigation.navigate('ListingManagement');
+                        
+                        // Then show the success alert
+                        Alert.alert(
+                            'Success', 
+                            'Listing created successfully (using test endpoint)'
+                        );
+                    }
                 } catch (error: any) {
                     console.error('Error creating listing:', error);
                     if (error.response) {
                         console.error('Response status:', error.response.status);
                         console.error('Response data:', JSON.stringify(error.response.data, null, 2));
+                        
+                        // Show specific error message from the server if available
+                        Alert.alert(
+                            'Error', 
+                            error.response.data?.error || error.response.data?.message || 'Failed to create listing'
+                        );
                     } else if (error.request) {
                         console.error('No response received:', error.request);
+                        Alert.alert('Network Error', 'No response received from server. Please check your connection.');
                     } else {
                         console.error('Error message:', error.message);
+                        Alert.alert('Error', error.message || 'Failed to create listing');
                     }
-                    throw error; // Re-throw to be caught by the outer catch block
                 }
             }
         } catch (error: any) {
             console.error('Error saving listing:', error);
-            if (error.response) {
-                console.error('Response data:', error.response.data);
-                console.error('Response status:', error.response.status);
-            }
-            Alert.alert('Error', error.response?.data?.error || 'Failed to save listing');
+            Alert.alert('Error', 'Failed to save listing. Please try again.');
         }
     };
 
