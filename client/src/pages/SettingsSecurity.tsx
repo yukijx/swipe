@@ -1,11 +1,52 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, Alert } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { ResponsiveScreen } from '../components/ResponsiveScreen';
+import { deleteAccount } from '../utils/accountManagement';
+import { useAuthContext } from '../context/AuthContext';
+import WebAlert from '../components/WebAlert';
 
 const SettingsSecurity = ({ navigation }: { navigation: any }) => {
     const { theme } = useTheme();
+    const { logout } = useAuthContext();
     const textColor = theme === 'light' ? '#893030' : '#ffffff';
+    const [showDeleteAlert, setShowDeleteAlert] = React.useState(false);
+
+    const handleDeleteAccount = async () => {
+        const success = await deleteAccount();
+        if (success) {
+            Alert.alert('Success', 'Your account has been deleted successfully.', [
+                { text: 'OK', onPress: async () => {
+                    await logout();
+                    navigation.reset({
+                        index: 0,
+                        routes: [{ name: 'AuthLogin' }],
+                    });
+                }}
+            ]);
+        } else {
+            Alert.alert('Error', 'Failed to delete your account. Please try again later.');
+        }
+    };
+
+    const confirmDeleteAccount = () => {
+        if (Platform.OS === 'web') {
+            setShowDeleteAlert(true);
+        } else {
+            Alert.alert(
+                'Delete Account',
+                'Are you sure you want to delete your account? This action cannot be undone.',
+                [
+                    { text: 'Cancel', style: 'cancel' },
+                    { 
+                        text: 'Delete', 
+                        onPress: handleDeleteAccount,
+                        style: 'destructive'
+                    }
+                ]
+            );
+        }
+    };
 
     const securityOptions = [
         {
@@ -43,6 +84,12 @@ const SettingsSecurity = ({ navigation }: { navigation: any }) => {
             description: 'Manage your data and storage settings',
             onPress: () => console.log('Data Settings'),
             icon: '💾'
+        },
+        {
+            title: 'Delete Account',
+            description: 'Permanently delete your account and all data',
+            onPress: confirmDeleteAccount,
+            icon: '⚠️'
         }
     ];
 
@@ -56,7 +103,8 @@ const SettingsSecurity = ({ navigation }: { navigation: any }) => {
                         key={index}
                         style={[
                             styles.option,
-                            { backgroundColor: theme === 'light' ? '#ffffff' : '#333' }
+                            { backgroundColor: theme === 'light' ? '#ffffff' : '#333' },
+                            option.title === 'Delete Account' && styles.dangerOption
                         ]}
                         onPress={option.onPress}
                     >
@@ -64,13 +112,15 @@ const SettingsSecurity = ({ navigation }: { navigation: any }) => {
                         <View style={styles.optionTextContainer}>
                             <Text style={[
                                 styles.optionTitle,
-                                { color: theme === 'light' ? '#893030' : '#ffffff' }
+                                { color: option.title === 'Delete Account' ? 
+                                    '#e74c3c' : (theme === 'light' ? '#893030' : '#ffffff') }
                             ]}>
                                 {option.title}
                             </Text>
                             <Text style={[
                                 styles.optionDescription,
-                                { color: theme === 'light' ? '#666666' : '#cccccc' }
+                                { color: option.title === 'Delete Account' ?
+                                    '#e74c3c99' : (theme === 'light' ? '#666666' : '#cccccc') }
                             ]}>
                                 {option.description}
                             </Text>
@@ -78,6 +128,28 @@ const SettingsSecurity = ({ navigation }: { navigation: any }) => {
                     </TouchableOpacity>
                 ))}
             </View>
+
+            <WebAlert
+                visible={showDeleteAlert}
+                title="Delete Account"
+                message="Are you sure you want to delete your account? This action cannot be undone."
+                buttons={[
+                    {
+                        text: 'Cancel',
+                        onPress: () => setShowDeleteAlert(false),
+                        style: 'cancel'
+                    },
+                    {
+                        text: 'Delete',
+                        onPress: () => {
+                            setShowDeleteAlert(false);
+                            handleDeleteAccount();
+                        },
+                        style: 'destructive'
+                    }
+                ]}
+                onClose={() => setShowDeleteAlert(false)}
+            />
         </ResponsiveScreen>
     );
 };
@@ -108,6 +180,10 @@ const styles = StyleSheet.create({
         ...(Platform.OS === 'web' ? {
             cursor: 'pointer' as any,
         } : {}),
+    },
+    dangerOption: {
+        borderWidth: 1,
+        borderColor: '#e74c3c',
     },
     optionIcon: {
         fontSize: 24,

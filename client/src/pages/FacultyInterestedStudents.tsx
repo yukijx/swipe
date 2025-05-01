@@ -24,6 +24,24 @@ type ListingTitle = {
     requirements?: string;
 };
 
+type FullListing = {
+    _id: string;
+    title: string;
+    description: string;
+    requirements: string;
+    duration: {
+        value: number;
+        unit: string;
+    };
+    wage: {
+        type: string;
+        amount: number;
+        isPaid: boolean;
+    };
+    facultyId: string;
+    createdAt: string;
+};
+
 type SwipeStatus = {
     _id: string;
     listingId: string;
@@ -42,10 +60,18 @@ const FacultyInterestedStudents: React.FC<{ navigation: any }> = ({ navigation }
     const [loading, setLoading] = useState(true);
     // Track which listings are expanded
     const [expandedListings, setExpandedListings] = useState<{[key: string]: boolean}>({});
+    // Store detailed listings data
+    const [listingDetails, setListingDetails] = useState<{[key: string]: FullListing}>({});
+    // Track if a specific listing is being loaded
+    const [loadingListings, setLoadingListings] = useState<{[key: string]: boolean}>({});
     const { theme } = useTheme();
     const { isFaculty } = useAuthContext();
     const textColor = theme === 'light' ? '#000' : '#fff';
     const backgroundColor = theme === 'light' ? '#fff' : '#333';
+    const subtextColor = theme === 'light' ? '#333' : '#ddd';
+    const mutedTextColor = theme === 'light' ? '#666' : '#bbb';
+    const cardBackgroundColor = theme === 'light' ? '#fff' : '#444';
+    const sectionBackgroundColor = theme === 'light' ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.1)';
 
     useEffect(() => {
         if (!isFaculty) {
@@ -159,11 +185,150 @@ const FacultyInterestedStudents: React.FC<{ navigation: any }> = ({ navigation }
         }
     };
 
-    const toggleListingExpanded = (listingId: string) => {
+    const toggleListingExpanded = async (listingId: string) => {
+        // Toggle expanded state
         setExpandedListings(prev => ({
             ...prev,
             [listingId]: !prev[listingId]
         }));
+        
+        // If we're expanding and don't have the full details yet, fetch them
+        if (!expandedListings[listingId] && !listingDetails[listingId]) {
+            try {
+                setLoadingListings(prev => ({
+                    ...prev,
+                    [listingId]: true
+                }));
+                
+                const token = await AsyncStorage.getItem('token');
+                if (!token) {
+                    throw new Error('No authentication token found');
+                }
+                
+                const backendURL = await getBackendURL();
+                
+                // First try the standard endpoint
+                try {
+                    const response = await axios.get(
+                        `${backendURL}/listings/${listingId}`,
+                        {
+                            headers: {
+                                Authorization: `Bearer ${token}`
+                            }
+                        }
+                    );
+                    
+                    if (response.data) {
+                        setListingDetails(prev => ({
+                            ...prev,
+                            [listingId]: response.data
+                        }));
+                    }
+                } catch (error) {
+                    console.log('Standard endpoint failed, trying alternative approaches...');
+                    
+                    // Try completely different endpoint patterns
+                    try {
+                        // Try the faculty-listings endpoint that works in ListingManagement
+                        const facultyResponse = await axios.get(
+                            `${backendURL}/test/faculty-listings?token=${token}`
+                        );
+                        
+                        if (facultyResponse.data && Array.isArray(facultyResponse.data)) {
+                            // Find the specific listing in the array
+                            const foundListing = facultyResponse.data.find(listing => listing._id === listingId);
+                            if (foundListing) {
+                                console.log('Found listing in faculty-listings array');
+                                setListingDetails(prev => ({
+                                    ...prev,
+                                    [listingId]: foundListing
+                                }));
+                                return; // Exit early if successful
+                            }
+                        }
+                        
+                        // If we didn't find the specific listing, throw an error to try next approach
+                        throw new Error('Listing not found in faculty-listings response');
+                    } catch (firstFallbackError) {
+                        console.log('First fallback failed, trying debug endpoint...');
+                        
+                        try {
+                            // Try a direct debug endpoint for a specific listing
+                            const debugResponse = await axios.get(
+                                `${backendURL}/debug/listing/${listingId}?token=${token}`
+                            );
+                            
+                            if (debugResponse.data) {
+                                setListingDetails(prev => ({
+                                    ...prev,
+                                    [listingId]: debugResponse.data
+                                }));
+                                return; // Exit early if successful
+                            }
+                            
+                            throw new Error('Debug endpoint returned no data');
+                        } catch (secondFallbackError) {
+                            // As a last resort, construct a minimal listing object from what we already know
+                            console.log('All API attempts failed, using minimal data');
+                            
+                            // Find the listing title info from our existing matches data
+                            let minimalListing = null;
+                            for (const match of matches) {
+                                const matchingListing = match.listings.find(l => l._id === listingId);
+                                if (matchingListing) {
+                                    minimalListing = {
+                                        _id: matchingListing._id,
+                                        title: matchingListing.title,
+                                        description: matchingListing.description || 'Description not available',
+                                        requirements: matchingListing.requirements || 'Requirements not available',
+                                        duration: { value: 0, unit: 'Not specified' },
+                                        wage: { type: 'Not specified', amount: 0, isPaid: false },
+                                        facultyId: '',
+                                        createdAt: new Date().toISOString()
+                                    };
+                                    break;
+                                }
+                            }
+                            
+                            if (minimalListing) {
+                                setListingDetails(prev => ({
+                                    ...prev,
+                                    [listingId]: minimalListing
+                                }));
+                                console.log('Using limited listing data available from matches');
+                            } else {
+                                throw new Error('Failed to retrieve or construct listing details');
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error(`Error fetching full listing details for ${listingId}:`, error);
+                
+                // More detailed error logging
+                if (axios.isAxiosError(error) && error.response) {
+                    console.error('Response status:', error.response.status);
+                    console.error('Response data:', error.response.data);
+                }
+                
+                Alert.alert(
+                    'Error', 
+                    'Failed to load full listing details. Please try again later.',
+                    [
+                        { 
+                            text: 'Debug Info', 
+                            onPress: () => Alert.alert('Listing ID', listingId)
+                        },
+                        { text: 'OK' }
+                    ]
+                );
+            } finally {
+                setLoadingListings(prev => ({
+                    ...prev,
+                    [listingId]: false
+                }));
+            }
+        }
     };
 
     const viewStudentProfile = (student: Student) => {
@@ -204,13 +369,34 @@ const FacultyInterestedStudents: React.FC<{ navigation: any }> = ({ navigation }
         return filteredMatchesByStatus.filter(match => match !== null) as Match[];
     };
 
+    const formatDuration = (duration: any) => {
+        if (!duration) return 'Not specified';
+        return `${duration.value} ${duration.unit}`;
+    };
+
+    const formatWage = (wage: any) => {
+        if (!wage) return 'Not specified';
+        if (!wage.isPaid) return 'Unpaid position';
+        return `$${wage.amount} per ${wage.type}`;
+    };
+
+    const formatDate = (dateString: string) => {
+        if (!dateString) return 'Unknown date';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+    };
+
     const renderMatchItem = ({ item }: { item: Match }) => {
         // Ensure item has all required arrays to prevent errors
         const hasListings = item.listings && item.listings.length > 0;
         const hasSwipes = item.swipes && item.swipes.length > 0;
 
         return (
-            <View style={[styles.matchCard, { backgroundColor }]}>
+            <View style={[styles.matchCard, { backgroundColor: cardBackgroundColor }]}>
                 <View style={styles.cardContent}>
                     <View style={styles.studentHeader}>
                         <Text style={[styles.studentName, { color: textColor }]}>
@@ -248,7 +434,7 @@ const FacultyInterestedStudents: React.FC<{ navigation: any }> = ({ navigation }
                                                 style={styles.listingTitleRow}
                                                 onPress={() => toggleListingExpanded(listing._id)}
                                             >
-                                                <Text style={styles.listingItem} numberOfLines={1}>
+                                                <Text style={[styles.listingItem, { color: textColor }]} numberOfLines={1}>
                                                     <Text style={{fontWeight: 'bold'}}>{statusIcon} </Text>
                                                     {listing.title}
                                                 </Text>
@@ -257,42 +443,97 @@ const FacultyInterestedStudents: React.FC<{ navigation: any }> = ({ navigation }
                                                         {swipe.status.toUpperCase()}
                                                     </Text>
                                                 )}
-                                                <Text style={styles.expandCollapseIcon}>
+                                                <Text style={[styles.expandCollapseIcon, { color: mutedTextColor }]}>
                                                     {isExpanded ? '▼' : '▶'}
                                                 </Text>
                                             </TouchableOpacity>
                                             
-                                            {isExpanded && listing && (
-                                                <View style={styles.expandedListingDetails}>
-                                                    {listing.description && (
-                                                        <>
-                                                            <Text style={styles.expandedSectionTitle}>Description:</Text>
-                                                            <Text style={styles.expandedText}>{listing.description}</Text>
-                                                        </>
-                                                    )}
-                                                    
-                                                    {listing.requirements && (
-                                                        <>
-                                                            <Text style={styles.expandedSectionTitle}>Requirements:</Text>
-                                                            <Text style={styles.expandedText}>{listing.requirements}</Text>
-                                                        </>
-                                                    )}
-                                                    
-                                                    {swipe && swipe.status === 'pending' && (
-                                                        <View style={styles.actionButtonRow}>
-                                                            <TouchableOpacity 
-                                                                style={[styles.actionButton, styles.acceptButton]}
-                                                                onPress={() => respondToSwipe(swipe._id, true)}
-                                                            >
-                                                                <Text style={styles.actionButtonText}>Accept</Text>
-                                                            </TouchableOpacity>
-                                                            <TouchableOpacity 
-                                                                style={[styles.actionButton, styles.rejectButton]}
-                                                                onPress={() => respondToSwipe(swipe._id, false)}
-                                                            >
-                                                                <Text style={styles.actionButtonText}>Decline</Text>
-                                                            </TouchableOpacity>
+                                            {isExpanded && (
+                                                <View style={[styles.expandedListingDetails, { backgroundColor: sectionBackgroundColor }]}>
+                                                    {loadingListings[listing._id] ? (
+                                                        <View style={styles.loadingListingDetails}>
+                                                            <ActivityIndicator size="small" color="#893030" />
+                                                            <Text style={[styles.loadingListingText, { color: mutedTextColor }]}>Loading details...</Text>
                                                         </View>
+                                                    ) : listingDetails[listing._id] ? (
+                                                        // Display full listing details
+                                                        <>
+                                                            <Text style={[styles.expandedSectionTitle, { color: subtextColor }]}>Description:</Text>
+                                                            <Text style={[styles.expandedText, { color: textColor }]}>
+                                                                {listingDetails[listing._id].description}
+                                                            </Text>
+                                                            
+                                                            <Text style={[styles.expandedSectionTitle, { color: subtextColor }]}>Requirements:</Text>
+                                                            <Text style={[styles.expandedText, { color: textColor }]}>
+                                                                {listingDetails[listing._id].requirements}
+                                                            </Text>
+                                                            
+                                                            <Text style={[styles.expandedSectionTitle, { color: subtextColor }]}>Duration:</Text>
+                                                            <Text style={[styles.expandedText, { color: textColor }]}>
+                                                                {formatDuration(listingDetails[listing._id].duration)}
+                                                            </Text>
+                                                            
+                                                            <Text style={[styles.expandedSectionTitle, { color: subtextColor }]}>Compensation:</Text>
+                                                            <Text style={[styles.expandedText, { color: textColor }]}>
+                                                                {formatWage(listingDetails[listing._id].wage)}
+                                                            </Text>
+                                                            
+                                                            <Text style={[styles.expandedSectionTitle, { color: subtextColor }]}>Posted:</Text>
+                                                            <Text style={[styles.expandedText, { color: textColor }]}>
+                                                                {formatDate(listingDetails[listing._id].createdAt)}
+                                                            </Text>
+                                                            
+                                                            {swipe && swipe.status === 'pending' && (
+                                                                <View style={styles.actionButtonRow}>
+                                                                    <TouchableOpacity 
+                                                                        style={[styles.actionButton, styles.acceptButton]}
+                                                                        onPress={() => respondToSwipe(swipe._id, true)}
+                                                                    >
+                                                                        <Text style={styles.actionButtonText}>Accept</Text>
+                                                                    </TouchableOpacity>
+                                                                    <TouchableOpacity 
+                                                                        style={[styles.actionButton, styles.rejectButton]}
+                                                                        onPress={() => respondToSwipe(swipe._id, false)}
+                                                                    >
+                                                                        <Text style={styles.actionButtonText}>Decline</Text>
+                                                                    </TouchableOpacity>
+                                                                </View>
+                                                            )}
+                                                        </>
+                                                    ) : (
+                                                        // Fallback to basic details if full details not available
+                                                        <>
+                                                            {listing.description && (
+                                                                <>
+                                                                    <Text style={[styles.expandedSectionTitle, { color: subtextColor }]}>Description:</Text>
+                                                                    <Text style={[styles.expandedText, { color: textColor }]}>{listing.description}</Text>
+                                                                </>
+                                                            )}
+                                                            
+                                                            {listing.requirements && (
+                                                                <>
+                                                                    <Text style={[styles.expandedSectionTitle, { color: subtextColor }]}>Requirements:</Text>
+                                                                    <Text style={[styles.expandedText, { color: textColor }]}>{listing.requirements}</Text>
+                                                                </>
+                                                            )}
+                                                            
+                                                            {swipe && swipe.status === 'pending' && (
+                                                                <View style={styles.actionButtonRow}>
+                                                                    <TouchableOpacity 
+                                                                        style={[styles.actionButton, styles.acceptButton]}
+                                                                        onPress={() => respondToSwipe(swipe._id, true)}
+                                                                    >
+                                                                        <Text style={styles.actionButtonText}>Accept</Text>
+                                                                    </TouchableOpacity>
+                                                                    <TouchableOpacity 
+                                                                        style={[styles.actionButton, styles.rejectButton]}
+                                                                        onPress={() => respondToSwipe(swipe._id, false)}
+                                                                    >
+                                                                        <Text style={styles.actionButtonText}>Decline</Text>
+                                                                    </TouchableOpacity>
+                                                                </View>
+                                                            )}
+                                                        </>
                                                     )}
                                                 </View>
                                             )}
@@ -301,14 +542,14 @@ const FacultyInterestedStudents: React.FC<{ navigation: any }> = ({ navigation }
                                 })}
                             </View>
                         ) : (
-                            <Text style={styles.noDataText}>No listing interest data available</Text>
+                            <Text style={[styles.noDataText, { color: mutedTextColor }]}>No listing interest data available</Text>
                         )}
                     </View>
                     
-                    <View style={styles.studentDetails}>
-                        <Text style={styles.studentInfo}>University: {item.student?.university || 'Not specified'}</Text>
-                        <Text style={styles.studentInfo}>Major: {item.student?.major || 'Not specified'}</Text>
-                        <Text style={styles.studentInfo}>Skills: {item.student?.skills || 'Not specified'}</Text>
+                    <View style={[styles.studentDetails, { backgroundColor: sectionBackgroundColor }]}>
+                        <Text style={[styles.studentInfo, { color: textColor }]}>University: {item.student?.university || 'Not specified'}</Text>
+                        <Text style={[styles.studentInfo, { color: textColor }]}>Major: {item.student?.major || 'Not specified'}</Text>
+                        <Text style={[styles.studentInfo, { color: textColor }]}>Skills: {item.student?.skills || 'Not specified'}</Text>
                     </View>
                 </View>
                 
@@ -339,7 +580,7 @@ const FacultyInterestedStudents: React.FC<{ navigation: any }> = ({ navigation }
         <ResponsiveScreen navigation={navigation} scrollable={false}>
             <View style={styles.container}>
                 <View style={styles.header}>
-                    <Text style={styles.title}>Interested Students</Text>
+                    <Text style={[styles.title, { color: '#893030' }]}>Interested Students</Text>
                 </View>
                 
                 <View style={styles.filterContainer}>
@@ -383,8 +624,8 @@ const FacultyInterestedStudents: React.FC<{ navigation: any }> = ({ navigation }
                 
                 {filteredMatches().length === 0 ? (
                     <View style={styles.emptyContainer}>
-                        <Text style={styles.emptyText}>No student matches found</Text>
-                        <Text style={styles.emptySubtext}>
+                        <Text style={[styles.emptyText, { color: '#893030' }]}>No student matches found</Text>
+                        <Text style={[styles.emptySubtext, { color: mutedTextColor }]}>
                             {activeFilter === 'all' 
                                 ? 'Students will appear here when they swipe right on your listings' 
                                 : activeFilter === 'pending'
@@ -511,14 +752,12 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     studentDetails: {
-        backgroundColor: 'rgba(0, 0, 0, 0.05)',
         padding: 6,
         borderRadius: 6,
         marginBottom: 4,
     },
     studentInfo: {
         fontSize: 14,
-        color: '#333',
         marginBottom: 2,
     },
     matchedListings: {
@@ -556,22 +795,18 @@ const styles = StyleSheet.create({
     },
     expandedListingDetails: {
         padding: 8,
-        backgroundColor: 'rgba(0,0,0,0.02)',
     },
     expandedSectionTitle: {
         fontSize: 12,
         fontWeight: 'bold',
-        color: '#555',
         marginBottom: 2,
     },
     expandedText: {
         fontSize: 12,
-        color: '#333',
         marginBottom: 8,
     },
     listingItem: {
         fontSize: 13,
-        color: '#333',
         flex: 1,
         paddingRight: 4,
     },
@@ -584,31 +819,28 @@ const styles = StyleSheet.create({
         borderRadius: 4,
         overflow: 'hidden',
     },
-    swipeAction: {
-        backgroundColor: 'rgba(0, 0, 0, 0.03)',
-        padding: 8,
-        borderRadius: 8,
-        marginBottom: 6,
+    loadingListingDetails: {
+        padding: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: 'row',
     },
-    pendingText: {
-        fontSize: 14,
-        color: '#555',
-        marginBottom: 6,
-        fontWeight: '500',
-    },
-    actionButtons: {
-        marginBottom: 10,
+    loadingListingText: {
+        fontSize: 12,
+        marginLeft: 8,
     },
     actionButtonRow: {
         flexDirection: 'row',
-        justifyContent: 'flex-end',
-        marginTop: 6,
+        justifyContent: 'space-between',
+        marginTop: 4,
     },
     actionButton: {
+        flex: 1,
         paddingVertical: 6,
         paddingHorizontal: 12,
         borderRadius: 4,
-        marginLeft: 8,
+        alignItems: 'center',
+        marginHorizontal: 4,
     },
     acceptButton: {
         backgroundColor: '#2ecc71',
@@ -644,12 +876,10 @@ const styles = StyleSheet.create({
     emptyText: {
         fontSize: 20,
         fontWeight: 'bold',
-        color: '#893030',
         marginBottom: 10,
     },
     emptySubtext: {
         fontSize: 16,
-        color: '#666',
         textAlign: 'center',
         marginBottom: 20,
     },
@@ -666,7 +896,6 @@ const styles = StyleSheet.create({
     },
     noDataText: {
         fontSize: 14,
-        color: '#666',
         textAlign: 'center',
     }
 });

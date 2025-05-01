@@ -24,6 +24,10 @@ const NavBar = ({ navigation }: { navigation: any }) => {
   const fontSize = Platform.OS === 'web' ? width * 0.012 : width * 0.045;
   const containerWidth = Platform.OS === 'web' ? 1000 : width * 0.92;
 
+  // Handle the back button press
+  const handleBackPress = () => {
+    navigation.goBack();
+  };
 
   return (
     <View
@@ -36,6 +40,14 @@ const NavBar = ({ navigation }: { navigation: any }) => {
       ]}
     >
       <View style={[styles.inner, { width: containerWidth }]}>
+        {/* Back button */}
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={handleBackPress}
+        >
+          <Text style={[styles.backIcon, { fontSize: fontSize * 1.5 }]}>←</Text>
+        </TouchableOpacity>
+        
         {/* Logo */}
         <TouchableOpacity
           style={styles.logoContainer}
@@ -99,8 +111,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     alignSelf: 'center',
   },
+  backButton: {
+    padding: 10,
+    width: 40,
+  },
+  backIcon: {
+    color: '#ffffff',
+    fontWeight: 'bold',
+  },
   logoContainer: {
     padding: 10,
+    flex: 1,
+    alignItems: 'center',
   },
   logo: {
     color: '#ffffff',
@@ -125,6 +147,7 @@ const styles = StyleSheet.create({
   },
   menuButton: {
     padding: 10,
+    width: 40,
   },
   menuIcon: {
     color: '#ffffff',
