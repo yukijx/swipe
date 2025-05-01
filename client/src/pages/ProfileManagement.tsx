@@ -79,7 +79,7 @@ const ProfileManagement = ({ navigation }: { navigation: any }) => {
                     text: 'OK', 
                     onPress: () => {
                         // Navigate to appropriate dashboard based on user type
-                        navigation.navigate(isFaculty ? 'FacultyHome' : 'Home');
+                        navigation.navigate(isFaculty ? 'HomeFaculty' : 'HomeStudent');
                     } 
                 }
             ]);
@@ -134,7 +134,7 @@ const ProfileManagement = ({ navigation }: { navigation: any }) => {
             }),
           });
       
-          const resText = await res.text();
+          const resText = await uploadRes.text();
       
           try {
             const data = JSON.parse(resText);

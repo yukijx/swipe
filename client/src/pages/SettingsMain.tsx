@@ -21,7 +21,7 @@ const SettingsMain = ({ navigation }: { navigation: any }) => {
             // Then call logout to update auth state
             await logout();
             // Finally navigate to login using replace instead of reset
-            navigation.replace('Login');
+            navigation.replace('AuthLogin');
         } catch (error) {
             console.error('Logout error:', error);
             Alert.alert('Error', 'Failed to logout');
