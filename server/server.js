@@ -31,7 +31,14 @@ const PYTHON_API_HOST = process.env.PYTHON_API_HOST || "localhost";
 const PYTHON_API_PORT = process.env.PYTHON_API_PORT || 5000;
 const pythonApiUrl = `http://${PYTHON_API_HOST}:${PYTHON_API_PORT}/match`;
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`=== SERVER STARTED ===`);
+  console.log(`Time: ${new Date().toISOString()}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`Port: ${PORT}`);
+  console.log(`Platform: Render`);
+  console.log(`=== READY FOR CONNECTIONS ===`);
+});
 
 // Connect to MongoDB (Single Connection)
 if (!process.env.MONGO_URI) {
@@ -2002,5 +2009,55 @@ app.get('/test/listings/batch', async (req, res) => {
         // Return empty array instead of error to prevent client crashes
         res.json([]);
     }
+});
+
+// Health check endpoint - useful for testing connections
+app.get('/health', (req, res) => {
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] Health check endpoint accessed from ${req.ip}`);
+  console.log(`[${timestamp}] User-Agent: ${req.get('user-agent')}`);
+  console.log(`[${timestamp}] Origin: ${req.get('origin') || 'Unknown'}`);
+  
+  res.status(200).json({ 
+    status: 'ok', 
+    message: 'Server is running properly',
+    timestamp: timestamp,
+    environment: process.env.NODE_ENV || 'development',
+    platform: 'render'
+  });
+});
+
+// Connection logging endpoint - useful for debugging
+app.get('/connection-log', (req, res) => {
+  const timestamp = new Date().toISOString();
+  const clientInfo = {
+    ip: req.ip,
+    headers: {
+      userAgent: req.get('user-agent'),
+      origin: req.get('origin') || 'Unknown',
+      referer: req.get('referer') || 'Unknown',
+      acceptLanguage: req.get('accept-language'),
+      host: req.get('host')
+    },
+    query: req.query,
+    timestamp: timestamp
+  };
+  
+  console.log('=======================================');
+  console.log(`CONNECTION LOG AT ${timestamp}`);
+  console.log('=======================================');
+  console.log('Client IP:', clientInfo.ip);
+  console.log('User-Agent:', clientInfo.headers.userAgent);
+  console.log('Origin:', clientInfo.headers.origin);
+  console.log('Referer:', clientInfo.headers.referer);
+  console.log('Host:', clientInfo.headers.host);
+  console.log('=======================================');
+  
+  // Return the information to the client as well
+  res.status(200).json({
+    message: 'Connection successfully logged',
+    serverTime: timestamp,
+    clientInfo: clientInfo
+  });
 });
 

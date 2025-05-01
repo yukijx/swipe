@@ -85,6 +85,10 @@ const DeveloperSettings = ({ navigation }: { navigation: any }) => {
     );
   };
 
+  const openBackendTest = () => {
+    navigation.navigate('DevBackendTest');
+  };
+
   return (
     <ResponsiveScreen navigation={navigation}>
       <View style={[styles.container, { backgroundColor }]}>
@@ -152,6 +156,13 @@ const DeveloperSettings = ({ navigation }: { navigation: any }) => {
             </TouchableOpacity>
           </View>
         )}
+
+        <TouchableOpacity
+          style={[styles.button, { backgroundColor: '#007bff' }]}
+          onPress={openBackendTest}
+        >
+          <Text style={styles.buttonText}>Test Backend Connection</Text>
+        </TouchableOpacity>
       </View>
     </ResponsiveScreen>
   );

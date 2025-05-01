@@ -50,6 +50,7 @@ import SettingsPrivacy from '../pages/SettingsPrivacy';
 
 // Developer tools
 import DeveloperSettings from '../components/DeveloperSettings';
+import DevBackendTest from '../pages/DevBackendTest';
 
 // Navigation
 // import { StackParamList } from './types';
@@ -183,6 +184,7 @@ const RootNavigator = () => {
           
           {/* Developer Tools */}
           <Stack.Screen name="DeveloperSettings" component={DeveloperSettings} />
+          <Stack.Screen name="DevBackendTest" component={DevBackendTest} />
         </Stack.Navigator>
       </View>
     </View>
