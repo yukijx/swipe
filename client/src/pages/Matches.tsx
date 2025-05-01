@@ -293,17 +293,6 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#893030',
     },
-    refreshButton: {
-        backgroundColor: '#893030',
-        paddingVertical: 6,
-        paddingHorizontal: 12,
-        borderRadius: 20,
-    },
-    refreshButtonText: {
-        color: '#fff',
-        fontSize: 14,
-        fontWeight: 'bold',
-    },
     listContainer: {
         padding: 15,
         paddingBottom: 30,
