@@ -16,8 +16,13 @@ import WebAlert from '../components/WebAlert';
 const HomeStudent = ({ navigation }: { navigation: any }) => {
   const { theme } = useTheme();
   const { logout } = useAuthContext();
-  const textColor = theme === 'light' ? '#893030' : '#ffffff';
   const [showAlert, setShowAlert] = useState(false);
+
+  // Themed styling variables
+  const backgroundColor = theme === 'light' ? '#fff7d5' : '#222';
+  const textColor = theme === 'light' ? '#893030' : '#ffffff';
+  const buttonColor = theme === 'light' ?'#893030': '#333';
+  const buttonTextColor = '#ffffff';
 
   // Logout logic
   const handleLogout = async () => {
@@ -50,55 +55,53 @@ const HomeStudent = ({ navigation }: { navigation: any }) => {
     }
   };
 
-  return (
-    <ResponsiveScreen navigation={navigation}>
-      <View style={styles.container}>
-        <Text style={[styles.title, { color: textColor }]}>MENU</Text>
+   return (
+    <ResponsiveScreen navigation={navigation} contentContainerStyle={[styles.container, { backgroundColor }]}>
+      <Text style={[styles.title, { color: textColor }]}>MENU</Text>
 
-        <View style={styles.buttonGroup}>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => navigation.navigate('ProfileView')}
-          >
-            <Text style={styles.buttonText}>Profile</Text>
-          </TouchableOpacity>
+      <View style={styles.buttonGroup}>
+        <TouchableOpacity
+          style={[styles.button, { backgroundColor: buttonColor }]}
+          onPress={() => navigation.navigate('ProfileView')}
+        >
+          <Text style={[styles.buttonText, { color: buttonTextColor }]}>Profile</Text>
+        </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => navigation.navigate('SwipeCards')}
-          >
-            <Text style={styles.buttonText}>Browse Opportunities</Text>
-          </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.button, { backgroundColor: buttonColor }]}
+          onPress={() => navigation.navigate('SwipeCards')}
+        >
+          <Text style={[styles.buttonText, { color: buttonTextColor }]}>Browse Opportunities</Text>
+        </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => navigation.navigate('StudentMatches')}
-          >
-            <Text style={styles.buttonText}>View My Matches</Text>
-          </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.button, { backgroundColor: buttonColor }]}
+          onPress={() => navigation.navigate('StudentMatches')}
+        >
+          <Text style={[styles.buttonText, { color: buttonTextColor }]}>View My Matches</Text>
+        </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => navigation.navigate('StudentSwipeHistory')}
-          >
-            <Text style={styles.buttonText}>Application History</Text>
-          </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.button, { backgroundColor: buttonColor }]}
+          onPress={() => navigation.navigate('StudentSwipeHistory')}
+        >
+          <Text style={[styles.buttonText, { color: buttonTextColor }]}>Application History</Text>
+        </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => navigation.navigate('SettingsMain')}
-          >
-            <Text style={styles.buttonText}>Settings</Text>
-          </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.button, { backgroundColor: buttonColor }]}
+          onPress={() => navigation.navigate('SettingsMain')}
+        >
+          <Text style={[styles.buttonText, { color: buttonTextColor }]}>Settings</Text>
+        </TouchableOpacity>
 
-          {/* 🔴 Logout Button */}
-          <TouchableOpacity
-            style={[styles.button, styles.button]}
-            onPress={confirmLogout}
-          >
-            <Text style={styles.buttonText}>Logout</Text>
-          </TouchableOpacity>
-        </View>
+        {/* Logout Button */}
+        <TouchableOpacity
+          style={[styles.button, { backgroundColor: buttonColor }]}
+          onPress={confirmLogout}
+        >
+          <Text style={[styles.buttonText, { color: buttonTextColor }]}>Logout</Text>
+        </TouchableOpacity>
       </View>
 
       <WebAlert
@@ -132,7 +135,6 @@ const styles = StyleSheet.create({
     gap: 15,
   },
   button: {
-    backgroundColor: '#893030',
     padding: 15,
     borderRadius: 8,
     width: '100%',
@@ -140,7 +142,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonText: {
-    color: '#ffffff',
     fontSize: 18,
     fontWeight: 'bold',
   },

@@ -44,8 +44,16 @@ const FacultyInterestedStudents: React.FC<{ navigation: any }> = ({ navigation }
     const [expandedListings, setExpandedListings] = useState<{[key: string]: boolean}>({});
     const { theme } = useTheme();
     const { isFaculty } = useAuthContext();
-    const textColor = theme === 'light' ? '#000' : '#fff';
+    
+    // Themed variables
+    const inputBackground = theme === 'light' ? '#ffffff' : '#333';
+    const inputTextColor = theme === 'light' ? '#000' : '#ffffff';
+    const placeholderTextColor = theme === 'light' ? '#666' : '#bbb';
+    const borderColor = theme === 'light' ? '#ddd' : '#000';
+    const buttonColor = '#893030';
+    const buttonTextColor = '#ffffff';
     const backgroundColor = theme === 'light' ? '#fff' : '#333';
+    const textColor = theme === 'light' ? '#000' : '#fff';
 
     useEffect(() => {
         if (!isFaculty) {
@@ -248,12 +256,12 @@ const FacultyInterestedStudents: React.FC<{ navigation: any }> = ({ navigation }
                                                 style={styles.listingTitleRow}
                                                 onPress={() => toggleListingExpanded(listing._id)}
                                             >
-                                                <Text style={styles.listingItem} numberOfLines={1}>
+                                                <Text style={[styles.listingItem,{color:textColor}]} numberOfLines={1}>
                                                     <Text style={{fontWeight: 'bold'}}>{statusIcon} </Text>
                                                     {listing.title}
                                                 </Text>
                                                 {swipe && (
-                                                    <Text style={[styles.statusBadge, { backgroundColor: statusColor }]}>
+                                                    <Text style={[styles.statusBadge, { backgroundColor: statusColor, color:textColor }]}>
                                                         {swipe.status.toUpperCase()}
                                                     </Text>
                                                 )}
@@ -266,15 +274,15 @@ const FacultyInterestedStudents: React.FC<{ navigation: any }> = ({ navigation }
                                                 <View style={styles.expandedListingDetails}>
                                                     {listing.description && (
                                                         <>
-                                                            <Text style={styles.expandedSectionTitle}>Description:</Text>
-                                                            <Text style={styles.expandedText}>{listing.description}</Text>
+                                                            <Text style={[styles.expandedSectionTitle,{color:textColor}]}>Description:</Text>
+                                                            <Text style={[styles.expandedText,{color: textColor}]}>{listing.description}</Text>
                                                         </>
                                                     )}
                                                     
                                                     {listing.requirements && (
                                                         <>
-                                                            <Text style={styles.expandedSectionTitle}>Requirements:</Text>
-                                                            <Text style={styles.expandedText}>{listing.requirements}</Text>
+                                                            <Text style={[styles.expandedSectionTitle,{color:textColor}]}>Requirements:</Text>
+                                                            <Text style={[styles.expandedText,{color: textColor}]}>{listing.requirements}</Text>
                                                         </>
                                                     )}
                                                     
@@ -306,9 +314,9 @@ const FacultyInterestedStudents: React.FC<{ navigation: any }> = ({ navigation }
                     </View>
                     
                     <View style={styles.studentDetails}>
-                        <Text style={styles.studentInfo}>University: {item.student?.university || 'Not specified'}</Text>
-                        <Text style={styles.studentInfo}>Major: {item.student?.major || 'Not specified'}</Text>
-                        <Text style={styles.studentInfo}>Skills: {item.student?.skills || 'Not specified'}</Text>
+                        <Text style={[styles.studentInfo,{ color: textColor }]}>University: {item.student?.university || 'Not specified'}</Text>
+                        <Text style={[styles.studentInfo,{ color: textColor }]}>Major: {item.student?.major || 'Not specified'}</Text>
+                        <Text style={[styles.studentInfo,{ color: textColor }]}>Skills: {item.student?.skills || 'Not specified'}</Text>
                     </View>
                 </View>
                 
@@ -417,8 +425,6 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: 20,
         paddingTop: 20,
@@ -427,19 +433,23 @@ const styles = StyleSheet.create({
         fontSize: 24,
         fontWeight: 'bold',
         color: '#893030',
+        textAlign: 'center',
+        marginVertical: 20,
     },
     filterContainer: {
         flexDirection: 'row',
         justifyContent: 'center',
         paddingVertical: 15,
         backgroundColor: 'transparent',
+   
     },
     filterButton: {
         paddingVertical: 6,
         paddingHorizontal: 15,
-        borderRadius: 20,
+        width: 100,
         marginHorizontal: 5,
         backgroundColor: '#f0f0f0',
+        borderRadius: 6,
     },
     activeFilterButton: {
         backgroundColor: '#893030',
@@ -447,6 +457,7 @@ const styles = StyleSheet.create({
     filterButtonText: {
         fontSize: 14,
         color: '#555',
+        textAlign: 'center',
     },
     activeFilterText: {
         color: '#fff',
@@ -502,7 +513,7 @@ const styles = StyleSheet.create({
     headerProfileButton: {
         paddingVertical: 6,
         paddingHorizontal: 12,
-        borderRadius: 20,
+        borderRadius: 6,
         backgroundColor: '#893030',
     },
     headerProfileButtonText: {
@@ -511,7 +522,7 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     studentDetails: {
-        backgroundColor: 'rgba(0, 0, 0, 0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.1)',
         padding: 6,
         borderRadius: 6,
         marginBottom: 4,
@@ -539,7 +550,7 @@ const styles = StyleSheet.create({
         borderRadius: 4,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: 'rgba(0,0,0,0.1)',
+        borderColor: 'rgba(0,0,0,0.25)',
     },
     listingTitleRow: {
         flexDirection: 'row',
@@ -547,7 +558,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: 8,
         paddingVertical: 6,
-        backgroundColor: 'rgba(0,0,0,0.02)',
+        backgroundColor: 'rgba(59, 56, 56, 0.96)',
     },
     expandCollapseIcon: {
         fontSize: 12,
