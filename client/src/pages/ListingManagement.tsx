@@ -729,17 +729,6 @@ const ListingManagement = ({ navigation, route }: any) => {
                   <ScrollView style={[styles.listContainer, { backgroundColor }]}>
                     {listings.map(renderListingItem)}
                   </ScrollView>
-                        
-                  {isFaculty && (
-                    <View style={{ flex: 1 }}>
-                      <TouchableOpacity
-                        style={styles.createBottomButton}
-                        onPress={() => navigation.navigate('ListingCreate')}
-                      >
-                        <Text style={styles.buttonText}>Create New Listing</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
                 </View>
               )}
             </ResponsiveScreen>
@@ -943,13 +932,6 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         fontSize: 16,
     },
-      createBottomButton: {
-        backgroundColor: '#893030',
-        paddingVertical: 12,
-        borderRadius: 8,
-        alignItems: 'center',
-      },
-      
 });
 
 export default ListingManagement;

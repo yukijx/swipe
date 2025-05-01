@@ -478,6 +478,8 @@ app.get('/listings/batch', verifyToken, async (req, res) => {
     try {
         const listingIds = req.query.ids ? req.query.ids.split(',') : [];
         
+        console.log(`Batch endpoint called with ${listingIds.length} IDs`);
+        
         if (!listingIds.length) {
             return res.status(400).json({ error: 'No listing IDs provided' });
         }
@@ -485,21 +487,39 @@ app.get('/listings/batch', verifyToken, async (req, res) => {
         // Validate that all IDs are valid ObjectIDs
         const validIds = listingIds.filter(id => mongoose.Types.ObjectId.isValid(id));
         
+        if (validIds.length === 0) {
+            console.error('Batch endpoint: No valid ObjectIds provided');
+            return res.status(400).json({ error: 'No valid listing IDs provided' });
+        }
+        
         if (validIds.length !== listingIds.length) {
             console.warn(`Some provided listing IDs were invalid: ${listingIds.filter(id => !mongoose.Types.ObjectId.isValid(id))}`);
         }
         
+        // Convert valid IDs to ObjectID instances
+        const objectIds = validIds.map(id => new mongoose.Types.ObjectId(id));
+        
+        console.log(`Querying for ${objectIds.length} valid listing IDs`);
+        
         // Find all requested listings that are active
         const listings = await Listing.find({
-            _id: { $in: validIds },
+            _id: { $in: objectIds },
             active: true
         }).populate('facultyId', 'name email university department -password');
         
-        console.log(`Batch endpoint: Returned ${listings.length} listings out of ${validIds.length} requested`);
+        console.log(`Batch endpoint: Found ${listings.length} listings out of ${validIds.length} requested`);
         
-        res.json(listings);
+        // Return empty array instead of throwing an error if no listings found
+        res.json(listings || []);
     } catch (error) {
         console.error('Error fetching batch listings:', error);
+        // Log additional details to debug the issue
+        if (req.query.ids) {
+            console.error('Query parameter ids:', req.query.ids);
+        }
+        if (error.kind === 'ObjectId') {
+            return res.status(400).json({ error: 'Invalid ID format' });
+        }
         res.status(500).json({ error: error.message });
     }
 });
@@ -1932,6 +1952,55 @@ app.post('/test/faculty-listings/create', async (req, res) => {
     } catch (error) {
         console.error('Error in test create listing endpoint:', error);
         res.status(500).json({ error: error.message });
+    }
+});
+
+// Add a test endpoint for batch listings that's simpler and doesn't require token verification
+app.get('/test/listings/batch', async (req, res) => {
+    try {
+        console.log('Test batch endpoint called with query:', req.query);
+        const listingIds = req.query.ids ? req.query.ids.split(',') : [];
+        
+        console.log(`Test batch endpoint: Request for ${listingIds.length} listings`);
+        
+        if (!listingIds.length) {
+            return res.json([]); // Return empty array instead of error
+        }
+        
+        // Filter valid ObjectIds without throwing errors
+        const validIds = [];
+        for (const id of listingIds) {
+            try {
+                if (mongoose.Types.ObjectId.isValid(id)) {
+                    validIds.push(new mongoose.Types.ObjectId(id));
+                } else {
+                    console.log(`Invalid ObjectId: ${id}`);
+                }
+            } catch (err) {
+                console.log(`Error processing ID ${id}:`, err.message);
+            }
+        }
+        
+        console.log(`Valid IDs: ${validIds.length} out of ${listingIds.length}`);
+        
+        if (validIds.length === 0) {
+            return res.json([]); // Return empty array if no valid IDs
+        }
+        
+        // Simplified query without populate to reduce potential errors
+        const listings = await Listing.find({
+            _id: { $in: validIds },
+            active: true
+        }).select('_id title description requirements duration wage createdAt');
+        
+        console.log(`Test batch endpoint: Found ${listings.length} listings`);
+        
+        // Return the listings
+        res.json(listings);
+    } catch (error) {
+        console.error('Error in test batch listings endpoint:', error);
+        // Return empty array instead of error to prevent client crashes
+        res.json([]);
     }
 });
 

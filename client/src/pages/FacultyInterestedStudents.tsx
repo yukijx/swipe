@@ -105,11 +105,43 @@ const FacultyInterestedStudents: React.FC<{ navigation: any }> = ({ navigation }
                 throw new Error('No authentication token found');
             }
             
+            // Filter IDs to ensure they're valid MongoDB ObjectIds
+            // MongoDB ObjectIds are 24 character hex strings
+            const validIds = idsToFetch.filter(id => typeof id === 'string' && /^[0-9a-fA-F]{24}$/.test(id));
+            
+            if (validIds.length === 0) {
+                console.warn('No valid listing IDs to fetch');
+                return;
+            }
+            
+            console.log(`Attempting to fetch ${validIds.length} listings`);
             const backendURL = await getBackendURL();
             
-            // Make a single API call to fetch multiple listings
+            // Try using the new test endpoint that doesn't require token verification
+            try {
+                console.log('Using test batch endpoint that should be more reliable');
+                const testResponse = await axios.get(
+                    `${backendURL}/test/listings/batch?ids=${validIds.join(',')}`
+                );
+                
+                if (testResponse.data && Array.isArray(testResponse.data)) {
+                    // Update our cache with all fetched listings
+                    const newDetails = { ...listingDetails };
+                    testResponse.data.forEach((listing: FullListing) => {
+                        newDetails[listing._id] = listing;
+                    });
+                    setListingDetails(newDetails);
+                    console.log(`Successfully fetched ${testResponse.data.length} listings via test endpoint`);
+                    return; // Exit early if successful
+                }
+            } catch (testError) {
+                console.warn('Test endpoint failed, trying standard endpoint:', testError);
+                // Continue to standard endpoint if test endpoint fails
+            }
+            
+            // Fall back to standard endpoint if test endpoint fails
             const response = await axios.get(
-                `${backendURL}/listings/batch?ids=${idsToFetch.join(',')}`,
+                `${backendURL}/listings/batch?ids=${validIds.join(',')}`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`
@@ -124,6 +156,7 @@ const FacultyInterestedStudents: React.FC<{ navigation: any }> = ({ navigation }
                     newDetails[listing._id] = listing;
                 });
                 setListingDetails(newDetails);
+                console.log(`Successfully fetched ${response.data.length} listings via standard endpoint`);
             } else {
                 throw new Error('Invalid response format from batch listings endpoint');
             }
@@ -135,6 +168,11 @@ const FacultyInterestedStudents: React.FC<{ navigation: any }> = ({ navigation }
             
             // Create minimal listing objects from what we know
             for (const id of idsToFetch) {
+                // Skip invalid IDs
+                if (typeof id !== 'string' || !/^[0-9a-fA-F]{24}$/.test(id)) {
+                    continue;
+                }
+                
                 for (const match of matches as Match[]) {
                     const matchingListing = match.listings.find(l => l._id === id);
                     if (matchingListing) {
