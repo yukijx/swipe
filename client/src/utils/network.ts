@@ -57,7 +57,7 @@ export const getBackendURL = async (): Promise<string> => {
   }
   
   // For production builds
-  return 'https://swipe-api.onrender.com';
+  return 'https://swipe-rdli.onrender.com';
 };
 
 /**
