@@ -125,42 +125,74 @@ const ProfileSetupFaculty = ({ navigation }: { navigation: any }) => {
 
   // Submit the full profile to the backend
   const handleSubmit = async () => {
+    console.log('Complete Setup button clicked');
+    
     if (!validateForm()) {
-      Alert.alert('Error', 'Please fill in all required fields');
-      return;
-    }
-
-    try {
-      setIsSubmitting(true);
-      const token = await AsyncStorage.getItem('token');
-      if (!token) {
-        goToLogin();
+        console.log('Form validation failed - required fields missing');
+        Alert.alert('Error', 'Please fill in all required fields');
         return;
-      }
-
-      await axios.post(`${getBackendURL()}/user/setup`, profile, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      await AsyncStorage.removeItem('token');
-      goToLogin();
-    } catch (error) {
-      await AsyncStorage.removeItem('token');
-      goToLogin();
-    } finally {
-      setIsSubmitting(false);
     }
-  };
 
-  // Clear nav stack and go to login
-  const goToLogin = () => {
+    console.log('Form validation passed, proceeding with submission');
+    
+    try {
+        setIsSubmitting(true);
+        console.log('Checking for authentication token');
+        const token = await AsyncStorage.getItem('token');
+        
+        if (!token) {
+            console.log('No token found, redirecting to Login');
+            // Navigate directly without alert
+            goToLogin();
+            return;
+        }
+        
+        console.log('Token found:', token.substring(0, 10) + '...');
+        console.log('Submitting professor profile data...');
+        console.log('Backend URL:', getBackendURL());
+        
+        console.log('Making API request to /user/setup');
+        const response = await axios.post(
+            `${getBackendURL()}/user/setup`, 
+            profile,
+            { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        console.log('Server response received:', response.status);
+        
+        // Clear token
+        console.log('Clearing authentication token');
+        await AsyncStorage.removeItem('token');
+        
+        // Navigate directly without alert
+        console.log('Navigating directly to Login');
+        goToLogin();
+        
+    } catch (error: any) {
+        console.error('Error saving profile:', error);
+        console.log('Error occurred during profile submission');
+        
+        // Navigate directly without alert even on error
+        console.log('Error occurred, but still navigating to Login');
+        await AsyncStorage.removeItem('token');
+        goToLogin();
+        
+    } finally {
+        setIsSubmitting(false);
+    }
+};
+
+// Function to go directly to login page with the most reliable method
+const goToLogin = () => {
+    console.log('Force navigating to Login using reset');
+    // Use the most direct and forceful navigation method
     navigation.dispatch(
-      CommonActions.reset({
-        index: 0,
-        routes: [{ name: 'Login' }],
-      })
+        CommonActions.reset({
+            index: 0,
+            routes: [{ name: 'AuthLogin' }],
+        })
     );
-  };
+};
 
   // Validate required fields only
   const validateForm = (): boolean => {
