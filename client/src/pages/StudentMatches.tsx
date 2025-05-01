@@ -241,9 +241,6 @@ const StudentMatches = ({ navigation }: { navigation: any }) => {
             <View style={styles.container}>
                 <View style={styles.headerContainer}>
                     <Text style={styles.title}>Your Accepted Matches</Text>
-                    <TouchableOpacity style={styles.refreshButton} onPress={fetchMatches}>
-                        <Text style={styles.refreshButtonText}>Refresh</Text>
-                    </TouchableOpacity>
                 </View>
                 
                 {matches.length === 0 ? (
@@ -296,17 +293,6 @@ const styles = StyleSheet.create({
         fontSize: 24,
         fontWeight: 'bold',
         color: '#893030',
-    },
-    refreshButton: {
-        backgroundColor: '#893030',
-        paddingVertical: 6,
-        paddingHorizontal: 12,
-        borderRadius: 20,
-    },
-    refreshButtonText: {
-        color: '#fff',
-        fontSize: 14,
-        fontWeight: 'bold',
     },
     listContainer: {
         padding: 15,

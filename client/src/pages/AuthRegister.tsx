@@ -139,10 +139,10 @@ const AuthRegister = ({ navigation }: { navigation: any }) => {
       Alert.alert('Success', 'Account created! Please complete your profile setup.');
       
       if (form.isFaculty) {
-        console.log('Navigating to ProfessorSetup');
+        console.log('Navigating to ProfileSetupFaculty');
         navigation.navigate('ProfileSetupFaculty');
       } else {
-        console.log('Navigating to StudentSetup');
+        console.log('Navigating to ProfileSetupStudent');
         navigation.navigate('ProfileSetupStudent');
       }
 
@@ -208,10 +208,10 @@ const AuthRegister = ({ navigation }: { navigation: any }) => {
         ]}
         placeholder="Email"
         placeholderTextColor={theme === 'light' ? '#666' : '#bbb'}
-        value={form.email}
-        onChangeText={(text) => setForm({ ...form, email: text })}
         keyboardType="email-address"
         autoCapitalize="none"
+        value={form.email}
+        onChangeText={(text) => setForm({ ...form, email: text })}
       />
       {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
       
@@ -242,9 +242,9 @@ const AuthRegister = ({ navigation }: { navigation: any }) => {
         onChangeText={(text) => setForm({ ...form, confirmPassword: text })}
       />
       {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
-
+      
       <TouchableOpacity
-        style={[styles.roleButton, form.isFaculty && styles.roleButtonActive]}
+        style={[styles.roleButton, form.isFaculty && styles.roleButtonSelected]}
         onPress={() => {
           console.log('Toggling account type...');
           setForm({ ...form, isFaculty: !form.isFaculty });
@@ -254,30 +254,51 @@ const AuthRegister = ({ navigation }: { navigation: any }) => {
           Register as: {form.isFaculty ? 'Professor' : 'Student'}
         </Text>
       </TouchableOpacity>
+      
+      <View style={styles.roleButtonContainer}>
+        <TouchableOpacity
+          style={[
+            styles.roleButton,
+            {marginRight:10},
+            form.isFaculty && styles.roleButtonSelected
+          ]}
+          onPress={() => setForm({ ...form, isFaculty: true })}
+        >
+          <Text style={styles.roleButtonText}>
+            Register as a Faculty
+          </Text>
+        </TouchableOpacity>
 
+        <TouchableOpacity
+          style={[
+            styles.roleButton,
+            !form.isFaculty && styles.roleButtonSelected
+          ]}
+          onPress={() => setForm({ ...form, isFaculty: false })}
+        >
+          <Text style={styles.roleButtonText}>
+            Register as a Student
+          </Text>
+        </TouchableOpacity>
+      </View>
+      
       {isRegistering ? (
         <ActivityIndicator size="large" color="#893030" style={styles.loader} />
       ) : (
         <>
           <TouchableOpacity 
             style={styles.registerButton}
-            onPress={() => {
-              console.log('Register button clicked');
-              handleRegister();
-            }}
+            onPress={handleRegister}
           >
             <Text style={styles.buttonText}>Register</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity 
-            style={[styles.backButton, { marginTop: 10 }]}
-            onPress={() => {
-              console.log('Back to Login button clicked');
-              navigation.navigate('AuthLogin');
-            }}
-          >
-            <Text style={styles.buttonText}>Back to Login</Text>
-          </TouchableOpacity>
+          <View style={styles.loginContainer}>
+            <Text style={{ color: textColor }}>Already have an account? </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('AuthLogin')}>
+              <Text style={styles.loginText}>Log In</Text>
+            </TouchableOpacity>
+          </View>
         </>
       )}
     </View>
@@ -299,31 +320,39 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 5,
     borderRadius: 5,
-    borderWidth: 1,
-    borderColor: 'transparent',
   },
   inputError: {
+    borderWidth: 1,
     borderColor: 'red',
   },
   errorText: {
     color: 'red',
     fontSize: 12,
     marginBottom: 10,
-    marginLeft: 5,
+  },
+  roleButtonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+    marginTop: 5,
   },
   roleButton: {
     backgroundColor: '#893030',
+    flex: 1,
     padding: 15,
+    borderWidth: 1,
+    borderColor: '#893030',
     borderRadius: 5,
     marginBottom: 20,
     alignItems: 'center',
   },
-  roleButtonActive: {
+  roleButtonSelected: {
     backgroundColor: '#621010',
   },
   roleButtonText: {
     color: '#ffffff',
     fontSize: 16,
+    textAlign:'center',
   },
   loader: {
     marginVertical: 20,
@@ -331,20 +360,24 @@ const styles = StyleSheet.create({
   registerButton: {
     backgroundColor: '#893030',
     padding: 15,
-    borderRadius: 5, 
-    alignItems: 'center',
-  },
-  backButton: {
-    backgroundColor: '#893030',
-    padding: 15,
     borderRadius: 5,
     alignItems: 'center',
+    marginTop: 10,
   },
   buttonText: {
     color: '#ffffff',
     fontSize: 16,
     fontWeight: 'bold',
-  }
+  },
+  loginContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 20,
+  },
+  loginText: {
+    color: '#893030',
+    textDecorationLine: 'underline',
+  },
 });
 
-export default AuthRegister;
+export default AuthRegister; 
