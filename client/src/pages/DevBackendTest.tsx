@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { testBackendConnection } from '../utils/testBackendConnection';
 import { useNavigation } from '@react-navigation/native';
 import ThemedView from '../components/ThemedView';
 import { StackActions } from '@react-navigation/native';
+import { forceProductionAPI } from '../utils/network';
 
 const DevBackendTest = () => {
   const [testResult, setTestResult] = useState<any>(null);
@@ -26,6 +27,40 @@ const DevBackendTest = () => {
         details: error
       });
     } finally {
+      setLoading(false);
+    }
+  };
+
+  const enableProductionAndTest = async () => {
+    try {
+      // Show confirmation alert
+      Alert.alert(
+        "Test Production Server",
+        "This will force your app to use the production server URL for testing. Continue?",
+        [
+          {
+            text: "Cancel",
+            style: "cancel"
+          },
+          {
+            text: "Continue", 
+            onPress: async () => {
+              setLoading(true);
+              // Enable production API mode
+              await forceProductionAPI(true);
+              // Run the test
+              await runTest();
+              Alert.alert(
+                "Production Mode Enabled",
+                "Your app is now using the production server. This setting will persist until you disable it in Developer Settings.",
+                [{ text: "OK" }]
+              );
+            }
+          }
+        ]
+      );
+    } catch (error) {
+      Alert.alert("Error", "Failed to enable production mode");
       setLoading(false);
     }
   };
@@ -79,11 +114,17 @@ const DevBackendTest = () => {
         </TouchableOpacity>
         
         <TouchableOpacity 
-          style={[styles.button, styles.backButton]} 
-          onPress={() => navigation.dispatch(StackActions.popToTop())}>
-          <Text style={styles.buttonText}>Back to Login</Text>
+          style={[styles.button, { backgroundColor: '#4CAF50' }]} 
+          onPress={enableProductionAndTest}>
+          <Text style={styles.buttonText}>Test Production Server</Text>
         </TouchableOpacity>
       </View>
+      
+      <TouchableOpacity 
+        style={[styles.button, styles.backButton, { marginTop: 10 }]} 
+        onPress={() => navigation.dispatch(StackActions.popToTop())}>
+        <Text style={styles.buttonText}>Back to Login</Text>
+      </TouchableOpacity>
     </ThemedView>
   );
 };

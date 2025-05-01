@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
-import { saveDevServerIP, clearDevServerIP } from '../utils/network';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, Platform, Switch } from 'react-native';
+import { saveDevServerIP, clearDevServerIP, forceProductionAPI, forceDevelopmentAPI } from '../utils/network';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../context/ThemeContext';
 import { ResponsiveScreen } from './ResponsiveScreen';
@@ -9,6 +9,8 @@ import { useAuthContext } from '../context/AuthContext';
 const DeveloperSettings = ({ navigation }: { navigation: any }) => {
   const [serverIP, setServerIP] = useState('');
   const [savedIP, setSavedIP] = useState<string | null>(null);
+  const [isProductionForced, setIsProductionForced] = useState(false);
+  const [isDevelopmentForced, setIsDevelopmentForced] = useState(false);
   const { theme } = useTheme();
   const textColor = theme === 'light' ? '#893030' : '#ffffff';
   const backgroundColor = theme === 'light' ? '#fff' : '#222';
@@ -17,6 +19,8 @@ const DeveloperSettings = ({ navigation }: { navigation: any }) => {
 
   useEffect(() => {
     loadSavedIP();
+    checkForceProduction();
+    checkForceDevelopment();
   }, []);
 
   const loadSavedIP = async () => {
@@ -26,6 +30,24 @@ const DeveloperSettings = ({ navigation }: { navigation: any }) => {
       if (ip) setServerIP(ip);
     } catch (e) {
       console.error('Failed to load saved IP', e);
+    }
+  };
+
+  const checkForceProduction = async () => {
+    try {
+      const forced = await AsyncStorage.getItem('force_production_api');
+      setIsProductionForced(forced === 'true');
+    } catch (e) {
+      console.error('Failed to check force production setting', e);
+    }
+  };
+
+  const checkForceDevelopment = async () => {
+    try {
+      const forced = await AsyncStorage.getItem('force_development_api');
+      setIsDevelopmentForced(forced === 'true');
+    } catch (e) {
+      console.error('Failed to check force development setting', e);
     }
   };
 
@@ -60,6 +82,46 @@ const DeveloperSettings = ({ navigation }: { navigation: any }) => {
       );
     } catch (e) {
       Alert.alert('Error', 'Failed to clear server IP');
+    }
+  };
+
+  const toggleForceProduction = async (value: boolean) => {
+    try {
+      await forceProductionAPI(value);
+      setIsProductionForced(value);
+      // Update the other switch since they're mutually exclusive
+      if (value) {
+        setIsDevelopmentForced(false);
+      }
+      Alert.alert(
+        value ? 'Production API Enabled' : 'Production API Disabled',
+        value 
+          ? 'The app will now use the production server URL. This is useful for testing connectivity with the deployed server.'
+          : 'The app will now use the default server selection logic.',
+        [{ text: 'OK' }]
+      );
+    } catch (e) {
+      Alert.alert('Error', 'Failed to update production API setting');
+    }
+  };
+
+  const toggleForceDevelopment = async (value: boolean) => {
+    try {
+      await forceDevelopmentAPI(value);
+      setIsDevelopmentForced(value);
+      // Update the other switch since they're mutually exclusive
+      if (value) {
+        setIsProductionForced(false);
+      }
+      Alert.alert(
+        value ? 'Development API Enabled' : 'Development API Disabled',
+        value 
+          ? 'The app will now use the development server URL only, bypassing the production server checks.'
+          : 'The app will now use the default server selection logic.',
+        [{ text: 'OK' }]
+      );
+    } catch (e) {
+      Alert.alert('Error', 'Failed to update development API setting');
     }
   };
 
@@ -133,12 +195,49 @@ const DeveloperSettings = ({ navigation }: { navigation: any }) => {
         </View>
         
         <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: textColor }]}>API Mode Selection</Text>
+          
+          <View style={styles.switchContainer}>
+            <Text style={[styles.switchLabel, { color: textColor }]}>Force Production API</Text>
+            <Switch
+              value={isProductionForced}
+              onValueChange={toggleForceProduction}
+              trackColor={{ false: '#767577', true: '#4CAF50' }}
+              thumbColor={isProductionForced ? '#fff' : '#f4f3f4'}
+            />
+          </View>
+          <Text style={[styles.switchDescription, { color: textColor }]}>
+            When enabled, the app will always use the production server URL.
+            This is useful for testing connectivity with the deployed server.
+          </Text>
+          
+          <View style={[styles.switchContainer, { marginTop: 15 }]}>
+            <Text style={[styles.switchLabel, { color: textColor }]}>Force Development API</Text>
+            <Switch
+              value={isDevelopmentForced}
+              onValueChange={toggleForceDevelopment}
+              trackColor={{ false: '#767577', true: '#ff9800' }}
+              thumbColor={isDevelopmentForced ? '#fff' : '#f4f3f4'}
+            />
+          </View>
+          <Text style={[styles.switchDescription, { color: textColor }]}>
+            When enabled, the app will always use your local development server without 
+            checking if the production server is available first.
+          </Text>
+          
+          <Text style={[styles.infoBox, { color: textColor }]}>
+            By default, the app will try the production server first and fall back 
+            to the development server if the production server is unavailable.
+          </Text>
+        </View>
+        
+        <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: textColor }]}>Connection Information</Text>
           <Text style={[styles.infoText, { color: textColor }]}>
             • Development server runs on port 8080 {'\n'}
+            • Production server is at {'\n'}  {RENDER_SERVER_URL} {'\n'}
             • Make sure your server and device are on the same network {'\n'}
-            • Check firewall settings if connection issues persist {'\n'}
-            • Restart the app after changing settings
+            • Check firewall settings if connection issues persist
           </Text>
         </View>
         
@@ -167,6 +266,9 @@ const DeveloperSettings = ({ navigation }: { navigation: any }) => {
     </ResponsiveScreen>
   );
 };
+
+// Make this variable available to the component
+const RENDER_SERVER_URL = 'https://swipe-rdli.onrender.com';
 
 const styles = StyleSheet.create({
   container: {
@@ -246,6 +348,27 @@ const styles = StyleSheet.create({
   },
   infoText: {
     lineHeight: 22,
+  },
+  switchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  switchLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  switchDescription: {
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  infoBox: {
+    backgroundColor: 'rgba(0,0,0,0.03)',
+    padding: 10,
+    borderRadius: 6,
+    marginTop: 10,
+    fontStyle: 'italic',
   },
 });
 
