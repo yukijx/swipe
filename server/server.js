@@ -9,12 +9,12 @@ const path = require('path');
 require('dotenv').config();
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(cors());
 app.use('/uploads', express.static('uploads'));
 
 
-const IP = process.env.SERVER_IP || 'localhost';
+const IP = process.env.SERVER_IP || 'localhost'; 
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey";
 const AES_SECRET = process.env.AES_SECRET || "your_aes_key_here";
@@ -25,7 +25,6 @@ const PYTHON_API_HOST = process.env.PYTHON_API_HOST || "localhost";
 const PYTHON_API_PORT = process.env.PYTHON_API_PORT || 5000;
 const pythonApiUrl = `http://${PYTHON_API_HOST}:${PYTHON_API_PORT}/match`;
 
-app.listen(PORT, IP, () => console.log(`Server running on http://${IP}:${PORT}`));
 
 // Connect to MongoDB (Single Connection)
 if (!process.env.MONGO_URI) {
@@ -92,8 +91,8 @@ const UserSchema = new mongoose.Schema({
 
     // Profile image
     profileImage: {
-        url: String,
-        publicId: String  // For Cloudinary reference
+        data: String,   // base64 string
+        contentType: String
     },
 
     // Privacy settings
@@ -785,46 +784,31 @@ app.put('/user/profile', verifyToken, async (req, res) => {
 });
 
 // Route to upload profile image
-app.post('/user/profile/image', verifyToken, upload.single('profileImage'), async (req, res) => {
+app.post('/user/profile/image', verifyToken, async (req, res) => {
     try {
-      if (!req.file) {
-        return res.status(400).json({ error: 'No file uploaded' });
-      }
-  
-      const imageUrl = `http://${IP}:${PORT}/uploads/${req.file.filename}`;
-      const userId = req.user.id;
-  
-      if (!userId) {
-        return res.status(401).json({ error: 'Missing user ID in token' });
-      }
-  
-      // Debugging logs
-      console.log('Uploading image for user:', userId);
-      console.log('Saving image URL:', imageUrl);
-  
-      // Ensure the field is created/updated even if it doesn't exist
-      const updatedUser = await User.findByIdAndUpdate(
-        userId,
-        {
-          $set: {
-            'profileImage.url': imageUrl,
-            updatedAt: new Date(),
-          }
-        },
-        { new: true, upsert: false }
-      );
-  
-      if (!updatedUser) {
-        return res.status(404).json({ error: 'User not found' });
-      }
-  
-      res.json({ profileImage: { url: updatedUser.profileImage.url } });
-  
+        const { base64Image, contentType } = req.body;
+        if (!base64Image || !contentType) {
+            return res.status(400).json({ error: 'Missing image data or type' });
+        }
+
+        const updatedUser = await User.findByIdAndUpdate(
+            req.user.id,
+            {
+                $set: {
+                    profileImage: { data: base64Image, contentType },
+                    updatedAt: new Date()
+                }
+            },
+            { new: true }
+        );
+
+        res.json({ profileImage: updatedUser.profileImage });
     } catch (error) {
-      console.error('Image upload error:', error);
-      res.status(500).json({ error: 'Failed to upload image' });
+        console.error('Base64 image upload error:', error);
+        res.status(500).json({ error: 'Failed to upload image' });
     }
-  });
+});
+
   
 
 
@@ -1506,5 +1490,7 @@ app.get('/swipes/history', verifyToken, async (req, res) => {
 });
 
 // Start Express Server (Only One `app.listen`)
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, IP, () => {
+    console.log(`Server running on http://${IP}:${PORT}`);
+  });
 
