@@ -10,9 +10,15 @@ require('dotenv').config();
 
 const app = express();
 app.use(express.json({ limit: '10mb' }));
-app.use(cors());
-app.use('/uploads', express.static('uploads'));
 
+// Update CORS configuration to be more comprehensive
+app.use(cors({
+  origin: '*', // Allow all origins
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+app.use('/uploads', express.static('uploads'));
 
 const IP = process.env.SERVER_IP || 'localhost';
 const PORT = process.env.PORT || 8080;
@@ -1490,11 +1496,13 @@ app.get('/swipes/history', verifyToken, async (req, res) => {
     }
 });
 
-// Add update swipe endpoint - allows students to change their mind
+// Update the swipe endpoint - allows students to change their mind
 app.post('/swipe/update', verifyToken, async (req, res) => {
     try {
         const { listingId, interested } = req.body;
         const studentId = req.user.id;
+        
+        console.log(`Swipe update request received: Student ID: ${studentId}, Listing ID: ${listingId}, Interested: ${interested}`);
         
         // Validate if user is a student
         const user = await User.findById(studentId);
@@ -1508,6 +1516,8 @@ app.post('/swipe/update', verifyToken, async (req, res) => {
             return res.status(404).json({ error: 'No swipe found for this listing' });
         }
         
+        console.log(`Existing swipe found: ${existingSwipe._id}, current interest status: ${existingSwipe.interested}`);
+        
         // Update the swipe with new interest status
         existingSwipe.interested = interested;
         
@@ -1517,6 +1527,7 @@ app.post('/swipe/update', verifyToken, async (req, res) => {
         }
         
         await existingSwipe.save();
+        console.log(`Swipe updated successfully: New interest status: ${existingSwipe.interested}`);
         
         res.status(200).json({ 
             message: 'Swipe updated successfully',

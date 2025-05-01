@@ -1,21 +1,27 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, Button, Alert, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, TextInput, Alert, StyleSheet, TouchableOpacity, Platform, ScrollView } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useAuthContext } from '../context/AuthContext';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import ThemedView from "../components/ThemedView";
-import { ResponsiveContainer } from "../components/ResponsiveContainer";
-import { webStyles } from "../utils/webStyles";
 import { ResponsiveScreen } from '../components/ResponsiveScreen';
 import { getBackendURL } from "../utils/network";
-import { Picker } from '@react-native-picker/picker';
 
 const ListingCreate = ({ navigation, route }: { navigation: any, route: any }) => {
     const { theme } = useTheme();
     const { isFaculty } = useAuthContext();
     const isEditing = route.params?.isEditing || false;
     const existingListing = route.params?.listing;
+
+    // Themed variables
+    const backgroundColor = theme === 'light' ? '#fff7d5' : '#222';
+    const textColor = theme === 'light' ? '#893030' : '#ffffff';
+    const inputBackground = theme === 'light' ? '#ffffff' : '#333';
+    const inputTextColor = theme === 'light' ? '#000' : '#ffffff';
+    const placeholderTextColor = theme === 'light' ? '#666' : '#bbb';
+    const borderColor = theme === 'light' ? '#ddd' : '#000';
+    const buttonColor = '#893030';
+    const buttonTextColor = '#ffffff';
 
     const [listing, setListing] = useState({
         title: existingListing?.title || '',
@@ -42,13 +48,11 @@ const ListingCreate = ({ navigation, route }: { navigation: any, route: any }) =
                 return;
             }
 
-            // Validate form data
             if (!listing.title || !listing.description || !listing.requirements) {
                 Alert.alert('Error', 'Please fill in all required fields');
                 return;
             }
 
-            // Convert duration value to number
             const formData = {
                 ...listing,
                 duration: {
@@ -90,65 +94,41 @@ const ListingCreate = ({ navigation, route }: { navigation: any, route: any }) =
                 console.warn('Token verification endpoint not available, proceeding anyway');
             }
             
-            console.log(`Creating/updating listing with token: ${token.substring(0, 10)}...`);
+            const backendURL = await getBackendURL();
             console.log('Form data:', JSON.stringify(formData, null, 2));
-            
+
             if (isEditing) {
-                console.log(`Updating listing ${existingListing._id}`);
-                // Properly await the getBackendURL call
-                const backendURL = await getBackendURL();
                 await axios.put(
                     `${backendURL}/listings/${existingListing._id}`,
                     formData,
                     { headers: { Authorization: `Bearer ${token}` } }
                 );
-                
-                // Navigate immediately to ListListings
                 navigation.navigate('ListingManagement');
-                
-                // Then show the success alert
-                Alert.alert(
-                    'Success', 
-                    'Listing updated successfully'
-                );
+                Alert.alert('Success', 'Listing updated successfully');
             } else {
                 console.log('Creating new listing');
-                console.log('Authorization header:', `Bearer ${token}`);
                 
                 try {
-                    // Properly await the getBackendURL call
-                    const backendURL = await getBackendURL();
-                    console.log(`Attempting to create listing at: ${backendURL}/listings/create`);
-                    console.log('Request payload:', JSON.stringify(formData));
+                    // First try the /listings/create endpoint
+                    const response = await axios.post(
+                        `${backendURL}/listings/create`,
+                        formData,
+                        { 
+                            headers: { 
+                                Authorization: `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            }
+                        }
+                    );
+                    
+                    console.log('Server response:', response.status);
+                    navigation.navigate('ListingManagement');
+                    Alert.alert('Success', 'Listing created successfully');
+                } catch (error: any) {
+                    // If primary endpoint fails, try the test endpoint
+                    console.log('Primary endpoint failed, trying test endpoint');
                     
                     try {
-                        // First try the /listings/create endpoint
-                        const response = await axios.post(
-                            `${backendURL}/listings/create`,
-                            formData,
-                            { 
-                                headers: { 
-                                    Authorization: `Bearer ${token}`,
-                                    'Content-Type': 'application/json'
-                                }
-                            }
-                        );
-                        
-                        console.log('Server response:', response.status, response.statusText);
-                        console.log('Response data:', JSON.stringify(response.data, null, 2));
-                        
-                        // Navigate immediately to ListingManagement
-                        navigation.navigate('ListingManagement');
-                        
-                        // Then show the success alert
-                        Alert.alert(
-                            'Success', 
-                            'Listing created successfully'
-                        );
-                    } catch (error: any) {
-                        // If primary endpoint fails, try the test endpoint
-                        console.log('Primary endpoint failed, trying test endpoint');
-                        
                         const testResponse = await axios.post(
                             `${backendURL}/test/faculty-listings/create`,
                             formData,
@@ -160,35 +140,19 @@ const ListingCreate = ({ navigation, route }: { navigation: any, route: any }) =
                             }
                         );
                         
-                        console.log('Test endpoint response:', testResponse.status, testResponse.statusText);
-                        console.log('Test response data:', JSON.stringify(testResponse.data, null, 2));
-                        
-                        // Navigate immediately to ListingManagement
+                        console.log('Test endpoint response:', testResponse.status);
                         navigation.navigate('ListingManagement');
-                        
-                        // Then show the success alert
-                        Alert.alert(
-                            'Success', 
-                            'Listing created successfully (using test endpoint)'
-                        );
-                    }
-                } catch (error: any) {
-                    console.error('Error creating listing:', error);
-                    if (error.response) {
-                        console.error('Response status:', error.response.status);
-                        console.error('Response data:', JSON.stringify(error.response.data, null, 2));
-                        
-                        // Show specific error message from the server if available
-                        Alert.alert(
-                            'Error', 
-                            error.response.data?.error || error.response.data?.message || 'Failed to create listing'
-                        );
-                    } else if (error.request) {
-                        console.error('No response received:', error.request);
-                        Alert.alert('Network Error', 'No response received from server. Please check your connection.');
-                    } else {
-                        console.error('Error message:', error.message);
-                        Alert.alert('Error', error.message || 'Failed to create listing');
+                        Alert.alert('Success', 'Listing created successfully');
+                    } catch (finalError: any) {
+                        console.error('Error creating listing:', finalError);
+                        if (finalError.response) {
+                            Alert.alert(
+                                'Error', 
+                                finalError.response.data?.error || 'Failed to create listing'
+                            );
+                        } else {
+                            Alert.alert('Network Error', 'Please check your connection and try again.');
+                        }
                     }
                 }
             }
@@ -198,186 +162,148 @@ const ListingCreate = ({ navigation, route }: { navigation: any, route: any }) =
         }
     };
 
-    const webInputStyle = Platform.OS === 'web' ? {
-        borderColor: '#893030',
-        borderWidth: 1,
-        outlineWidth: 0,
-        outlineStyle: 'none'
-    } : {};
-
-    const webButtonStyle = Platform.OS === 'web' ? {
-        cursor: 'pointer' as const,
-        WebkitTransition: 'all 0.2s ease',
-        MozTransition: 'all 0.2s ease',
-        OTransition: 'all 0.2s ease',
-        msTransition: 'all 0.2s ease'
-    } : {};
-    
-    const pickerBackgroundColor = theme === 'light' ? '#fff' : '#333';
-    const pickerTextColor = theme === 'light' ? '#000' : '#fff';
-
     return (
         <ResponsiveScreen 
             navigation={navigation}
-            contentContainerStyle={styles.contentContainer}
+            contentContainerStyle={[styles.contentContainer, { backgroundColor }]}
         >
-            <Text style={[styles.title, { color: theme === 'light' ? '#893030' : '#fff' }]}>
-                {isEditing ? "Edit Listing" : "Create Listing"}
-            </Text>
+            <ScrollView showsVerticalScrollIndicator={false}>
+                <Text style={[styles.title, { color: textColor }]}> 
+                    {isEditing ? "Edit Listing" : "Create Listing"}
+                </Text>
 
-            <TextInput
-                style={[styles.input, webInputStyle]}
-                placeholder="Research Title"
-                placeholderTextColor={theme === 'light' ? '#666' : '#999'}
-                value={listing.title}
-                onChangeText={(text) => setListing({...listing, title: text})}
-            />
-            
-            <TextInput
-                style={[styles.input, styles.multiline, webInputStyle]}
-                placeholder="Description"
-                placeholderTextColor={theme === 'light' ? '#666' : '#999'}
-                multiline
-                numberOfLines={4}
-                value={listing.description}
-                onChangeText={(text) => setListing({...listing, description: text})}
-            />
-            
-            <TextInput
-                style={[styles.input, styles.multiline, webInputStyle]}
-                placeholder="Requirements"
-                placeholderTextColor={theme === 'light' ? '#666' : '#999'}
-                multiline
-                numberOfLines={4}
-                value={listing.requirements}
-                onChangeText={(text) => setListing({...listing, requirements: text})}
-            />
-            
-            <Text style={styles.sectionLabel}>Duration</Text>
-            <View style={styles.durationContainer}>
+                <Text style={[styles.sectionLabel, { color: textColor }]}>Title</Text>
                 <TextInput
-                    style={[styles.input, styles.durationInput, webInputStyle]}
-                    placeholder="Duration Value"
-                    placeholderTextColor={theme === 'light' ? '#666' : '#999'}
-                    keyboardType="numeric"
-                    value={listing.duration.value.toString()}
-                    onChangeText={(text) => setListing({
-                        ...listing,
-                        duration: { ...listing.duration, value: text }
-                    })}
+                    style={[styles.input, { backgroundColor: inputBackground, color: inputTextColor, borderColor }]}
+                    placeholder="Research Title"
+                    placeholderTextColor={placeholderTextColor}
+                    value={listing.title}
+                    onChangeText={(text) => setListing({...listing, title: text})}
                 />
-                <View style={[styles.pickerContainer, { backgroundColor: pickerBackgroundColor }]}>
-                    {Platform.OS === 'web' ? (
-                        <select
+
+                <Text style={[styles.sectionLabel, { color: textColor }]}>Description</Text>
+                <TextInput
+                    style={[styles.input, styles.multiline, { backgroundColor: inputBackground, color: inputTextColor, borderColor }]}
+                    placeholder="Description"
+                    placeholderTextColor={placeholderTextColor}
+                    multiline
+                    numberOfLines={4}
+                    value={listing.description}
+                    onChangeText={(text) => setListing({...listing, description: text})}
+                />
+
+                <Text style={[styles.sectionLabel, { color: textColor }]}>Requirements</Text>
+                <TextInput
+                    style={[styles.input, styles.multiline, { backgroundColor: inputBackground, color: inputTextColor, borderColor }]}
+                    placeholder="Requirements"
+                    placeholderTextColor={placeholderTextColor}
+                    multiline
+                    numberOfLines={4}
+                    value={listing.requirements}
+                    onChangeText={(text) => setListing({...listing, requirements: text})}
+                />
+
+                <Text style={[styles.sectionLabel, { color: textColor }]}>Duration</Text>
+                <View style={styles.durationContainer}>
+                    <TextInput
+                        style={[styles.input, styles.durationInput, { backgroundColor: inputBackground, color: inputTextColor, borderColor }]}
+                        placeholder="Duration Value"
+                        placeholderTextColor={placeholderTextColor}
+                        keyboardType="numeric"
+                        value={listing.duration.value.toString()}
+                        onChangeText={(text) => setListing({
+                            ...listing,
+                            duration: { ...listing.duration, value: text }
+                        })}
+                    />
+                    <View style={[styles.pickerContainer, { backgroundColor: inputBackground, borderColor, width: 120 }]}> 
+                        <TextInput
+                            style={{
+                                height: 50,
+                                paddingHorizontal: 10,
+                                color: inputTextColor,
+                                borderWidth: 0,
+                                width: '100%',
+                                textAlignVertical: 'center',
+                                includeFontPadding: false,
+                            }}
                             value={listing.duration.unit}
-                            onChange={(e) => setListing({
-                                ...listing,
-                                duration: { ...listing.duration, unit: e.target.value }
-                            })}
+                            onFocus={() =>
+                                Alert.alert('Select Duration Unit', '', [
+                                    ...durationOptions.map(option => ({
+                                        text: option,
+                                        onPress: () =>
+                                            setListing({
+                                                ...listing,
+                                                duration: { ...listing.duration, unit: option },
+                                            }),
+                                    })),
+                                    { text: 'Cancel', style: 'cancel' },
+                                ])
+                            }
+                        />
+                    </View>
+                </View>
+
+                <Text style={[styles.sectionLabel, { color: textColor }]}>Compensation</Text>
+                <View style={styles.wageContainer}>
+                    <TextInput
+                        style={[styles.input, styles.wageInput, { backgroundColor: inputBackground, color: inputTextColor, borderColor }]}
+                        placeholder="Wage Amount"
+                        placeholderTextColor={placeholderTextColor}
+                        keyboardType="numeric"
+                        value={listing.wage.amount.toString()}
+                        onChangeText={(text) => setListing({
+                            ...listing,
+                            wage: { ...listing.wage, amount: text }
+                        })}
+                    />
+                    <View style={[styles.pickerContainer, { backgroundColor: inputBackground, borderColor, width: 120 }]}> 
+                        <TextInput
                             style={{
                                 height: 50,
+                                paddingHorizontal: 10,
+                                color: inputTextColor,
+                                borderWidth: 0,
                                 width: '100%',
-                                padding: 10,
-                                borderColor: '#893030',
-                                borderWidth: 1,
-                                backgroundColor: pickerBackgroundColor,
-                                color: pickerTextColor
+                                textAlignVertical: 'center',
+                                includeFontPadding: false,
                             }}
-                        >
-                            {durationOptions.map(option => (
-                                <option key={option} value={option}>{option}</option>
-                            ))}
-                        </select>
-                    ) : (
-                        <Picker
-                            selectedValue={listing.duration.unit}
-                            onValueChange={(itemValue: string) => setListing({
-                                ...listing,
-                                duration: { ...listing.duration, unit: itemValue }
-                            })}
-                            style={{ height: 50, width: '100%', color: pickerTextColor }}
-                        >
-                            {durationOptions.map(option => (
-                                <Picker.Item key={option} label={option} value={option} />
-                            ))}
-                        </Picker>
-                    )}
-                </View>
-            </View>
-            
-            <Text style={styles.sectionLabel}>Compensation</Text>
-            <View style={styles.wageContainer}>
-                <TextInput
-                    style={[styles.input, styles.wageInput, webInputStyle]}
-                    placeholder="Wage Amount"
-                    keyboardType="numeric"
-                    value={listing.wage.amount.toString()}
-                    onChangeText={(text) => setListing({
-                        ...listing,
-                        wage: { ...listing.wage, amount: text }
-                    })}
-                />
-                <View style={[styles.pickerContainer, { backgroundColor: pickerBackgroundColor }]}>
-                    {Platform.OS === 'web' ? (
-                        <select
                             value={listing.wage.type}
-                            onChange={(e) => setListing({
-                                ...listing,
-                                wage: { ...listing.wage, type: e.target.value }
-                            })}
-                            style={{
-                                height: 50,
-                                width: '100%',
-                                padding: 10,
-                                borderColor: '#893030',
-                                borderWidth: 1,
-                                backgroundColor: pickerBackgroundColor,
-                                color: pickerTextColor
-                            }}
-                        >
-                            {wageTypeOptions.map(option => (
-                                <option key={option} value={option}>{option}</option>
-                            ))}
-                        </select>
-                    ) : (
-                        <Picker
-                            selectedValue={listing.wage.type}
-                            onValueChange={(itemValue: string) => setListing({
-                                ...listing,
-                                wage: { ...listing.wage, type: itemValue }
-                            })}
-                            style={{ height: 50, width: '100%', color: pickerTextColor }}
-                        >
-                            {wageTypeOptions.map(option => (
-                                <Picker.Item key={option} label={option} value={option} />
-                            ))}
-                        </Picker>
-                    )}
+                            onFocus={() => Alert.alert('Select Wage Type', '', [
+                                ...wageTypeOptions.map(option => ({
+                                    text: option,
+                                    onPress: () => setListing({
+                                        ...listing,
+                                        wage: { ...listing.wage, type: option }
+                                    })
+                                })),
+                                { text: 'Cancel', style: 'cancel' }
+                            ])}
+                        />
+                    </View>
+                    <TouchableOpacity
+                        style={[styles.isPaidButton, { backgroundColor: listing.wage.isPaid ? '#4CAF50' : '#f44336' }]}
+                        onPress={() => setListing({
+                            ...listing,
+                            wage: { ...listing.wage, isPaid: !listing.wage.isPaid }
+                        })}
+                    >
+                        <Text style={styles.isPaidButtonText}>
+                            {listing.wage.isPaid ? 'Paid' : 'Unpaid'}
+                        </Text>
+                    </TouchableOpacity>
                 </View>
-                <TouchableOpacity
-                    style={[styles.isPaidButton, { backgroundColor: listing.wage.isPaid ? '#4CAF50' : '#f44336' }]}
-                    onPress={() => setListing({
-                        ...listing,
-                        wage: { ...listing.wage, isPaid: !listing.wage.isPaid }
-                    })}
+
+                <TouchableOpacity 
+                    style={[styles.button, { backgroundColor: buttonColor }]}
+                    onPress={handleSubmit}
                 >
-                    <Text style={styles.isPaidButtonText}>
-                        {listing.wage.isPaid ? 'Paid' : 'Unpaid'}
+                    <Text style={[styles.buttonText, { color: buttonTextColor }]}> 
+                        {isEditing ? "Update Listing" : "Create Listing"}
                     </Text>
                 </TouchableOpacity>
-            </View>
-
-            <TouchableOpacity 
-                style={[
-                    styles.button,
-                    webButtonStyle
-                ]}
-                onPress={handleSubmit}
-            >
-                <Text style={styles.buttonText}>
-                    {isEditing ? "Update Listing" : "Create Listing"}
-                </Text>
-            </TouchableOpacity>
+            </ScrollView>
         </ResponsiveScreen>
     );
 };
@@ -391,20 +317,15 @@ const styles = StyleSheet.create({
         fontSize: 24,
         fontWeight: 'bold',
         marginBottom: 20,
-        textAlign: 'center'
+        textAlign: 'center',
+        margin: 15,
     },
     input: {
         height: 50,
         borderRadius: 5,
         paddingHorizontal: 10,
         marginBottom: 15,
-        backgroundColor: '#ffffff',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.2,
-        shadowRadius: 1,
-        color: '#000',
-        ...(Platform.OS === 'android' ? { elevation: 1 } : {})
+        borderWidth: 1
     },
     multiline: {
         height: 120,
@@ -414,7 +335,8 @@ const styles = StyleSheet.create({
     durationContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginBottom: 15
+        marginBottom: 15,
+        width: 250,
     },
     durationInput: {
         flex: 1,
@@ -424,7 +346,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         marginBottom: 15,
-        flexWrap: 'wrap'
+        flexWrap: 'wrap',
+        width: 312,
     },
     wageInput: {
         flex: 1,
@@ -438,11 +361,9 @@ const styles = StyleSheet.create({
         height: 50
     },
     isPaidButtonText: {
-        color: '#ffffff',
         fontWeight: 'bold'
     },
     button: {
-        backgroundColor: '#893030',
         height: 50,
         borderRadius: 5,
         justifyContent: 'center',
@@ -450,7 +371,6 @@ const styles = StyleSheet.create({
         marginTop: 20
     },
     buttonText: {
-        color: '#ffffff',
         fontSize: 16,
         fontWeight: 'bold'
     },
@@ -461,17 +381,14 @@ const styles = StyleSheet.create({
         marginTop: 5
     },
     pickerContainer: {
-        flex: 1.5,
         borderRadius: 5,
         height: 50,
         justifyContent: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.2,
-        shadowRadius: 1,
-        ...(Platform.OS === 'android' ? { elevation: 1 } : {})
+        borderWidth: 1,
+        overflow: 'hidden',
+        marginRight: 10,
+        width: 250,
     }
 });
 
 export default ListingCreate;
-

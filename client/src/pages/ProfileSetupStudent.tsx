@@ -1,14 +1,38 @@
+//This is the page the student views when creating their profile
+// 
+// // Import necessary React and React Native components/hooks
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, Platform, ActivityIndicator, Image } from 'react-native';
+import {
+    View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView,
+    Alert, Platform, ActivityIndicator, Image
+} from 'react-native';
+
+// Theme context for accessing light/dark mode styling
 import { useTheme } from '../context/ThemeContext';
+
+// HTTP client for interacting with backend API
 import axios from 'axios';
+
+// Local storage for saving/retrieving the user's auth token
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Custom component for shared layout styling
 import SetupScreen from '../components/SetupScreen';
+
+// Modules for handling file selection
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
+
+// Function to get appropriate backend URL depending on environment
 import { getBackendURL } from '../utils/network';
+
+// React Navigation for resetting navigation stack
 import { CommonActions } from '@react-navigation/native';
 
+// SafeAreaView ensures content doesn’t get cut off by notches/status bar
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+// Interface that defines the structure of the student's profile
 interface StudentProfile {
     university: string;
     major: string;
@@ -19,14 +43,26 @@ interface StudentProfile {
     resumeText: string;
 }
 
+// Interface for holding validation errors on required fields
 interface ValidationErrors {
     university?: string;
     major?: string;
     skills?: string;
 }
 
+// Main component to render the student profile setup screen
 const ProfileSetupStudent = ({ navigation }: { navigation: any }) => {
-    const { theme } = useTheme();
+    const { theme } = useTheme(); // Access current theme
+
+    // Define dynamic styling based on theme mode
+    const backgroundColor = theme === 'light' ? '#fff7d5' : '#222';
+    const textColor = theme === 'light' ? '#893030' : '#ffffff';
+    const inputBackground = theme === 'light' ? '#ffffff' : '#333';
+    const inputTextColor = theme === 'light' ? '#000' : '#ffffff';
+    const placeholderTextColor = theme === 'light' ? '#666' : '#bbb';
+    const borderColor = theme === 'light' ? '#ddd' : '#000';
+
+    // State to hold student profile fields
     const [profile, setProfile] = useState<StudentProfile>({
         university: '',
         major: '',
@@ -36,42 +72,42 @@ const ProfileSetupStudent = ({ navigation }: { navigation: any }) => {
         certifications: '',
         resumeText: ''
     });
+
+    // File name of the uploaded resume
     const [pdfFileName, setPdfFileName] = useState<string>('');
+
+    // Track form validation errors
     const [errors, setErrors] = useState<ValidationErrors>({});
+
+    // Boolean states for UI spinners and disable flags
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isResumeUploading, setIsResumeUploading] = useState(false);
     const [isImageUploading, setIsImageUploading] = useState(false);
+
+    // Holds the uploaded profile image URL (from server)
     const [profileImage, setProfileImage] = useState<string | null>(null);
 
+    // Validate required form fields and collect error messages
     const validateForm = (): boolean => {
         const newErrors: ValidationErrors = {};
-        
-        if (!profile.university.trim()) {
-            newErrors.university = 'University is required';
-        }
-        
-        if (!profile.major.trim()) {
-            newErrors.major = 'Major is required';
-        }
-        
-        if (!profile.skills.trim()) {
-            newErrors.skills = 'Skills are required';
-        }
-        
+        if (!profile.university.trim()) newErrors.university = 'University is required';
+        if (!profile.major.trim()) newErrors.major = 'Major is required';
+        if (!profile.skills.trim()) newErrors.skills = 'Skills are required';
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
+    // Open image picker, upload selected image, and set to state
     const handleImageUpload = async () => {
         try {
-            // Request permissions
             const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
             if (!permissionResult.granted) {
                 Alert.alert("Permission Required", "You need to allow access to your photos to upload an image.");
                 return;
             }
 
-            setIsImageUploading(true);
+            setIsImageUploading(true); // Show loading spinner
+
             const result = await ImagePicker.launchImageLibraryAsync({
                 mediaTypes: ImagePicker.MediaTypeOptions.Images,
                 allowsEditing: true,
@@ -85,8 +121,6 @@ const ProfileSetupStudent = ({ navigation }: { navigation: any }) => {
             }
 
             const selectedImage = result.assets[0];
-            
-            // Create form data for image upload
             const formData = new FormData();
             formData.append('profileImage', {
                 uri: selectedImage.uri,
@@ -101,8 +135,6 @@ const ProfileSetupStudent = ({ navigation }: { navigation: any }) => {
                 return;
             }
 
-            console.log('Uploading profile image...');
-            
             const response = await axios.post(
                 `${getBackendURL()}/user/profile/image`,
                 formData,
@@ -114,7 +146,6 @@ const ProfileSetupStudent = ({ navigation }: { navigation: any }) => {
                 }
             );
 
-            console.log('Image upload response:', response.data);
             setProfileImage(response.data.profileImage.url);
             Alert.alert('Success', 'Profile image uploaded successfully');
         } catch (error) {
@@ -125,6 +156,7 @@ const ProfileSetupStudent = ({ navigation }: { navigation: any }) => {
         }
     };
 
+    // Upload resume PDF and extract text using backend parsing
     const handleResumeUpload = async () => {
         try {
             setIsResumeUploading(true);
@@ -133,49 +165,39 @@ const ProfileSetupStudent = ({ navigation }: { navigation: any }) => {
                 copyToCacheDirectory: true,
                 multiple: false
             });
-    
-            // Check if user canceled the selection or if assets is null
+
             if (!result.assets || result.assets.length === 0) {
                 Alert.alert('Notice', 'No file was selected.');
                 setIsResumeUploading(false);
                 return;
             }
-    
+
             const file = result.assets[0];
-    
-            if (file) {
-                // Create form data for file upload
-                const formData = new FormData();
-                formData.append('resume', {
-                    uri: file.uri,
-                    name: file.name,
-                    type: file.mimeType || 'application/pdf'
-                } as any);
-    
-                const token = await AsyncStorage.getItem('token');
-                console.log('Uploading resume...');
-                
-                const response = await axios.post(
-                    `${getBackendURL()}/parse-resume`,
-                    formData,
-                    {
-                        headers: {
-                            'Content-Type': 'multipart/form-data',
-                            'Authorization': `Bearer ${token}`
-                        }
+
+            const formData = new FormData();
+            formData.append('resume', {
+                uri: file.uri,
+                name: file.name,
+                type: file.mimeType || 'application/pdf'
+            } as any);
+
+            const token = await AsyncStorage.getItem('token');
+
+            const response = await axios.post(
+                `${getBackendURL()}/parse-resume`,
+                formData,
+                {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                        'Authorization': `Bearer ${token}`
                     }
-                );
-    
-                console.log('Resume upload response:', response.data);
-                
-                // Update profile with extracted text
-                setProfile(prev => ({
-                    ...prev,
-                    resumeText: response.data.text
-                }));
-                setPdfFileName(file.name);
-                Alert.alert('Success', 'Resume uploaded and parsed successfully');
-            }
+                }
+            );
+
+            // Save extracted resume text
+            setProfile(prev => ({ ...prev, resumeText: response.data.text }));
+            setPdfFileName(file.name);
+            Alert.alert('Success', 'Resume uploaded and parsed successfully');
         } catch (error) {
             Alert.alert('Error', 'Failed to upload resume. You can still enter your resume text manually.');
             console.error('Resume upload error:', error);
@@ -183,293 +205,208 @@ const ProfileSetupStudent = ({ navigation }: { navigation: any }) => {
             setIsResumeUploading(false);
         }
     };
-    
+
+    // Submit student profile to backend and navigate back to login
     const handleSubmit = async () => {
-        console.log('Complete Setup button clicked');
-        
         if (!validateForm()) {
-            console.log('Form validation failed - required fields missing');
             Alert.alert('Error', 'Please fill in all required fields');
             return;
         }
-        
-        console.log('Form validation passed, proceeding with submission');
-        
+
         try {
             setIsSubmitting(true);
-            console.log('Checking for authentication token');
             const token = await AsyncStorage.getItem('token');
-            
             if (!token) {
-                console.log('No token found, redirecting to Login');
-                // Navigate directly without alert
                 goToLogin();
                 return;
             }
-            
-            console.log('Token found:', token.substring(0, 10) + '...');
-            console.log('Submitting student profile data...');
-            console.log('Backend URL:', getBackendURL());
-            
-            console.log('Making API request to /user/setup');
-            const response = await axios.post(
-                `${getBackendURL()}/user/setup`, 
+
+            await axios.post(
+                `${getBackendURL()}/user/setup`,
                 profile,
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 
-            console.log('Server response received:', response.status);
-            
-            // Clear token
-            console.log('Clearing authentication token');
             await AsyncStorage.removeItem('token');
-            
-            // Navigate directly without alert
-            console.log('Navigating directly to Login');
             goToLogin();
-            
         } catch (error: any) {
-            console.error('Error saving profile:', error);
-            console.log('Error occurred during profile submission');
-            
-            // Navigate directly without alert even on error
-            console.log('Error occurred, but still navigating to Login');
             await AsyncStorage.removeItem('token');
             goToLogin();
-            
         } finally {
             setIsSubmitting(false);
         }
     };
-    
-    // Function to go directly to login page with the most reliable method
+
+    // Clear navigation stack and send user to login
     const goToLogin = () => {
-        console.log('Force navigating to Login using reset');
-        // Use the most direct and forceful navigation method
         navigation.dispatch(
             CommonActions.reset({
                 index: 0,
-                routes: [{ name: 'Login' }],
+                routes: [{ name: 'AuthLogin' }],
             })
         );
     };
 
+    // Handle text input updates and remove validation errors as needed
     const handleTextChange = (field: keyof StudentProfile, value: string) => {
-        // Clear error when user starts typing
         if (errors[field as keyof ValidationErrors]) {
-            setErrors(prev => ({
-                ...prev,
-                [field]: undefined
-            }));
+            setErrors(prev => ({ ...prev, [field]: undefined }));
         }
-        
-        setProfile(prev => ({
-            ...prev,
-            [field]: value
-        }));
+        setProfile(prev => ({ ...prev, [field]: value }));
     };
 
     return (
-        <SetupScreen 
-            navigation={navigation}
-            contentContainerStyle={styles.contentContainer}
-        >
-            <Text style={[styles.title, { color: theme === 'light' ? '#893030' : '#fff' }]}>
-                Complete Your Profile
-            </Text>
-            
-            <Text style={styles.subtitle}>
-                Fill in your details to help faculty find the right candidates for their research projects
-            </Text>
+        <SafeAreaView style={{ flex: 1, backgroundColor }}> 
+            <SetupScreen
+                navigation={navigation}
+                contentContainerStyle={[styles.contentContainer, { backgroundColor }]}
+            >
+                <Text style={[styles.title, { color: textColor }]}>
+                    Create Profile
+                </Text>
 
-            {/* Profile Image */}
-            <View style={styles.profileImageContainer}>
-                {profileImage ? (
-                    <Image 
-                        source={{ uri: profileImage }} 
-                        style={styles.profileImage} 
-                    />
-                ) : (
-                    <View style={styles.profileImagePlaceholder}>
-                        <Text style={styles.profileImagePlaceholderText}>
-                            Add Photo
-                        </Text>
-                    </View>
-                )}
-                <TouchableOpacity 
-                    style={styles.imageUploadButton}
-                    onPress={handleImageUpload}
-                    disabled={isImageUploading}
-                >
-                    {isImageUploading ? (
-                        <ActivityIndicator color="#fff" size="small" />
+                <Text style={[styles.subtitle, { color: placeholderTextColor }]}>
+                    Fill in the details below
+                </Text>
+
+                <View style={styles.profileImageContainer}>
+                    {profileImage ? (
+                        <Image
+                            source={{ uri: profileImage }}
+                            style={styles.profileImage}
+                        />
                     ) : (
-                        <Text style={styles.imageUploadButtonText}>
-                            {profileImage ? 'Change Profile Picture' : 'Upload Profile Picture'}
-                        </Text>
+                        <View style={[styles.profileImagePlaceholder, { 
+                            backgroundColor: inputBackground, 
+                            borderColor: borderColor,
+                            borderWidth: 1,
+                            }]}>
+                            <Text style={{ color: placeholderTextColor, fontSize: 16 }}>
+                                Add Photo
+                            </Text>
+                        </View>
                     )}
-                </TouchableOpacity>
-            </View>
-
-            {/* Regular profile fields */}
-            <View style={styles.formContainer}>
-                <View style={styles.inputGroup}>
-                    <Text style={styles.label}>University <Text style={styles.required}>*</Text></Text>
-                    <TextInput
-                        style={[styles.input, errors.university ? styles.inputError : null]}
-                        placeholder="e.g., University of Oklahoma"
-                        value={profile.university}
-                        onChangeText={(text) => handleTextChange('university', text)}
-                    />
-                    {errors.university && <Text style={styles.errorText}>{errors.university}</Text>}
-                </View>
-                
-                <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Major <Text style={styles.required}>*</Text></Text>
-                    <TextInput
-                        style={[styles.input, errors.major ? styles.inputError : null]}
-                        placeholder="e.g., Computer Science"
-                        value={profile.major}
-                        onChangeText={(text) => handleTextChange('major', text)}
-                    />
-                    {errors.major && <Text style={styles.errorText}>{errors.major}</Text>}
-                </View>
-                
-                <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Experience</Text>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Describe your research or work experience"
-                        value={profile.experience}
-                        onChangeText={(text) => handleTextChange('experience', text)}
-                        multiline
-                        numberOfLines={3}
-                    />
-                </View>
-                
-                <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Skills <Text style={styles.required}>*</Text></Text>
-                    <TextInput
-                        style={[styles.input, errors.skills ? styles.inputError : null]}
-                        placeholder="e.g., Python, Data Analysis, Machine Learning"
-                        value={profile.skills}
-                        onChangeText={(text) => handleTextChange('skills', text)}
-                        multiline
-                    />
-                    {errors.skills && <Text style={styles.errorText}>{errors.skills}</Text>}
-                </View>
-                
-                <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Projects</Text>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Describe any relevant projects you've worked on"
-                        value={profile.projects}
-                        onChangeText={(text) => handleTextChange('projects', text)}
-                        multiline
-                        numberOfLines={3}
-                    />
-                </View>
-                
-                <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Certifications</Text>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="List any relevant certifications"
-                        value={profile.certifications}
-                        onChangeText={(text) => handleTextChange('certifications', text)}
-                        multiline
-                    />
-                </View>
-
-                {/* Resume section */}
-                <View style={styles.resumeSection}>
-                    <Text style={styles.sectionTitle}>Resume</Text>
-                    
-                    {/* PDF Upload */}
-                    <TouchableOpacity 
-                        style={styles.uploadButton}
-                        onPress={handleResumeUpload}
-                        disabled={isResumeUploading}
+                    <TouchableOpacity
+                        style={styles.imageUploadButton}
+                        onPress={handleImageUpload}
+                        disabled={isImageUploading}
                     >
-                        {isResumeUploading ? (
+                        {isImageUploading ? (
                             <ActivityIndicator color="#fff" size="small" />
                         ) : (
-                            <Text style={styles.uploadButtonText}>
-                                {pdfFileName || 'Upload PDF Resume'}
+                            <Text style={styles.imageUploadButtonText}>
+                                {profileImage ? 'Change Profile Picture' : 'Upload Profile Picture'}
                             </Text>
                         )}
                     </TouchableOpacity>
-
-                    <Text style={styles.orText}>OR</Text>
-
-                    {/* Resume Text Input */}
-                    <TextInput
-                        style={[styles.input, styles.resumeInput]}
-                        placeholder="Paste your resume text here"
-                        multiline
-                        numberOfLines={6}
-                        value={profile.resumeText}
-                        onChangeText={(text) => handleTextChange('resumeText', text)}
-                    />
                 </View>
 
-                <TouchableOpacity 
-                    style={[styles.submitButton, isSubmitting ? styles.disabledButton : null]}
-                    onPress={handleSubmit}
-                    disabled={isSubmitting}
-                >
-                    {isSubmitting ? (
-                        <ActivityIndicator color="#fff" size="small" />
-                    ) : (
-                        <Text style={styles.submitButtonText}>Complete Setup</Text>
-                    )}
-                </TouchableOpacity>
-            </View>
-        </SetupScreen>
+                <View style={styles.formContainer}>
+                    {[
+                        { key: 'university', label: 'University', required: true },
+                        { key: 'major', label: 'Major', required: true },
+                        { key: 'experience', label: 'Experience', required: false },
+                        { key: 'skills', label: 'Skills', required: true },
+                        { key: 'projects', label: 'Projects', required: false },
+                        { key: 'certifications', label: 'Certifications', required: false }
+                    ].map(field => (
+                        <View style={styles.inputGroup} key={field.key}>
+                            <Text style={[styles.label, { color: textColor }]}>
+                                {field.label} {field.required && <Text style={styles.required}>*</Text>}
+                            </Text>
+                            <TextInput
+                                style={[
+                                    styles.input,
+                                    { backgroundColor: inputBackground, color: inputTextColor },
+                                    errors[field.key as keyof ValidationErrors] ? styles.inputError : null
+                                ]}
+                                placeholder={`e.g., ${field.label === 'University' ? 'University of Oklahoma' :
+                                    field.label === 'Major' ? 'Computer Science' :
+                                        field.label === 'Skills' ? 'Python, ML, Data Analysis' :
+                                            ''}`}
+                                placeholderTextColor={placeholderTextColor}
+                                multiline={['experience', 'projects', 'certifications'].includes(field.key)}
+                                numberOfLines={['experience', 'projects', 'certifications'].includes(field.key) ? 3 : 1}
+                                value={profile[field.key as keyof StudentProfile]}
+                                onChangeText={(text) => handleTextChange(field.key as keyof StudentProfile, text)}
+                            />
+                            {errors[field.key as keyof ValidationErrors] && (
+                                <Text style={styles.errorText}>{errors[field.key as keyof ValidationErrors]}</Text>
+                            )}
+                        </View>
+                    ))}
+
+                    <View style={styles.resumeSection}>
+                        <Text style={[styles.sectionTitle, { color: textColor }]}>Resume</Text>
+
+                        <TouchableOpacity
+                            style={styles.uploadButton}
+                            onPress={handleResumeUpload}
+                            disabled={isResumeUploading}
+                        >
+                            {isResumeUploading ? (
+                                <ActivityIndicator color="#fff" size="small" />
+                            ) : (
+                                <Text style={styles.uploadButtonText}>
+                                    {pdfFileName || 'Upload PDF Resume'}
+                                </Text>
+                            )}
+                        </TouchableOpacity>
+
+                        <Text style={[styles.orText, { color: textColor }]}>OR</Text>
+
+                        <TextInput
+                            style={[
+                                styles.input,
+                                styles.resumeInput,
+                                { 
+                                    backgroundColor: inputBackground, 
+                                    color: inputTextColor,
+                                    borderColor: borderColor,
+                                }
+                            ]}
+                            placeholder="Paste your resume text here"
+                            placeholderTextColor={placeholderTextColor}
+                            multiline
+                            numberOfLines={6}
+                            value={profile.resumeText}
+                            onChangeText={(text) => handleTextChange('resumeText', text)}
+                        />
+                    </View>
+
+                    <TouchableOpacity
+                        style={[styles.submitButton, isSubmitting ? styles.disabledButton : null]}
+                        onPress={handleSubmit}
+                        disabled={isSubmitting}
+                    >
+                        {isSubmitting ? (
+                            <ActivityIndicator color="#fff" size="small" />
+                        ) : (
+                            <Text style={styles.submitButtonText}>Complete Setup</Text>
+                        )}
+                    </TouchableOpacity>
+                </View>
+            </SetupScreen>
+        </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
-    contentContainer: {
-        padding: 20,
-    },
-    title: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        textAlign: 'center',
-        marginBottom: 10,
-    },
-    subtitle: {
-        fontSize: 16,
-        textAlign: 'center',
-        marginBottom: 30,
-        color: '#666',
-    },
-    profileImageContainer: {
-        alignItems: 'center',
-        marginBottom: 30,
-    },
-    profileImage: {
-        width: 150,
-        height: 150,
-        borderRadius: 75,
-        marginBottom: 15,
-    },
+    contentContainer: { padding: 20, paddingTop: Platform.OS === 'web' ? 40 : 0, },
+    title: { fontSize: 28, fontWeight: 'bold', textAlign: 'center', marginBottom: 10 },
+    subtitle: { fontSize: 16, textAlign: 'center', marginBottom: 30 },
+    profileImageContainer: { alignItems: 'center', marginBottom: 30 },
+    profileImage: { width: 150, height: 150, borderRadius: 75, marginBottom: 15 },
     profileImagePlaceholder: {
         width: 150,
         height: 150,
         borderRadius: 75,
-        backgroundColor: '#f0f0f0',
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 15,
         borderWidth: 1,
-        borderColor: '#ddd',
-    },
-    profileImagePlaceholderText: {
-        color: '#999',
-        fontSize: 16,
+        borderColor: '#ddd', // dynamically set via inline now
+        padding: 12,
     },
     imageUploadButton: {
         backgroundColor: '#893030',
@@ -477,57 +414,22 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         borderRadius: 20,
     },
-    imageUploadButtonText: {
-        color: '#fff',
-        fontSize: 14,
-        fontWeight: 'bold',
-    },
-    formContainer: {
-        width: '100%',
-        maxWidth: 600,
-        alignSelf: 'center',
-    },
-    inputGroup: {
-        marginBottom: 20,
-    },
-    label: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        marginBottom: 8,
-        color: '#333',
-    },
-    required: {
-        color: 'red',
-    },
+    imageUploadButtonText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
+    formContainer: { width: '100%', maxWidth: 600, alignSelf: 'center' },
+    inputGroup: { marginBottom: 20 },
+    label: { fontSize: 16, fontWeight: 'bold', marginBottom: 8 },
+    required: { color: 'red' },
     input: {
-        backgroundColor: '#fff',
         borderWidth: 1,
-        borderColor: '#ddd',
         borderRadius: 8,
         padding: 12,
         fontSize: 16,
     },
-    inputError: {
-        borderColor: 'red',
-    },
-    errorText: {
-        color: 'red',
-        marginTop: 5,
-        fontSize: 14,
-    },
-    resumeInput: {
-        minHeight: 120,
-    },
-    resumeSection: {
-        marginTop: 20,
-        marginBottom: 30,
-    },
-    sectionTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginBottom: 10,
-        color: '#333',
-    },
+    inputError: { borderColor: 'red' },
+    errorText: { color: 'red', marginTop: 5, fontSize: 14 },
+    resumeInput: { minHeight: 120 },
+    resumeSection: { marginTop: 20, marginBottom: 30 },
+    sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
     uploadButton: {
         backgroundColor: '#893030',
         paddingVertical: 12,
@@ -535,17 +437,8 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         alignItems: 'center',
     },
-    uploadButtonText: {
-        color: '#fff',
-        fontWeight: 'bold',
-        fontSize: 16,
-    },
-    orText: {
-        textAlign: 'center',
-        marginVertical: 15,
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
+    uploadButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+    orText: { textAlign: 'center', marginVertical: 15, fontSize: 16, fontWeight: 'bold' },
     submitButton: {
         backgroundColor: '#893030',
         paddingVertical: 15,
@@ -553,14 +446,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginTop: 20,
     },
-    disabledButton: {
-        opacity: 0.7,
-    },
-    submitButtonText: {
-        color: '#fff',
-        fontWeight: 'bold',
-        fontSize: 18,
-    },
+    disabledButton: { opacity: 0.7 },
+    submitButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 18 },
 });
 
-export default ProfileSetupStudent; 
+export default ProfileSetupStudent;

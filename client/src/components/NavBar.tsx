@@ -21,7 +21,7 @@ const NavBar = ({ navigation }: { navigation: any }) => {
 
 
   // Font size and container width logic
-  const fontSize = Platform.OS === 'web' ? width * 0.012 : width * 0.045;
+  const fontSize = Platform.OS === 'web' ? width * 0.016 : width * 0.055;
   const containerWidth = Platform.OS === 'web' ? 1000 : width * 0.92;
 
   // Handle the back button press
@@ -42,10 +42,10 @@ const NavBar = ({ navigation }: { navigation: any }) => {
       <View style={[styles.inner, { width: containerWidth }]}>
         {/* Back button */}
         <TouchableOpacity
-          style={styles.backButton}
+          style={styles.navButton}
           onPress={handleBackPress}
         >
-          <Text style={[styles.backIcon, { fontSize: fontSize * 1.5 }]}>←</Text>
+          <Text style={[styles.backIcon, { fontSize: fontSize * 1.8 }]}>‹</Text>
         </TouchableOpacity>
         
         {/* Logo */}
@@ -53,12 +53,12 @@ const NavBar = ({ navigation }: { navigation: any }) => {
           style={styles.logoContainer}
           onPress={() => navigation.navigate(isFaculty ? 'FacultyInterestedStudents' : 'StudentMatches')}
         >
-          <Text style={[styles.logo, { fontSize }]}>SWIPE</Text>
+          <Text style={[styles.logo, { fontSize: fontSize * 1.2 }]}>SWIPE</Text>
         </TouchableOpacity>
   
         {/* Menu Icon (☰) */}
         <TouchableOpacity
-          style={styles.menuButton}
+          style={styles.navButton}
           onPress={() => navigation.navigate(isFaculty ? 'HomeFaculty' : 'HomeStudent')}
         >
           <Text style={[styles.menuIcon, { fontSize: fontSize * 1.5 }]}>☰</Text>
@@ -111,18 +111,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     alignSelf: 'center',
   },
-  backButton: {
-    padding: 10,
-    width: 40,
+  navButton: {
+    width: 50,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   backIcon: {
     color: '#ffffff',
     fontWeight: 'bold',
   },
   logoContainer: {
-    padding: 10,
     flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
+    height: 50,
   },
   logo: {
     color: '#ffffff',
@@ -144,10 +147,6 @@ const styles = StyleSheet.create({
   navText: {
     color: '#ffffff',
     fontWeight: '500',
-  },
-  menuButton: {
-    padding: 10,
-    width: 40,
   },
   menuIcon: {
     color: '#ffffff',

@@ -6,6 +6,7 @@ import { Platform, View, Text } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import BackArrow from '../components/BackArrow'; // adjust path if needed
 
 // Theme + Auth context
 import { ThemeProvider } from '../context/ThemeContext';
@@ -118,7 +119,26 @@ const RootNavigator = () => {
 
   // Define which routes should hide the NavBar
   const hideNavBarRoutes = ['AuthLogin', 'AuthRegister', 'ProfileSetupFaculty', 'ProfileSetupStudent'];
-
+  
+  const showBackArrowRoutes = [
+    'SettingsMain',
+    'SettingsApplication',
+    'SettingsSecurity',
+    'SettingsPrivacy',
+    'ListingCreate',
+    'ListingDetail',
+    'ListingFilter',
+    'ProfileManagement',
+    'ProfileView',
+    'StudentMatches',
+    'FacultyInterestedStudents',
+    'StudentSwipeHistory',
+    'DeveloperSettings',
+    'AuthChangePassword',
+    'ListingManagement',
+    // Add others where back nav is appropriate
+  ];
+  
   return (
     <View style={{ flex: 1 }}>
       {/* Conditionally render NavBar */}

@@ -66,12 +66,20 @@ const FacultyInterestedStudents: React.FC<{ navigation: any }> = ({ navigation }
     const [loadingListings, setLoadingListings] = useState<{[key: string]: boolean}>({});
     const { theme } = useTheme();
     const { isFaculty } = useAuthContext();
-    const textColor = theme === 'light' ? '#000' : '#fff';
+    
+    // Themed variables
+    const inputBackground = theme === 'light' ? '#ffffff' : '#333';
+    const inputTextColor = theme === 'light' ? '#000' : '#ffffff';
+    const placeholderTextColor = theme === 'light' ? '#666' : '#bbb';
+    const borderColor = theme === 'light' ? '#ddd' : '#000';
+    const buttonColor = '#893030';
+    const buttonTextColor = '#ffffff';
     const backgroundColor = theme === 'light' ? '#fff' : '#333';
     const subtextColor = theme === 'light' ? '#333' : '#ddd';
     const mutedTextColor = theme === 'light' ? '#666' : '#bbb';
     const cardBackgroundColor = theme === 'light' ? '#fff' : '#444';
     const sectionBackgroundColor = theme === 'light' ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.1)';
+    const textColor = theme === 'light' ? '#000' : '#fff';
 
     useEffect(() => {
         if (!isFaculty) {
@@ -439,7 +447,7 @@ const FacultyInterestedStudents: React.FC<{ navigation: any }> = ({ navigation }
                                                     {listing.title}
                                                 </Text>
                                                 {swipe && (
-                                                    <Text style={[styles.statusBadge, { backgroundColor: statusColor }]}>
+                                                    <Text style={[styles.statusBadge, { backgroundColor: statusColor, color:textColor }]}>
                                                         {swipe.status.toUpperCase()}
                                                     </Text>
                                                 )}
@@ -546,7 +554,7 @@ const FacultyInterestedStudents: React.FC<{ navigation: any }> = ({ navigation }
                         )}
                     </View>
                     
-                    <View style={[styles.studentDetails, { backgroundColor: sectionBackgroundColor }]}>
+                    <View style={styles.studentDetails}>
                         <Text style={[styles.studentInfo, { color: textColor }]}>University: {item.student?.university || 'Not specified'}</Text>
                         <Text style={[styles.studentInfo, { color: textColor }]}>Major: {item.student?.major || 'Not specified'}</Text>
                         <Text style={[styles.studentInfo, { color: textColor }]}>Skills: {item.student?.skills || 'Not specified'}</Text>
@@ -578,45 +586,51 @@ const FacultyInterestedStudents: React.FC<{ navigation: any }> = ({ navigation }
 
     return (
         <ResponsiveScreen navigation={navigation} scrollable={false}>
-            <View style={styles.container}>
+            <View style={[styles.container, { backgroundColor }]}>
                 <View style={styles.header}>
-                    <Text style={[styles.title, { color: '#893030' }]}>Interested Students</Text>
+                    <Text style={[styles.title, { color: textColor }]}>Interested Students</Text>
                 </View>
                 
-                <View style={styles.filterContainer}>
+                <View style={[styles.filterContainer, { backgroundColor: 'transparent' }]}>
                     <TouchableOpacity 
                         style={[
                             styles.filterButton, 
-                            activeFilter === 'all' && styles.activeFilterButton
+                            { backgroundColor: theme === 'light' ? '#f0f0f0' : '#444' },
+                            activeFilter === 'all' && [styles.activeFilterButton, { backgroundColor: buttonColor }]
                         ]}
                         onPress={() => setActiveFilter('all')}
                     >
                         <Text style={[
                             styles.filterButtonText,
+                            { color: theme === 'light' ? '#555' : '#ddd' },
                             activeFilter === 'all' && styles.activeFilterText
                         ]}>All</Text>
                     </TouchableOpacity>
                     <TouchableOpacity 
                         style={[
                             styles.filterButton, 
-                            activeFilter === 'pending' && styles.activeFilterButton
+                            { backgroundColor: theme === 'light' ? '#f0f0f0' : '#444' },
+                            activeFilter === 'pending' && [styles.activeFilterButton, { backgroundColor: buttonColor }]
                         ]}
                         onPress={() => setActiveFilter('pending')}
                     >
                         <Text style={[
                             styles.filterButtonText,
+                            { color: theme === 'light' ? '#555' : '#ddd' },
                             activeFilter === 'pending' && styles.activeFilterText
                         ]}>Pending</Text>
                     </TouchableOpacity>
                     <TouchableOpacity 
                         style={[
                             styles.filterButton, 
-                            activeFilter === 'accepted' && styles.activeFilterButton
+                            { backgroundColor: theme === 'light' ? '#f0f0f0' : '#444' },
+                            activeFilter === 'accepted' && [styles.activeFilterButton, { backgroundColor: buttonColor }]
                         ]}
                         onPress={() => setActiveFilter('accepted')}
                     >
                         <Text style={[
                             styles.filterButtonText,
+                            { color: theme === 'light' ? '#555' : '#ddd' },
                             activeFilter === 'accepted' && styles.activeFilterText
                         ]}>Accepted</Text>
                     </TouchableOpacity>
@@ -658,8 +672,6 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: 20,
         paddingTop: 20,
@@ -668,19 +680,23 @@ const styles = StyleSheet.create({
         fontSize: 24,
         fontWeight: 'bold',
         color: '#893030',
+        textAlign: 'center',
+        marginVertical: 20,
     },
     filterContainer: {
         flexDirection: 'row',
         justifyContent: 'center',
         paddingVertical: 15,
         backgroundColor: 'transparent',
+   
     },
     filterButton: {
         paddingVertical: 6,
         paddingHorizontal: 15,
-        borderRadius: 20,
+        width: 100,
         marginHorizontal: 5,
         backgroundColor: '#f0f0f0',
+        borderRadius: 6,
     },
     activeFilterButton: {
         backgroundColor: '#893030',
@@ -688,6 +704,7 @@ const styles = StyleSheet.create({
     filterButtonText: {
         fontSize: 14,
         color: '#555',
+        textAlign: 'center',
     },
     activeFilterText: {
         color: '#fff',
@@ -743,7 +760,7 @@ const styles = StyleSheet.create({
     headerProfileButton: {
         paddingVertical: 6,
         paddingHorizontal: 12,
-        borderRadius: 20,
+        borderRadius: 6,
         backgroundColor: '#893030',
     },
     headerProfileButtonText: {
@@ -778,7 +795,7 @@ const styles = StyleSheet.create({
         borderRadius: 4,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: 'rgba(0,0,0,0.1)',
+        borderColor: 'rgba(0,0,0,0.25)',
     },
     listingTitleRow: {
         flexDirection: 'row',
@@ -786,7 +803,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: 8,
         paddingVertical: 6,
-        backgroundColor: 'rgba(0,0,0,0.02)',
+        backgroundColor: 'rgba(59, 56, 56, 0.96)',
     },
     expandCollapseIcon: {
         fontSize: 12,

@@ -1,21 +1,26 @@
 import React from 'react';
-import { ScrollView, StyleSheet, Platform } from 'react-native';
+import { ScrollView, StyleSheet, Platform, View } from 'react-native';
 import ThemedView from '../components/ThemedView';
+import BackArrow from './BackArrow';
+
 interface ResponsiveScreenProps {
     children: React.ReactNode;
     navigation: any;
     scrollable?: boolean;
     contentContainerStyle?: any;
+    showBackArrow?: boolean;
 }
 
 export const ResponsiveScreen = ({ 
     children, 
     navigation, 
     scrollable = true,
-    contentContainerStyle 
+    contentContainerStyle,
+    showBackArrow = false
 }: ResponsiveScreenProps) => {
     return (
         <ThemedView style={styles.container}>
+            {showBackArrow && <BackArrow />}
             {scrollable ? (
                 <ScrollView 
                     style={styles.scroll}

@@ -170,6 +170,9 @@ const ListingFilter = ({ navigation, route }: any) => {
         return;
       }
       
+      // Get backend URL
+      const backendURL = await getBackendURL();
+      
       // Test the API endpoint with the filters
       const queryParams = new URLSearchParams();
       if (newFilters.searchTerm) queryParams.append("searchTerm", newFilters.searchTerm);
@@ -184,10 +187,11 @@ const ListingFilter = ({ navigation, route }: any) => {
       
       // Try to fetch results with the filters
       const response = await axios.get(
-        `${getBackendURL()}/filter-listings?${queryParams}`,
+        `${backendURL}/filter-listings?${queryParams}`,
         {
           headers: {
-            Authorization: token
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
           }
         }
       );

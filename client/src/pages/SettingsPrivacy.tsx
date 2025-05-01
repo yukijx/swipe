@@ -113,11 +113,9 @@ const SettingsPrivacy = ({ navigation }: { navigation: any }) => {
                 <Text style={[styles.title, { color: textColor }]}>Privacy Settings</Text>
                 
                 <View style={[styles.section, { backgroundColor }]}>
-                    <Text style={[styles.sectionTitle, { color: textColor }]}>
-                        Profile Visibility
-                    </Text>
+
                     <Text style={[styles.description, { color: textColor }]}>
-                        Control what information is visible to other users
+                        Control Information isiblity
                     </Text>
 
                     {Object.entries(privacySettings).map(([key, value]) => (
@@ -189,6 +187,7 @@ const styles = StyleSheet.create({
     description: {
         fontSize: 16,
         marginBottom: 20,
+        textAlign: 'center',
         opacity: 0.8,
     },
     settingRow: {

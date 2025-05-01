@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform, Alert } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { ResponsiveScreen } from '../components/ResponsiveScreen';
@@ -9,8 +9,15 @@ import WebAlert from '../components/WebAlert';
 const SettingsSecurity = ({ navigation }: { navigation: any }) => {
     const { theme } = useTheme();
     const { logout } = useAuthContext();
+    
+    // Themed styling variables
+    const backgroundColor = theme === 'light' ? '#fff7d5' : '#222';
     const textColor = theme === 'light' ? '#893030' : '#ffffff';
-    const [showDeleteAlert, setShowDeleteAlert] = React.useState(false);
+    const cardBackground = theme === 'light' ? '#ffffff' : '#333';
+    const buttonColor = theme === 'light' ? '#893030' : '#333';
+    const buttonTextColor = '#ffffff';
+    
+    const [showDeleteAlert, setShowDeleteAlert] = useState(false);
 
     const handleDeleteAccount = async () => {
         const success = await deleteAccount();
@@ -89,12 +96,16 @@ const SettingsSecurity = ({ navigation }: { navigation: any }) => {
             title: 'Delete Account',
             description: 'Permanently delete your account and all data',
             onPress: confirmDeleteAccount,
-            icon: '⚠️'
+            icon: '⚠️',
+            isDanger: true
         }
     ];
 
     return (
-        <ResponsiveScreen navigation={navigation}>
+        <ResponsiveScreen 
+            navigation={navigation} 
+            contentContainerStyle={[styles.container, { backgroundColor }]}
+        >
             <Text style={[styles.title, { color: textColor }]}>Security Settings</Text>
             
             <View style={styles.optionsContainer}>
@@ -103,24 +114,27 @@ const SettingsSecurity = ({ navigation }: { navigation: any }) => {
                         key={index}
                         style={[
                             styles.option,
-                            { backgroundColor: theme === 'light' ? '#ffffff' : '#333' },
-                            option.title === 'Delete Account' && styles.dangerOption
+                            { backgroundColor: option.isDanger ? cardBackground : buttonColor },
+                            option.isDanger && styles.dangerOption
                         ]}
                         onPress={option.onPress}
                     >
-                        <Text style={styles.optionIcon}>{option.icon}</Text>
+                        <Text style={[
+                            styles.optionIcon, 
+                            { color: option.isDanger ? '#e74c3c' : buttonTextColor }
+                        ]}>
+                            {option.icon}
+                        </Text>
                         <View style={styles.optionTextContainer}>
                             <Text style={[
                                 styles.optionTitle,
-                                { color: option.title === 'Delete Account' ? 
-                                    '#e74c3c' : (theme === 'light' ? '#893030' : '#ffffff') }
+                                { color: option.isDanger ? '#e74c3c' : buttonTextColor }
                             ]}>
                                 {option.title}
                             </Text>
                             <Text style={[
                                 styles.optionDescription,
-                                { color: option.title === 'Delete Account' ?
-                                    '#e74c3c99' : (theme === 'light' ? '#666666' : '#cccccc') }
+                                { color: option.isDanger ? '#e74c3c99' : buttonTextColor }
                             ]}>
                                 {option.description}
                             </Text>
@@ -155,6 +169,10 @@ const SettingsSecurity = ({ navigation }: { navigation: any }) => {
 };
 
 const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        paddingHorizontal: 20,
+    },
     title: {
         fontSize: 28,
         fontWeight: 'bold',
@@ -162,14 +180,15 @@ const styles = StyleSheet.create({
         marginVertical: 20,
     },
     optionsContainer: {
-        padding: 20,
         gap: 15,
-        ...(Platform.OS === 'web' ? {
-            display: 'grid' as any,
-            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-        } : {
-            display: 'flex'
-        }),
+        ...(Platform.OS === 'web'
+            ? {
+                display: 'grid' as any,
+                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+            }
+            : {
+                display: 'flex',
+            }),
     },
     option: {
         flexDirection: 'row',

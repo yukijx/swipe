@@ -31,11 +31,21 @@ interface Listing {
 
 const ListingManagement = ({ navigation, route }: any) => {
     const { theme } = useTheme();
+    const backgroundColor = theme === 'light' ? '#fff7d5' : '#222222';
+    const cardBackground = theme === 'light' ? '#ffffff' : '#333333';
+    const cardText = theme === 'light' ? '#333333' : '#cccccc';
+    const headingColor = theme === 'light' ? '#893030' : '#ffffff';
+    const textColor = theme === 'light' ? '#893030' : '#ffffff';
+    const expandedBackground = theme === 'light' ? '#f7f7f7' : '#1e1e1e';
+    const sectionTitleColor = theme === 'light' ? '#333' : '#ffffff';
+    const expandedTextColor = theme === 'light' ? '#444' : '#f2f2f2';
+    
+    
     const { isFaculty } = useAuthContext();
     const [listings, setListings] = useState<Listing[]>([]);
     const [loading, setLoading] = useState(true);
     const [isFiltered, setIsFiltered] = useState(false);
-    const textColor = theme === 'light' ? '#893030' : '#ffffff';
+   
 
     useEffect(() => {
         // If we have filtered listings from the Filter component
@@ -378,12 +388,12 @@ const ListingManagement = ({ navigation, route }: any) => {
     };
 
     const renderListingItem = (listing: Listing) => (
-        <View key={listing._id} style={styles.listingCard}>
+        <View key={listing._id} style={[styles.listingCard, { backgroundColor: cardBackground }]}>
             <TouchableOpacity 
                 style={styles.listingContent}
                 onPress={() => handleViewListing(listing)}
             >
-                <Text style={styles.listingTitle}>{listing.title}</Text>
+                <Text style={[styles.listingTitle, { color: headingColor }]}>{listing.title}</Text>
                 
                 {!isFaculty && listing.facultyId && (
                     <Text style={styles.facultyName}>
@@ -392,48 +402,42 @@ const ListingManagement = ({ navigation, route }: any) => {
                 )}
                 
                 <View style={styles.listingDetails}>
-                    <Text style={styles.listingDetail}>
-                        Duration: {formatDuration(listing.duration)}
+                    <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>
+                        Duration</Text>
+                        <Text style={[styles.expandedText, { color: expandedTextColor }]}> {formatDuration(listing.duration)}
                     </Text>
-                    <Text style={styles.listingDetail}>
-                        Compensation: {formatWage(listing.wage)}
+                    <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>
+                        Compensation:</Text>
+                        <Text style={[styles.expandedText, { color: expandedTextColor }]}> {formatWage(listing.wage)}
                     </Text>
                 </View>
                 
-                <Text style={styles.listingDescription} numberOfLines={listing.expanded ? undefined : 2}>
-                    {listing.description}
-                </Text>
-                
                 {/* Expanded content */}
                 {listing.expanded && (
-                    <View style={styles.expandedContent}>
+                        <View style={[styles.expandedContent, { backgroundColor: expandedBackground }]}>
                         <View style={styles.divider} />
                         
-                        <Text style={styles.sectionTitle}>Description</Text>
-                        <Text style={styles.expandedText}>{listing.description}</Text>
+                        <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>Description</Text>
+                        <Text style={[styles.expandedText, { color: expandedTextColor }]}>{listing.description}</Text>
                         
-                        <Text style={styles.sectionTitle}>Requirements</Text>
-                        <Text style={styles.expandedText}>{listing.requirements}</Text>
+                        <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>Requirements</Text>
+                        <Text style={[styles.expandedText, { color: expandedTextColor }]}>{listing.requirements}</Text>
                         
                         {!isFaculty && listing.facultyId && (
                             <>
-                                <Text style={styles.sectionTitle}>Faculty Information</Text>
-                                <Text style={styles.expandedText}>
-                                    <Text style={{fontWeight: 'bold'}}>Name:</Text> {listing.facultyId.name || 'Not specified'}{'\n'}
-                                    <Text style={{fontWeight: 'bold'}}>Department:</Text> {listing.facultyId.department || 'Not specified'}{'\n'}
-                                    <Text style={{fontWeight: 'bold'}}>University:</Text> {listing.facultyId.university || 'Not specified'}
-                                </Text>
+                            <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>Faculty Information</Text>
+                            <Text style={[styles.expandedText, { color: expandedTextColor }]}>
+                                <Text style={{ fontWeight: 'bold' }}>Name:</Text> {listing.facultyId.name || 'Not specified'}{'\n'}
+                                <Text style={{ fontWeight: 'bold' }}>Department:</Text> {listing.facultyId.department || 'Not specified'}{'\n'}
+                                <Text style={{ fontWeight: 'bold' }}>University:</Text> {listing.facultyId.university || 'Not specified'}
+                            </Text>
                             </>
                         )}
                         
-                        <Text style={styles.sectionTitle}>Duration</Text>
-                        <Text style={styles.expandedText}>{formatDuration(listing.duration)}</Text>
+                       
                         
-                        <Text style={styles.sectionTitle}>Compensation</Text>
-                        <Text style={styles.expandedText}>{formatWage(listing.wage)}</Text>
-                        
-                        <Text style={styles.sectionTitle}>Posted</Text>
-                        <Text style={styles.expandedText}>{formatDate(listing.createdAt)}</Text>
+                        <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>Date Posted</Text>
+                        <Text style={[styles.expandedText, { color: expandedTextColor }]}>{formatDate(listing.createdAt)}</Text>
                         
                         {/* Express Interest button for students */}
                         {!isFaculty && (
@@ -720,13 +724,26 @@ const ListingManagement = ({ navigation, route }: any) => {
                         </View>
                     )}
                 </View>
-            ) : (
-                <ScrollView style={styles.listContainer}>
+             ) : (
+                <View style={{ flex: 1 }}>
+                  <ScrollView style={[styles.listContainer, { backgroundColor }]}>
                     {listings.map(renderListingItem)}
-                </ScrollView>
-            )}
-        </ResponsiveScreen>
-    );
+                  </ScrollView>
+                        
+                  {isFaculty && (
+                    <View style={{ flex: 1 }}>
+                      <TouchableOpacity
+                        style={styles.createBottomButton}
+                        onPress={() => navigation.navigate('ListingCreate')}
+                      >
+                        <Text style={styles.buttonText}>Create New Listing</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+              )}
+            </ResponsiveScreen>
+          );
 };
 
 const styles = StyleSheet.create({
@@ -742,8 +759,10 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
     },
     title: {
+        marginVertical: 15,
         fontSize: 24,
         fontWeight: 'bold',
+        textAlign: 'center',
         flex: 1,
     },
     headerButtons: {
@@ -924,6 +943,13 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         fontSize: 16,
     },
+      createBottomButton: {
+        backgroundColor: '#893030',
+        paddingVertical: 12,
+        borderRadius: 8,
+        alignItems: 'center',
+      },
+      
 });
 
 export default ListingManagement;

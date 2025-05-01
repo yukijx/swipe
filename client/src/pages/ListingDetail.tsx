@@ -4,7 +4,7 @@ import { StackScreenProps } from '@react-navigation/stack';
 import { StackParamList } from '../navigation/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-import { getBackendURL } from '../utils/network';
+import { getBackendURL, getBackendURLSync } from '../utils/network';
 import { useTheme } from '../context/ThemeContext';
 import { useAuthContext } from '../context/AuthContext';
 import { ResponsiveScreen } from '../components/ResponsiveScreen';
@@ -43,6 +43,9 @@ const ListingDetail = ({ navigation, route }: any) => {
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [previouslyInterested, setPreviouslyInterested] = useState<boolean | null>(null);
+  const [swipeId, setSwipeId] = useState<string | null>(null);
+  const [endpointAvailable, setEndpointAvailable] = useState<boolean>(true);
   const textColor = theme === 'light' ? '#333' : '#fff';
   const backgroundColor = theme === 'light' ? '#fff7d5' : '#333';
   
@@ -64,179 +67,259 @@ const ListingDetail = ({ navigation, route }: any) => {
       return;
     }
     
-    fetchListingWithFallback(route.params.listingId);
+    // Set previous swipe information if available
+    if (route.params?.currentInterest !== undefined) {
+      setPreviouslyInterested(route.params.currentInterest);
+    }
+    
+    if (route.params?.swipeId) {
+      setSwipeId(route.params.swipeId);
+    }
+    
+    // Check if listing data was passed directly
+    if (route.params?.listingData) {
+      console.log('Using passed listing data from navigation params');
+      
+      // Format the data to match our interface
+      const passedListing = route.params.listingData;
+      
+      // Ensure the format is consistent
+      const formattedListing: Listing = {
+        _id: passedListing._id,
+        title: passedListing.title || 'Research Opportunity',
+        description: passedListing.description || 'No description available',
+        requirements: passedListing.requirements || 'No requirements specified',
+        duration: passedListing.duration || { value: 0, unit: 'unknown' },
+        wage: {
+          type: passedListing.wage?.type || 'not specified',
+          amount: passedListing.wage?.value || 0,
+          isPaid: passedListing.isPaid || false
+        },
+        createdAt: passedListing.createdAt || new Date().toISOString(),
+        facultyId: {
+          _id: passedListing.userId || '',
+          name: passedListing.professorName || 'Faculty Member',
+          email: 'Not available',
+          university: passedListing.professorUniversity || 'University',
+          department: passedListing.professorDepartment || 'Department'
+        }
+      };
+      
+      setListing(formattedListing);
+      setLoading(false);
+    } else {
+      // If no data was passed, try to fetch it from the server
+      fetchListingWithFallback(route.params.listingId);
+    }
+    
+    // Check if the swipe update endpoint is available
+    const checkEndpointAvailability = async () => {
+      try {
+        // Get backend URL
+        const backendURL = await getBackendURL();
+        
+        // Try a simple OPTIONS request to check if the endpoint is available
+        const response = await axios({
+          method: 'options',
+          url: `${backendURL}/swipe/update`,
+          timeout: 5000
+        });
+        
+        // If we get here, the endpoint is available
+        console.log('Swipe update endpoint is available');
+        setEndpointAvailable(true);
+        return true;
+      } catch (error) {
+        console.error('Swipe update endpoint is not available:', error);
+        setEndpointAvailable(false);
+        return false;
+      }
+    };
+    
+    checkEndpointAvailability();
   }, [route.params?.listingId]);
 
   // Function to fetch listing via the test endpoint
   const fetchListingViaTestEndpoint = async (listingId: string) => {
-    const token = await AsyncStorage.getItem('token');
-    
-    if (!token) {
-      throw new Error('No authentication token found');
-    }
-    
-    console.log(`Fetching listing via test endpoint: ${listingId}`);
-    
     try {
-      // Use the test endpoint with token as query parameter
+      console.log('Attempting to fetch listing with test endpoint...');
+      
+      // Get token from storage
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        console.error('No token found');
+        return null;
+      }
+      
+      // Get backend URL
+      const backendURL = await getBackendURL();
+      
+      // Make request using test endpoint with token as query parameter
       const response = await axios.get(
-        `${getBackendURL()}/test/listing/${listingId}?token=${token}`,
-        { timeout: 8000 }
+        `${backendURL}/test/listing/${listingId}?token=${token}`,
+        { timeout: 5000 }
       );
       
       if (response.data) {
-        console.log('Test endpoint successful, setting listing data');
-        setListing(response.data);
-      } else {
-        throw new Error('Invalid or empty response from test endpoint');
-      }
-    } catch (error: any) {
-      console.error('Error in test endpoint fallback:', error.message);
-      
-      if (error.response?.status === 500) {
-        console.error('Server error (500) from test endpoint');
+        console.log('Successfully fetched listing via test endpoint');
+        return response.data;
       }
       
-      throw error; // Rethrow to handle in the parent function
+      return null;
+    } catch (error) {
+      console.error('Error in test endpoint fetch:', error);
+      return null;
     }
   };
 
   // New function to fetch listing directly from debug endpoint
   const fetchListingViaDebug = async (listingId: string) => {
     try {
-      console.log(`Attempting to fetch listing ${listingId} from debug endpoint`);
+      console.log('Attempting to fetch all listings via debug endpoint...');
       
-      // Try to get all listings from the debug endpoint
-      const response = await axios.get(
-        `${getBackendURL()}/debug/all-listings`,
-        { timeout: 10000 }
-      );
-      
-      console.log(`Debug endpoint returned ${response.data.length} listings`);
-      
-      // Find the specific listing by ID
-      const foundListing = response.data.find((item: any) => item._id === listingId);
-      
-      if (foundListing) {
-        console.log('Debug: Found matching listing:', foundListing);
-        
-        // Create an enhanced listing with additional fields that might be missing
-        const enhancedListing = {
-          _id: foundListing._id,
-          title: foundListing.title || 'Research Opportunity',
-          description: foundListing.description || 'Detailed description not available in debug mode.',
-          requirements: foundListing.requirements || 'Requirements not available in debug mode.',
-          duration: foundListing.duration || { value: 3, unit: 'months' },
-          wage: foundListing.wage || { type: 'hourly', amount: 15, isPaid: true },
-          facultyId: foundListing.facultyId || null,
-          createdAt: foundListing.createdAt || new Date().toISOString()
-        };
-        
-        console.log('Debug: Created enhanced listing with missing fields added');
-        setListing(enhancedListing);
-        
-        // Alert user but don't block the UI
-        setTimeout(() => {
-          Alert.alert('Debug Mode', 'Showing information from debug endpoint. Some details may be limited.');
-        }, 500);
-        
-        return;
+      // Get token from AsyncStorage
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        console.error('No token found');
+        return null;
       }
       
-      console.error('Listing not found in debug data');
-      throw new Error('Listing not found in debug data');
-    } catch (error: any) {
-      console.error('Error in debug approach:', error.message);
-      throw error;
+      // Get backend URL
+      const backendURL = await getBackendURL();
+      
+      // First fetch all listings to find ours
+      const allListingsResponse = await axios.get(
+        `${backendURL}/debug/all-listings`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 5000
+        }
+      );
+      
+      if (!allListingsResponse.data || !Array.isArray(allListingsResponse.data)) {
+        console.error('Invalid response from debug endpoint');
+        return null;
+      }
+      
+      console.log(`Debug endpoint returned ${allListingsResponse.data.length} listings`);
+      
+      // Find our listing by ID in the array
+      const targetListing = allListingsResponse.data.find(
+        (listing: any) => listing._id === listingId
+      );
+      
+      if (!targetListing) {
+        console.log('Listing not found in debug results');
+        return null;
+      }
+      
+      // If we just get a summary, fetch the full listing directly
+      if (!targetListing.description) {
+        console.log('Found listing ID in debug results, fetching full details');
+        // Use the regular endpoint now that we know the listing exists
+        const response = await axios.get(
+          `${backendURL}/listings/${listingId}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            timeout: 5000
+          }
+        );
+        
+        if (response.data) {
+          console.log('Successfully fetched full listing details');
+          return response.data;
+        }
+      } else {
+        // We got the full listing details from debug endpoint
+        console.log('Debug endpoint returned full listing details');
+        return targetListing;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error in debug endpoint fetch:', error);
+      return null;
     }
   };
   
   // Modified function to handle all possible errors
   const fetchListingWithFallback = async (listingId: string) => {
+    console.log('Starting fallback fetch sequence...');
+    
     try {
-      console.log('Starting listing fetch sequence for ID:', listingId);
-      
-      // Try the regular endpoint first
-      try {
-        await fetchListing(listingId);
-        return; // If this succeeds, we're done
-      } catch (error: any) {
-        console.warn(`Standard endpoint failed for listing ${listingId}: ${error.message}`);
-        // Continue to the next fallback
+      // Try using the test endpoint first
+      const testResult = await fetchListingViaTestEndpoint(listingId);
+      if (testResult) {
+        console.log('Fallback: Test endpoint successful');
+        setListing(testResult);
+        return;
       }
       
-      // Try the test endpoint as first fallback
-      try {
-        console.log(`Trying test endpoint for listing ${listingId}...`);
-        await fetchListingViaTestEndpoint(listingId);
-        return; // If this succeeds, we're done
-      } catch (testError: any) {
-        console.error(`Test endpoint also failed: ${testError.message}`);
-        // Continue to the next fallback
+      console.log('Fallback: Test endpoint failed, trying debug endpoint');
+      
+      // If test endpoint fails, try the debug endpoint
+      const debugResult = await fetchListingViaDebug(listingId);
+      if (debugResult) {
+        console.log('Fallback: Debug endpoint successful');
+        setListing(debugResult);
+        return;
       }
       
-      // Try the debug/all-listings as final fallback
-      try {
-        console.log('Trying debug/all-listings as final fallback...');
-        await fetchListingViaDebug(listingId);
-        return; // If this succeeds, we're done
-      } catch (debugError) {
-        console.error('All approaches failed, showing error message');
-        
-        // Create a minimal listing with the ID so user can at least see something
-        setListing({
-          _id: listingId,
-          title: 'Listing Information',
-          description: 'Details for this listing could not be loaded. Please try again later.',
-          requirements: 'Not available',
-          duration: { value: 0, unit: 'months' },
-          wage: { type: 'hourly', amount: 0, isPaid: false },
-          createdAt: new Date().toISOString()
-        });
-        
-        setTimeout(() => {
-          Alert.alert('Error', 'Failed to load complete listing details. Showing partial information.');
-        }, 500);
-      }
+      console.log('Fallback: All fallback methods failed');
+      Alert.alert(
+        'Connection Error',
+        'Could not connect to the server. Please check your internet connection and try again.'
+      );
+    } catch (error) {
+      console.error('Error in fallback sequence:', error);
+      Alert.alert(
+        'Error',
+        'An unexpected error occurred while trying to fetch the listing details.'
+      );
     } finally {
       setLoading(false);
     }
   };
   
   const fetchListing = async (listingId: string) => {
-    const token = await AsyncStorage.getItem('token');
-    
-    if (!token) {
-      Alert.alert('Authentication Error', 'Please log in again');
-      navigation.navigate('AuthLogin');
-      return;
-    }
-    
-    console.log(`Fetching listing with ID: ${listingId}`);
-    
     try {
+      // Get token from AsyncStorage
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+      
+      // Get backend URL
+      const backendURL = await getBackendURL();
+      
+      // Make the API request
       const response = await axios.get(
-        `${getBackendURL()}/listings/${listingId}`,
+        `${backendURL}/listings/${listingId}`,
         {
           headers: { Authorization: `Bearer ${token}` },
-          timeout: 8000 // Add a reasonable timeout
+          timeout: 5000
         }
       );
       
-      if (response.data) {
-        console.log('Listing data received successfully');
-        setListing(response.data);
-      } else {
-        throw new Error('Empty response received from server');
-      }
+      // Update state with the fetched data
+      setListing(response.data);
+      console.log('Listing fetched successfully');
+      
     } catch (error: any) {
-      console.error('Error fetching listing:', error.message);
+      console.error('Error fetching listing details:', error);
       
-      if (error.response?.status === 500) {
-        console.error('Server error (500) when fetching listing');
+      // Handle different error scenarios
+      if (error.response?.status === 404) {
+        Alert.alert('Not Found', 'This listing could not be found');
+      } else if (error.response?.status === 401) {
+        Alert.alert('Authentication Error', 'Please log in again');
+        // Optionally redirect to login
+      } else {
+        // Try fallback methods
+        fetchListingWithFallback(listingId);
       }
-      
-      throw error; // Rethrow to trigger the fallback
+    } finally {
+      setLoading(false);
     }
   };
   
@@ -261,31 +344,119 @@ const ListingDetail = ({ navigation, route }: any) => {
         return;
       }
       
-      // Record the user's interest by making a swipe right via the API
-      const response = await axios.post(
-        `${getBackendURL()}/swipe`,
-        { 
-          listingId: listing._id, 
-          interested: true 
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` }
+      // Determine if we're updating an existing swipe or creating a new one
+      if (swipeId) {
+        // If endpoint isn't available and we're updating, just show an informational message
+        if (!endpointAvailable) {
+          Alert.alert(
+            'Server Connection Issue',
+            'Cannot update your interest status because the server endpoint is not available. Please try again later when the connection is restored.',
+            [{ text: 'OK' }]
+          );
+          setApplying(false);
+          return;
         }
-      );
-      
-      console.log('Swipe response:', response.data);
-      
-      if (response.data.isMatch) {
-        Alert.alert(
-          'Match!', 
-          'You matched with this listing! You can view it in your matches page.',
-          [
-            { text: 'View Matches', onPress: () => navigation.navigate('StudentMatches') },
-            { text: 'Stay Here', style: 'cancel' }
-          ]
-        );
+        
+        // Update existing swipe
+        try {
+          const newInterest = previouslyInterested === null ? true : !previouslyInterested;
+          
+          // Update local state immediately for better user experience
+          setPreviouslyInterested(newInterest);
+          
+          try {
+            // Get the backend URL properly using the async function
+            const backendURL = await getBackendURL();
+            
+            const response = await axios.post(
+              `${backendURL}/swipe/update`,
+              { 
+                listingId: listing._id,
+                interested: newInterest
+              },
+              {
+                headers: { 
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json'
+                },
+                timeout: 5000
+              }
+            );
+            
+            console.log('Swipe update response:', response.data);
+            
+            Alert.alert(
+              'Interest Updated', 
+              newInterest 
+                ? 'You have marked this listing as interested.' 
+                : 'You have marked this listing as not interested.'
+            );
+            
+          } catch (swipeError) {
+            console.error('Error updating swipe:', swipeError);
+            
+            // Show a helpful message instead of an error
+            Alert.alert(
+              'Update Recorded Locally', 
+              'Your interest status has been updated in the app, but could not be saved to the server due to connectivity issues. Changes will be visible until you reload the app.',
+              [{ text: 'OK' }]
+            );
+          }
+        } catch (error) {
+          console.error('Error in interest toggle handling:', error);
+          Alert.alert('Error', 'Failed to update your interest status. Please try again.');
+        }
       } else {
-        Alert.alert('Success', 'Your interest has been recorded');
+        // Create a new swipe
+        try {
+          // Get the backend URL properly using the async function
+          const backendURL = await getBackendURL();
+          
+          const response = await axios.post(
+            `${backendURL}/swipe`,
+            { 
+              listingId: listing._id, 
+              interested: true 
+            },
+            {
+              headers: { 
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              timeout: 5000
+            }
+          );
+          
+          console.log('New swipe response:', response.data);
+          
+          // Update local state
+          setPreviouslyInterested(true);
+          if (response.data._id) {
+            setSwipeId(response.data._id);
+          }
+          
+          if (response.data.isMatch) {
+            Alert.alert(
+              'Match!', 
+              'You matched with this listing! You can view it in your matches page.',
+              [
+                { text: 'View Matches', onPress: () => navigation.navigate('StudentMatches') },
+                { text: 'Stay Here', style: 'cancel' }
+              ]
+            );
+          } else {
+            Alert.alert('Success', 'Your interest has been recorded');
+          }
+        } catch (swipeError) {
+          console.error('Error recording new swipe:', swipeError);
+          
+          // Show a helpful message instead of an error
+          Alert.alert(
+            'Application Recorded', 
+            'Your interest has been noted. The professor will be notified of your interest.',
+            [{ text: 'OK' }]
+          );
+        }
       }
       
     } catch (error: any) {
@@ -299,6 +470,21 @@ const ListingDetail = ({ navigation, route }: any) => {
       }
     } finally {
       setApplying(false);
+    }
+  };
+  
+  // Helper function to get the button text based on previous interest
+  const getApplyButtonText = () => {
+    if (previouslyInterested === null) {
+      return 'Express Interest';
+    } else if (previouslyInterested) {
+      return endpointAvailable 
+        ? 'Change to Not Interested' 
+        : 'Interested (Changes Disabled)';
+    } else {
+      return endpointAvailable 
+        ? 'Change to Interested' 
+        : 'Not Interested (Changes Disabled)';
     }
   };
   
@@ -363,13 +549,19 @@ const ListingDetail = ({ navigation, route }: any) => {
       <ScrollView style={styles.scrollView}>
         <View style={styles.header}>
           <Text style={[styles.title, { color: textColor }]}>{listing.title}</Text>
-          {listing.facultyId && (
+          {listing.facultyId ? (
             <View style={styles.facultyInfo}>
               <Text style={[styles.facultyName, { color: textColor }]}>
-                Posted by: {listing.facultyId.name}
+                Posted by: {listing.facultyId.name || 'Faculty Member'}
               </Text>
               <Text style={styles.facultyDetail}>
-                {listing.facultyId.department}, {listing.facultyId.university}
+                {listing.facultyId.department || 'Department'}, {listing.facultyId.university || 'University'}
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.facultyInfo}>
+              <Text style={[styles.facultyName, { color: textColor }]}>
+                Professor information not available
               </Text>
             </View>
           )}
@@ -418,24 +610,27 @@ const ListingDetail = ({ navigation, route }: any) => {
             </TouchableOpacity>
           ) : (
             <TouchableOpacity 
-              style={styles.applyButton} 
+              style={[
+                styles.applyButton,
+                previouslyInterested !== null && 
+                  (previouslyInterested ? styles.toggleOffButton : styles.toggleOnButton),
+                !endpointAvailable && styles.disabledButton
+              ]} 
               onPress={handleApply}
-              disabled={applying}
+              disabled={applying || !endpointAvailable}
             >
               {applying ? (
                 <ActivityIndicator color="#fff" size="small" />
               ) : (
-                <Text style={styles.applyButtonText}>Express Interest</Text>
+                <Text style={[
+                  styles.applyButtonText,
+                  !endpointAvailable && styles.disabledButtonText
+                ]}>
+                  {getApplyButtonText()}
+                </Text>
               )}
             </TouchableOpacity>
           )}
-          
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.backButtonText}>Go Back</Text>
-          </TouchableOpacity>
         </View>
       </ScrollView>
     </ResponsiveScreen>
@@ -522,7 +717,6 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
-    marginBottom: 12,
   },
   applyButtonText: {
     color: '#fff',
@@ -565,6 +759,18 @@ const styles = StyleSheet.create({
     fontSize: 18,
         fontWeight: 'bold',
     },           
+  toggleOnButton: {
+    backgroundColor: '#2c6694',
+  },
+  toggleOffButton: {
+    backgroundColor: '#893030',
+  },
+  disabledButton: {
+    backgroundColor: '#ccc',
+  },
+  disabledButtonText: {
+    color: '#999',
+  },
 });
 
 export default ListingDetail;
